@@ -1,26 +1,26 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-// The official BudgetWise mark (public/icons/bw-logo.png) — used everywhere
-// the brand needs an icon-sized identity: header, footer, mobile nav.
-// Sized by height with width auto-derived from the source's own aspect
-// ratio (541x350, via aspect-ratio) so it's never stretched or distorted;
-// object-contain only, never cropped. Decorative (empty alt) — every call
-// site pairs this with a visible "BudgetWise" text label right next to it,
-// which already carries the accessible name.
+// The official BudgetWise lockup (public/icons/NOBGbanner.png) — the full
+// "BW / BudgetWise / Discounted Game Market" mark, transparent background.
+// This is the ONLY logo used across the site (header, footer, mobile nav):
+// no separate "BW"-only mark, no adjacent text label — the wordmark is
+// baked into the artwork itself. Sized by height with width auto-derived
+// from the source's own content aspect ratio so it's never stretched;
+// object-contain only, never cropped.
 export function BrandMark({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "relative inline-flex h-8 shrink-0 overflow-hidden rounded-[7px] [aspect-ratio:541/350]",
+        "relative inline-flex h-11 shrink-0 [aspect-ratio:1264/800]",
         className,
       )}
     >
       <Image
-        src="/icons/bw-logo.png"
-        alt=""
+        src="/icons/NOBGbanner.png"
+        alt="BudgetWise"
         fill
-        sizes="60px"
+        sizes="140px"
         className="object-contain"
         priority
       />

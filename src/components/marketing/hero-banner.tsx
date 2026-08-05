@@ -4,13 +4,15 @@ import { useRef } from "react";
 import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 
-const BANNER_SRC = "/icons/bw-banner.png";
+const BANNER_SRC = "/icons/NOBGbanner.png";
 
-// The uploaded banner as premium hero artwork — kept recognizable (only a
-// light 9px blur, not the heavy multi-layer treatment this used to have),
-// with a dark theme-aware overlay doing the work of keeping text readable
-// instead of hiding the art. Fades into the section below via a mask, and
-// drifts a few px on scroll for a barely-there parallax.
+// The official BudgetWise mark, transparent PNG, used as hero backdrop —
+// branding, not decoration. Heavily blurred, slightly desaturated, and
+// shown at reduced opacity so it reads as a huge soft brand watermark
+// behind the content rather than competing with it. Layering (back to
+// front): banner -> dark overlay -> soft purple glow -> hero content.
+// Fades into the section below via a mask, and drifts a few px on scroll
+// for a barely-there parallax.
 export function HeroBanner() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -37,14 +39,15 @@ export function HeroBanner() {
           fill
           priority
           sizes="100vw"
-          className="object-cover object-[center_22%] blur-[9px] sm:object-center"
+          className="scale-150 object-contain opacity-80 blur-xl saturate-75 sm:scale-125"
         />
       </motion.div>
 
-      {/* Dark, theme-aware overlay — this carries readability, not the blur */}
-      <div className="bg-background/72 absolute inset-0" />
+      {/* Dark, theme-aware overlay — sits on top of the banner */}
+      <div className="bg-background/55 absolute inset-0" />
 
-      {/* Soft radial light behind the headline, same language as every other section */}
+      {/* Soft purple ambient glow — above the overlay, below the content,
+          intentionally faint so it never outshines the banner itself */}
       <div className="hero-glow absolute inset-0" />
     </div>
   );

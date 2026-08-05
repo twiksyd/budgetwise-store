@@ -29,9 +29,8 @@ export function MobileNav() {
       </Button>
       <SheetContent side="left" className="w-2/3">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2.5">
-            <BrandMark />
-            {siteConfig.name}
+          <SheetTitle className="flex items-center">
+            <BrandMark className="h-9" />
           </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-1 px-4">
