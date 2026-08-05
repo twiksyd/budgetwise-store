@@ -7,6 +7,9 @@ export const siteConfig = {
   // m.me accepts a numeric Facebook Page ID directly, which is what this Page
   // uses since it hasn't claimed a custom username (its URL is profile.php?id=...).
   messengerPageId: "61589047545427",
+  // Public Facebook vouch/reviews page. The "View more reviews" button on
+  // the homepage is hidden until this is set.
+  facebookVouchUrl: null as string | null,
   nav: [
     { label: "Games", href: "/games" },
     { label: "How it works", href: "/how-ordering-works" },
