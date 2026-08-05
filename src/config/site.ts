@@ -9,7 +9,7 @@ export const siteConfig = {
   messengerPageId: "61589047545427",
   // Public Facebook vouch/reviews page. The "View more reviews" button on
   // the homepage is hidden until this is set.
-  facebookVouchUrl: null as string | null,
+  facebookVouchUrl: "https://www.facebook.com/share/p/1Ub2UPFdkv/" as string | null,
   nav: [
     { label: "Games", href: "/games" },
     { label: "How it works", href: "/how-ordering-works" },
