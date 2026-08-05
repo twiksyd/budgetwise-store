@@ -10,7 +10,6 @@ import { useCartStore } from "@/stores/cart-store";
 export function CheckoutForm() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
-  const clearCart = useCartStore((state) => state.clear);
 
   const [name, setName] = useState("");
   const [robloxUsername, setRobloxUsername] = useState("");
@@ -48,7 +47,9 @@ export function CheckoutForm() {
       }
 
       const { orderNumber } = await response.json();
-      clearCart();
+      // The cart is cleared on the success page itself, not here — clearing
+      // it while still on /checkout would trip the "cart is empty" redirect
+      // guard on this page and race against this navigation away from it.
       router.push(`/checkout/success/${orderNumber}`);
     } catch {
       setError("Something went wrong. Please try again.");

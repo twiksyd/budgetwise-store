@@ -4,6 +4,7 @@ import { getOrderConfirmation } from "@/lib/queries/orders";
 import { getMessengerLink, buildOrderMessage } from "@/lib/messenger";
 import { MessengerHandoff } from "@/components/checkout/messenger-handoff";
 import { SuccessHeader } from "@/components/checkout/success-header";
+import { ClearCartOnSuccess } from "@/components/checkout/clear-cart-on-success";
 import { formatPrice } from "@/lib/pricing";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default async function CheckoutSuccessPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-lg px-6 py-16">
+      <ClearCartOnSuccess />
       <SuccessHeader
         orderNumber={order.orderNumber}
         subtitle={`Total: ${formatPrice(order.total)} · Deliver to ${order.buyerRobloxUsername}`}

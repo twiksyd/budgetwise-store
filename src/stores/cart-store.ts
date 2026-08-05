@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem } from "@/types/domain";
@@ -48,6 +49,25 @@ export const useCartStore = create<CartState>()(
     { name: "budgetwise-cart" },
   ),
 );
+
+// The persist middleware reads localStorage asynchronously after mount, so
+// `items` is briefly `[]` on every fresh page load before rehydration
+// finishes. Anything that treats an empty cart as significant (e.g.
+// redirecting away from checkout) must wait for this first, or it'll act on
+// a false "empty cart" before the real persisted data has loaded.
+export function useCartHydrated() {
+  // useCartStore.persist is only populated in a browser environment, not
+  // during server-side prerendering, so this must start false and only
+  // read the real API from inside the effect (which never runs on the server).
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(useCartStore.persist.hasHydrated());
+    return useCartStore.persist.onFinishHydration(() => setHydrated(true));
+  }, []);
+
+  return hydrated;
+}
 
 export const selectCartCount = (state: CartState) =>
   state.items.reduce((sum, i) => sum + i.quantity, 0);

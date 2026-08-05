@@ -4,18 +4,23 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { OrderSummary } from "@/components/checkout/order-summary";
-import { useCartStore, selectCartSubtotal } from "@/stores/cart-store";
+import {
+  useCartStore,
+  useCartHydrated,
+  selectCartSubtotal,
+} from "@/stores/cart-store";
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const hydrated = useCartHydrated();
   const items = useCartStore((state) => state.items);
   const subtotal = useCartStore(selectCartSubtotal);
 
   useEffect(() => {
-    if (items.length === 0) router.replace("/cart");
-  }, [items.length, router]);
+    if (hydrated && items.length === 0) router.replace("/cart");
+  }, [hydrated, items.length, router]);
 
-  if (items.length === 0) return null;
+  if (!hydrated || items.length === 0) return null;
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-16">
