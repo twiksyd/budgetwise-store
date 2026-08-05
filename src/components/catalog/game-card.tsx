@@ -30,7 +30,7 @@ export function GameCard({ game }: { game: StoreGame }) {
             <Badge className="absolute top-2 right-2">Sale</Badge>
           )}
           {game.name === "ROBUX PLUS" && (
-            <Badge variant="secondary" className="absolute top-2 left-2">
+            <Badge className="absolute top-2 left-2 h-auto bg-red-600 px-2.5 py-1 text-sm font-bold text-white [a]:hover:bg-red-600">
               PLUS
             </Badge>
           )}
