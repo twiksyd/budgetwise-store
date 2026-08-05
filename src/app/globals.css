@@ -73,8 +73,9 @@
   --input: oklch(0.922 0 0);
   --ring: oklch(0.55 0.2 291);
   /* Reserved exclusively for the single highest-tier signal (the crest's
-     crown/"WISE" gold) — the Best Value badge and nothing else, so it stays
-     meaningful instead of turning into a second theme color. */
+     crown/"WISE" gold) — the Best Value badge, and the border/icon tint on
+     that same product's card, and nothing else, so it stays meaningful
+     instead of turning into a second theme color. */
   --gold: oklch(0.8 0.14 83);
   --gold-foreground: oklch(0.28 0.06 70);
   --chart-1: oklch(0.87 0 0);

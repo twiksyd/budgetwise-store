@@ -12,19 +12,25 @@ export function AddToCartButton({
   gameId,
   gameSlug,
   gameName,
+  fullWidth = false,
 }: {
   gamepass: StoreGamepass;
   gameId: string;
   gameSlug: string;
   gameName: string;
+  fullWidth?: boolean;
 }) {
   const addItem = useCartStore((state) => state.addItem);
   const openCart = useUIStore((state) => state.openCart);
 
   return (
-    <motion.div whileTap={{ scale: 0.94 }} className="inline-block">
+    <motion.div
+      whileTap={{ scale: 0.97 }}
+      className={fullWidth ? "block w-full" : "inline-block"}
+    >
       <Button
-        size="sm"
+        size={fullWidth ? "default" : "sm"}
+        className={fullWidth ? "h-11 w-full" : undefined}
         onClick={() => {
           addItem({
             gamepassId: gamepass.id,

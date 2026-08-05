@@ -1,8 +1,9 @@
-export type ProductBadgeKind = "most-popular" | "recommended";
+export type ProductBadgeKind = "most-popular" | "recommended" | "new";
 
 export const productBadgeLabels: Record<ProductBadgeKind, string> = {
-  "most-popular": "Most Popular",
+  "most-popular": "Popular",
   recommended: "Recommended",
+  new: "New",
 };
 
 // Business-owner-editable: mark specific gamepasses (by id, from
