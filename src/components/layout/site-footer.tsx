@@ -2,7 +2,6 @@ import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { BrandMark } from "@/components/brand/brand-mark";
-import { Taglish } from "@/components/shared/taglish";
 import { getGeneralMessengerLink } from "@/lib/messenger";
 
 export function SiteFooter() {
@@ -13,13 +12,13 @@ export function SiteFooter() {
       <div className="mx-auto max-w-6xl px-6 py-16">
         <div className="grid gap-12 sm:grid-cols-[1.3fr_1fr_1fr]">
           <div>
-            <div className="flex items-center gap-3">
-              <BrandMark className="h-12" />
-              <span className="flex flex-col justify-center">
-                <span className="font-heading text-base leading-tight font-semibold tracking-tight">
+            <div className="flex items-center gap-2.5">
+              <BrandMark className="h-9" />
+              <span className="flex flex-col justify-center gap-0.5">
+                <span className="font-heading text-base leading-none font-semibold tracking-tight">
                   {siteConfig.name}
                 </span>
-                <span className="text-muted-foreground mt-0.5 text-[11px] leading-tight font-normal">
+                <span className="text-muted-foreground text-[11px] leading-none font-normal">
                   {siteConfig.slogan}
                 </span>
               </span>
@@ -29,11 +28,6 @@ export function SiteFooter() {
               gamepasses, and subscriptions. Every order is placed on the
               site first, then confirmed with a real person over Messenger.
             </p>
-            <Taglish className="max-w-xs">
-              Isang online store para sa mas mura na in-game currency,
-              gamepasses, at subscriptions. Ang bawat order ay ginagawa
-              muna sa site, tapos kinukumpirma ng tunay na tao sa Messenger.
-            </Taglish>
             {messengerLink && (
               <a
                 href={messengerLink}

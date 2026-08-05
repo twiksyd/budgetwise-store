@@ -31,8 +31,8 @@ export default function RefundPolicyPage() {
         exactly when a refund applies.
       </p>
       <Taglish size="md">
-        Mas gusto naming maging tapat kaysa iwan kang nagtataka. Narito ang
-        eksaktong panahon kung kailan puwede ang refund.
+        Mas gusto naming sabihin sa&apos;yo agad kaysa iwan kang nagtataka.
+        Eto na yung exact na sitwasyon kung kelan puwede mag-refund.
       </Taglish>
 
       <div className="mt-10 grid gap-5 sm:grid-cols-2">
@@ -54,9 +54,9 @@ export default function RefundPolicyPage() {
             ))}
           </ul>
           <Taglish className="border-border/60 mt-4 border-t pt-3">
-            Puwede ang refund kung: hindi na-deliver ang order kahit
-            kumpirmado na ang bayad, mali ang natanggap mong item o halaga,
-            o na-double charge ka sa parehong order.
+            Puwede kang mag-refund kung: hindi na-deliver yung order mo
+            kahit na-confirm na yung bayad, mali yung natanggap mong item o
+            amount, o na-double charge ka sa parehong order.
           </Taglish>
         </div>
 
@@ -78,10 +78,9 @@ export default function RefundPolicyPage() {
             ))}
           </ul>
           <Taglish className="border-border/60 mt-4 border-t pt-3">
-            Hindi puwede ang refund kung: nagbago lang ang isip mo
-            pagkatapos ma-deliver ang order, mali ang username na inilagay
-            sa checkout, o naka-ban o restricted ang sarili mong Roblox
-            account.
+            Hindi puwede mag-refund kung: nagbago lang isip mo pagkatapos
+            ma-deliver yung order, mali yung username na nilagay mo sa
+            checkout, o naka-ban o restricted yung Roblox account mo.
           </Taglish>
         </div>
       </div>
@@ -99,10 +98,10 @@ export default function RefundPolicyPage() {
             update.
           </p>
           <Taglish>
-            Ang mga order ay sinusuri at kinukumpirma nang manual pagkatapos
-            mong i-send sa Messenger — totoong tao ang sasagot, hindi
-            automated. Kung mas matagal ang order mo sa karaniwan, sasabihin
-            namin agad sa iyo.
+            Bawat order, chine-check at kina-confirm namin nang mano-mano
+            pagkatapos mong i-send sa Messenger — totoong tao ang sasagot
+            sa&apos;yo, hindi bot. Kung medyo matagal yung order mo,
+            sasabihin namin agad sa&apos;yo.
           </Taglish>
         </div>
         <div>
@@ -118,8 +117,9 @@ export default function RefundPolicyPage() {
             and get back to you.
           </p>
           <Taglish>
-            I-message kami sa Messenger ng order number mo at kung ano ang
-            problema. Titingnan namin ito at babalikan ka.
+            I-message mo lang kami sa Messenger ng order number mo at kung
+            ano yung problema. Titingnan namin agad tapos babalikan ka
+            namin.
           </Taglish>
         </div>
       </div>

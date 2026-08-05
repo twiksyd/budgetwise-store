@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Taglish } from "@/components/shared/taglish";
 import { useCartStore } from "@/stores/cart-store";
 
 export function CheckoutForm() {
@@ -114,9 +113,6 @@ export function CheckoutForm() {
           No payment is taken here — you&apos;ll confirm payment on Messenger
           next.
         </p>
-        <Taglish className="text-center">
-          Walang babayaran dito — kukumpirmahin mo ang bayad sa Messenger.
-        </Taglish>
       </div>
     </form>
   );

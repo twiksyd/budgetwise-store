@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroBanner } from "@/components/marketing/hero-banner";
-import { Taglish } from "@/components/shared/taglish";
 
 const container: Variants = {
   hidden: {},
@@ -54,12 +53,6 @@ export function AnimatedHero() {
           A digital marketplace for discounted in-game currency, gamepasses,
           and subscriptions — built for gamers who expect a real storefront.
         </motion.p>
-        <motion.div variants={item}>
-          <Taglish size="md" className="max-w-md text-balance">
-            Mas mura na in-game currency, gamepasses, at subscriptions —
-            gawa para sa mga gamer na gustong makatrato ng tunay na tindahan.
-          </Taglish>
-        </motion.div>
 
         <motion.div
           variants={item}

@@ -9,32 +9,27 @@ import {
   PackageCheck,
   ArrowRight,
 } from "lucide-react";
-import { Taglish } from "@/components/shared/taglish";
 
 const steps = [
   {
     icon: ShoppingCart,
     title: "Add to cart",
     description: "Pick your currency or gamepass.",
-    taglish: "Pumili ng currency o gamepass.",
   },
   {
     icon: ClipboardList,
     title: "Check out",
     description: "Get a real order number.",
-    taglish: "Makakakuha ka ng tunay na order number.",
   },
   {
     icon: MessageCircle,
     title: "Confirm on Messenger",
     description: "Pre-filled, one tap to send.",
-    taglish: "Nakasulat na, isang tap lang para i-send.",
   },
   {
     icon: PackageCheck,
     title: "We deliver",
     description: "Straight to your Roblox account.",
-    taglish: "Direkta sa Roblox account mo.",
   },
 ];
 
@@ -86,7 +81,6 @@ export function HowItWorksPreview() {
               <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
                 {step.description}
               </p>
-              <Taglish>{step.taglish}</Taglish>
             </div>
           </motion.div>
         ))}

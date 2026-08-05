@@ -23,8 +23,8 @@ export default function ContactPage() {
 We&apos;re a message away.
       </p>
       <Taglish size="md">
-        May tanong ka ba bago mag-order, o kailangan ng tulong sa order mo
-        na? Isang message lang ang layo namin.
+        May tanong ka ba bago mag-order, o kailangan mo ng tulong sa
+        existing order mo? Isang message lang kami ang layo.
       </Taglish>
 
       <div className="surface-premium mt-10 rounded-2xl p-6 sm:p-7">
@@ -39,8 +39,8 @@ We&apos;re a message away.
           answers from a real person, not an autoresponder.
         </p>
         <Taglish>
-          Dito namin hinahandle ang bawat order at tanong — tunay na tao ang
-          sasagot sa iyo, hindi automated.
+          Dito namin inaasikaso lahat ng order at tanong — totoong tao ang
+          sasagot sa&apos;yo, hindi bot.
         </Taglish>
         {messengerLink ? (
           <Button asChild size="lg" className="mt-5 h-11 w-full">
@@ -70,9 +70,9 @@ We&apos;re a message away.
             message gets read and answered by a real person.
           </p>
           <Taglish>
-            Maliit na team lang kami kaya hindi laging kaagad ang sagot —
-            pero sigurado kaming may tunay na taong babasa at sasagot sa
-            mensahe mo.
+            Maliit lang na team kami kaya hindi laging agad-agad yung sagot
+            — pero sigurado, may totoong tao na magbabasa at sasagot sa
+            message mo.
           </Taglish>
         </div>
         <div className="surface-premium rounded-2xl p-5">
@@ -87,7 +87,7 @@ We&apos;re a message away.
             throughout the day.
           </p>
           <Taglish>
-            Walang nakatakdang oras — chine-check namin ang mga mensahe sa
+            Wala kaming fixed schedule — chine-check namin yung mga message
             buong araw.
           </Taglish>
         </div>
@@ -109,10 +109,10 @@ We&apos;re a message away.
             for quick answers to common questions.
           </p>
           <Taglish>
-            May order ka na ba? Isama ang order number mo kapag nag-message
-            ka — makikita ito sa confirmation page ng order mo — para
-            mahanap agad namin ito. Tingnan ang aming FAQ para sa mabilisang
-            sagot sa mga karaniwang tanong.
+            May order ka na? I-send mo yung order number mo pag nag-message
+            ka — makikita mo yan sa confirmation page mo — para mahanap
+            namin agad. Tingnan mo rin yung FAQ namin para sa mabilis na
+            sagot sa mga common na tanong.
           </Taglish>
         </div>
       </div>

@@ -7,7 +7,6 @@ import AutoScroll from "embla-carousel-auto-scroll";
 import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReviewCard } from "@/components/marketing/review-card";
-import { Taglish } from "@/components/shared/taglish";
 import { reviews } from "@/config/reviews";
 import { siteConfig } from "@/config/site";
 
@@ -56,10 +55,6 @@ export function CustomerReviews() {
         <h2 className="font-heading mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
           Real people. Real orders. Real reviews.
         </h2>
-        <Taglish size="md">
-          Bawat review ay galing sa tunay na customer, ibinahagi sa aming
-          Facebook page.
-        </Taglish>
       </motion.div>
 
       <motion.div
