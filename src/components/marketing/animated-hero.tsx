@@ -30,11 +30,11 @@ export function AnimatedHero() {
       >
         <motion.div
           variants={item}
-          className="border-border/60 text-muted-foreground mb-4 flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium sm:mb-8"
+          className="border-primary/25 bg-primary/10 text-primary mb-5 flex items-center gap-2.5 rounded-full border px-4 py-2 text-[13px] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_24px_-12px_color-mix(in_oklch,var(--primary)_40%,transparent)] sm:mb-8 sm:text-sm"
         >
-          <span className="relative flex size-1.5">
+          <span className="relative flex size-2">
             <span className="bg-primary absolute inline-flex size-full animate-ping rounded-full opacity-75" />
-            <span className="bg-primary relative inline-flex size-1.5 rounded-full" />
+            <span className="bg-primary relative inline-flex size-2 rounded-full" />
           </span>
           Now accepting orders
         </motion.div>

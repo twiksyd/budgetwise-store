@@ -5,7 +5,8 @@ import { motion, type Variants } from "framer-motion";
 import {
   ShoppingCart,
   ClipboardList,
-  MessageCircle,
+  Send,
+  Clock,
   PackageCheck,
   ArrowRight,
 } from "lucide-react";
@@ -13,23 +14,28 @@ import {
 const steps = [
   {
     icon: ShoppingCart,
-    title: "Add to cart",
+    title: "Browse & Select",
     description: "Pick your currency or gamepass.",
   },
   {
     icon: ClipboardList,
-    title: "Check out",
-    description: "Get a real order number.",
+    title: "Complete Checkout",
+    description: "Get your official Order Number.",
   },
   {
-    icon: MessageCircle,
-    title: "Confirm on Messenger",
-    description: "Pre-filled, one tap to send.",
+    icon: Send,
+    title: "Send Prepared Order",
+    description: "Messenger opens, ready to send.",
+  },
+  {
+    icon: Clock,
+    title: "Wait for Payment Instructions",
+    description: "We'll send payment details first.",
   },
   {
     icon: PackageCheck,
-    title: "We deliver",
-    description: "Straight to your Roblox account.",
+    title: "Payment & Delivery",
+    description: "Pay, then we deliver fast.",
   },
 ];
 
@@ -55,7 +61,7 @@ export function HowItWorksPreview() {
       >
         <p className="text-primary text-sm font-medium">How it works</p>
         <h2 className="font-heading mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-          From cart to delivery, in four steps.
+          From cart to delivery, in five steps.
         </h2>
       </motion.div>
 
@@ -64,7 +70,7 @@ export function HowItWorksPreview() {
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-80px" }}
-        className="mt-8 grid gap-5 sm:mt-14 sm:grid-cols-2 lg:grid-cols-4"
+        className="mt-8 grid grid-cols-1 gap-5 sm:mt-14 sm:grid-cols-2 lg:grid-cols-5"
       >
         {steps.map((step, i) => (
           <motion.div key={step.title} variants={item} className="relative">
@@ -75,7 +81,7 @@ export function HowItWorksPreview() {
               <div className="bg-primary/10 mt-3 flex size-10 items-center justify-center rounded-xl">
                 <step.icon className="text-primary size-5" />
               </div>
-              <h3 className="font-heading mt-4 text-sm font-semibold">
+              <h3 className="font-heading mt-4 text-sm font-semibold text-balance">
                 {step.title}
               </h3>
               <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">

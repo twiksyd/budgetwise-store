@@ -60,7 +60,7 @@ export default async function RootLayout({
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
@@ -68,7 +68,11 @@ export default async function RootLayout({
             <StorefrontChrome status={status} noticeMessage={noticeMessage}>
               {children}
             </StorefrontChrome>
-            <Toaster position="bottom-center" />
+            <Toaster
+              position="top-center"
+              offset={{ top: "calc(env(safe-area-inset-top) + 108px)" }}
+              mobileOffset={{ top: "calc(env(safe-area-inset-top) + 92px)" }}
+            />
           </MotionProvider>
         </ThemeProvider>
       </body>
