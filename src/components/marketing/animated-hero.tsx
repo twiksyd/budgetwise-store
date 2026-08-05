@@ -4,6 +4,7 @@ import { motion, type Variants } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HeroBanner } from "@/components/marketing/hero-banner";
 
 const container: Variants = {
   hidden: {},
@@ -19,12 +20,13 @@ const item: Variants = {
 
 export function AnimatedHero() {
   return (
-    <section className="hero-glow relative overflow-hidden">
+    <section className="relative overflow-hidden">
+      <HeroBanner />
       <motion.div
         variants={container}
         initial="hidden"
         animate="show"
-        className="relative mx-auto flex max-w-6xl flex-col items-center px-6 pt-32 pb-24 text-center sm:pt-44 sm:pb-32"
+        className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 pt-32 pb-24 text-center sm:pt-44 sm:pb-32"
       >
         <motion.div
           variants={item}

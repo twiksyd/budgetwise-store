@@ -1,21 +1,29 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-// Faithful-in-miniature nod to the BudgetWise crest: a hexagon badge with
-// the same silver "B" / gold "W" split as the real logo. Swap for the
-// official raster mark (once it's placed in the repo, e.g.
-// public/brand/mark.png) for pixel-perfect fidelity — this keeps
-// navigation/footer on-brand in the meantime.
+// The official BudgetWise mark (public/icons/bw-logo.png) — used everywhere
+// the brand needs an icon-sized identity: header, footer, mobile nav.
+// Sized by height with width auto-derived from the source's own aspect
+// ratio (541x350, via aspect-ratio) so it's never stretched or distorted;
+// object-contain only, never cropped. Decorative (empty alt) — every call
+// site pairs this with a visible "BudgetWise" text label right next to it,
+// which already carries the accessible name.
 export function BrandMark({ className }: { className?: string }) {
   return (
     <span
-      aria-hidden
       className={cn(
-        "relative flex size-7 shrink-0 items-center justify-center gap-px bg-[linear-gradient(155deg,color-mix(in_oklch,var(--primary)_92%,black_15%),color-mix(in_oklch,var(--primary)_65%,black_45%))] font-heading text-[13px] font-extrabold [clip-path:polygon(25%_6%,75%_6%,100%_50%,75%_94%,25%_94%,0%_50%)]",
+        "relative inline-flex h-8 shrink-0 overflow-hidden rounded-[7px] [aspect-ratio:541/350]",
         className,
       )}
     >
-      <span className="text-[oklch(0.95_0.005_291)]">B</span>
-      <span className="text-gold">W</span>
+      <Image
+        src="/icons/bw-logo.png"
+        alt=""
+        fill
+        sizes="60px"
+        className="object-contain"
+        priority
+      />
     </span>
   );
 }
