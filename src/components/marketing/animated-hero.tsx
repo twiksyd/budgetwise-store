@@ -26,7 +26,7 @@ export function AnimatedHero() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 pt-32 pb-24 text-center sm:pt-44 sm:pb-32"
+        className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 pt-24 pb-16 text-center sm:pt-32 sm:pb-20"
       >
         <motion.div
           variants={item}
@@ -43,7 +43,7 @@ export function AnimatedHero() {
           variants={item}
           className="font-heading max-w-3xl text-5xl font-semibold tracking-[-0.03em] text-balance sm:text-7xl"
         >
-          Premium prices for your favorite games.
+          Buy gamepasses. Skip overpriced stores.
         </motion.h1>
 
         <motion.p
