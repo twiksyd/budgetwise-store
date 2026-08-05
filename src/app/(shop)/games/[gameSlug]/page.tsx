@@ -109,6 +109,7 @@ export default async function GameDetailPage({ params }: Props) {
           gameId={game.id}
           gameSlug={game.slug}
           gameName={game.name}
+          gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
         />
       )}

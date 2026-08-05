@@ -26,12 +26,14 @@ export function GamepassList({
   gameId,
   gameSlug,
   gameName,
+  gameIconUrl = null,
   orderingDisabled = false,
 }: {
   gamepasses: StoreGamepass[];
   gameId: string;
   gameSlug: string;
   gameName: string;
+  gameIconUrl?: string | null;
   orderingDisabled?: boolean;
 }) {
   // Best Value is only meaningful among items you can actually buy right
@@ -83,6 +85,7 @@ export function GamepassList({
                       gameId={gameId}
                       gameSlug={gameSlug}
                       gameName={gameName}
+                      gameIconUrl={gameIconUrl}
                       category={category}
                       badge={badge}
                       featured={isBestValue}

@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { FloatingCartButton } from "@/components/cart/floating-cart-button";
 import { StoreStatusBanner } from "@/components/shared/store-status-banner";
 import type { StoreStatus } from "@/types/store-operations";
 
@@ -27,6 +28,10 @@ export function StorefrontChrome({
     return <>{children}</>;
   }
 
+  // Redundant while already looking at the cart or mid-checkout.
+  const showFloatingCartButton =
+    !pathname?.startsWith("/cart") && !pathname?.startsWith("/checkout");
+
   return (
     <>
       {status !== "open" && (
@@ -36,6 +41,7 @@ export function StorefrontChrome({
       <main className="flex-1">{children}</main>
       <SiteFooter />
       <CartDrawer />
+      {showFloatingCartButton && <FloatingCartButton />}
     </>
   );
 }

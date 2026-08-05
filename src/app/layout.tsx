@@ -68,7 +68,7 @@ export default async function RootLayout({
             <StorefrontChrome status={status} noticeMessage={noticeMessage}>
               {children}
             </StorefrontChrome>
-            <Toaster position="top-center" />
+            <Toaster position="bottom-center" />
           </MotionProvider>
         </ThemeProvider>
       </body>

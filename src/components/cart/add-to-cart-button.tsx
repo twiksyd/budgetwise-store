@@ -12,6 +12,7 @@ export function AddToCartButton({
   gameId,
   gameSlug,
   gameName,
+  gameIconUrl = null,
   fullWidth = false,
   disabled = false,
   label,
@@ -20,6 +21,7 @@ export function AddToCartButton({
   gameId: string;
   gameSlug: string;
   gameName: string;
+  gameIconUrl?: string | null;
   fullWidth?: boolean;
   disabled?: boolean;
   label?: string;
@@ -42,12 +44,20 @@ export function AddToCartButton({
             gameId,
             gameSlug,
             gameName,
+            gameIconUrl,
             name: gamepass.name,
             robuxAmount: gamepass.robux_amount,
             price: gamepass.price,
           });
-          toast.success(`Added ${gamepass.name} to cart`);
-          openCart();
+          // Adding an item shouldn't interrupt browsing — a quiet toast
+          // with a "View Cart" escape hatch instead of yanking the sheet
+          // open, so the customer decides when they're ready to look.
+          toast.success(`${gamepass.name} added to cart`, {
+            action: {
+              label: "View Cart",
+              onClick: () => openCart(),
+            },
+          });
         }}
       >
         {label ?? "Add to cart"}

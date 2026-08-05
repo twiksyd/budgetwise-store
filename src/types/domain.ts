@@ -3,6 +3,7 @@ export interface CartItem {
   gameId: string;
   gameSlug: string;
   gameName: string;
+  gameIconUrl: string | null;
   name: string;
   robuxAmount: number;
   /** Price snapshot at the time this was added — never trust it at checkout; re-validate server-side. */

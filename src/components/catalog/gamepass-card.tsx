@@ -10,6 +10,7 @@ export function GamepassCard({
   gameId,
   gameSlug,
   gameName,
+  gameIconUrl = null,
   category,
   badge,
   featured = false,
@@ -19,6 +20,7 @@ export function GamepassCard({
   gameId: string;
   gameSlug: string;
   gameName: string;
+  gameIconUrl?: string | null;
   category: ProductCategory;
   badge?: ProductBadgeValue | null;
   featured?: boolean;
@@ -86,6 +88,7 @@ export function GamepassCard({
           gameId={gameId}
           gameSlug={gameSlug}
           gameName={gameName}
+          gameIconUrl={gameIconUrl}
           fullWidth
           disabled={isUnavailable || orderingDisabled}
           label={ctaLabel}

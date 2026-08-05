@@ -54,6 +54,7 @@ export function FeaturedProductCard({
           gameId={game.id}
           gameSlug={game.slug}
           gameName={game.name}
+          gameIconUrl={game.icon_url}
         />
       </div>
     </div>

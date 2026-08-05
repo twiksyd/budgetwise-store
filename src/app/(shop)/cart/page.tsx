@@ -1,7 +1,6 @@
 "use client";
 
 import { ShoppingBag } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "@/components/shared/empty-state";
 import { CartItems } from "@/components/cart/cart-items";
 import { CartSummary } from "@/components/cart/cart-summary";
@@ -21,16 +20,17 @@ export default function CartPage() {
         <div className="mt-12">
           <EmptyState
             icon={ShoppingBag}
-            title="Your cart is empty"
-            description="Browse games and add a gamepass to get started."
-            action={{ label: "Browse games", href: "/games" }}
+            title="Your cart is empty."
+            description="Browse our catalog to start your order."
+            action={{ label: "Browse Games", href: "/games" }}
           />
         </div>
       ) : (
-        <div className="surface-premium mt-10 flex flex-col gap-6 rounded-2xl p-6 sm:p-7">
+        <div className="mt-10 flex flex-col gap-6">
           <CartItems items={items} />
-          <Separator />
-          <CartSummary subtotal={subtotal} />
+          <div className="surface-premium rounded-2xl p-6 sm:p-7">
+            <CartSummary subtotal={subtotal} />
+          </div>
         </div>
       )}
     </div>
