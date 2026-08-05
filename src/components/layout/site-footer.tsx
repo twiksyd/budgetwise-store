@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { siteConfig } from "@/config/site";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { getGeneralMessengerLink } from "@/lib/messenger";
 
 export function SiteFooter() {
@@ -12,9 +13,7 @@ export function SiteFooter() {
         <div className="grid gap-12 sm:grid-cols-[1.3fr_1fr_1fr]">
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="bg-primary text-primary-foreground font-heading flex size-7 items-center justify-center rounded-[9px] text-sm font-bold">
-                B
-              </span>
+              <BrandMark />
               <span className="font-heading text-[15px] font-semibold tracking-tight">
                 {siteConfig.name}
               </span>

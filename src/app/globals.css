@@ -39,6 +39,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -55,7 +57,10 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.511 0.262 276.966);
+  /* Brand violet — sampled from the BudgetWise crest's background/glow, hue
+     nudged warmer than a stock indigo so it reads as "BudgetWise purple"
+     rather than a generic SaaS blue. */
+  --primary: oklch(0.5 0.223 291);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -66,7 +71,12 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.585 0.233 277.117);
+  --ring: oklch(0.55 0.2 291);
+  /* Reserved exclusively for the single highest-tier signal (the crest's
+     crown/"WISE" gold) — the Best Value badge and nothing else, so it stays
+     meaningful instead of turning into a second theme color. */
+  --gold: oklch(0.8 0.14 83);
+  --gold-foreground: oklch(0.28 0.06 70);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -84,24 +94,30 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  /* Surfaces carry a whisper of the crest's violet-black backdrop (chroma
+     0.006-0.012) instead of flat neutral gray — felt more than seen, it's
+     what makes dark mode read as "the same world as the logo" without
+     turning the UI purple. Light mode stays pure neutral on purpose. */
+  --background: oklch(0.145 0.006 291);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.205 0.008 291);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.205 0.008 291);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.585 0.233 277.117);
+  --primary: oklch(0.64 0.19 291);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
+  --secondary: oklch(0.269 0.01 291);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
+  --muted: oklch(0.269 0.01 291);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --accent: oklch(0.269 0.01 291);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.585 0.233 277.117);
+  --ring: oklch(0.64 0.19 291);
+  --gold: oklch(0.78 0.14 83);
+  --gold-foreground: oklch(0.24 0.05 70);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -145,7 +161,7 @@
   }
 
   .surface-premium-hover {
-    @apply hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_24px_48px_-12px_rgba(0,0,0,0.16)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_48px_-12px_rgba(0,0,0,0.6)];
+    @apply hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(0,0,0,0.06),0_24px_48px_-12px_color-mix(in_oklch,var(--primary)_18%,rgba(0,0,0,0.75))] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_48px_-12px_color-mix(in_oklch,var(--primary)_38%,rgba(0,0,0,0.65))];
   }
 
   /* Soft, low-opacity radial glow for hero backgrounds — glassmorphism

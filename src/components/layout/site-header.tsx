@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { CartTrigger } from "@/components/cart/cart-trigger";
 import { MobileNav } from "@/components/layout/mobile-nav";
@@ -11,9 +12,7 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           <MobileNav />
           <Link href="/" className="flex items-center gap-2.5">
-            <span className="bg-primary text-primary-foreground font-heading flex size-7 items-center justify-center rounded-[9px] text-sm font-bold">
-              B
-            </span>
+            <BrandMark />
             <span className="font-heading text-[15px] font-semibold tracking-tight">
               {siteConfig.name}
             </span>

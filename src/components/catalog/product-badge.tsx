@@ -1,4 +1,4 @@
-import { Sparkles, Flame, ThumbsUp } from "lucide-react";
+import { Crown, Flame, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { productBadgeLabels, type ProductBadgeKind } from "@/config/merchandising";
 
@@ -6,9 +6,9 @@ export type ProductBadgeValue = ProductBadgeKind | "best-value";
 
 const badgeConfig: Record<
   ProductBadgeValue,
-  { label: string; icon: typeof Sparkles; variant: "default" | "secondary" }
+  { label: string; icon: typeof Crown; variant: "gold" | "secondary" }
 > = {
-  "best-value": { label: "Best Value", icon: Sparkles, variant: "default" },
+  "best-value": { label: "Best Value", icon: Crown, variant: "gold" },
   "most-popular": {
     label: productBadgeLabels["most-popular"],
     icon: Flame,

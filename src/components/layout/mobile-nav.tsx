@@ -10,6 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { siteConfig } from "@/config/site";
 
 export function MobileNav() {
@@ -28,7 +29,10 @@ export function MobileNav() {
       </Button>
       <SheetContent side="left" className="w-2/3">
         <SheetHeader>
-          <SheetTitle>{siteConfig.name}</SheetTitle>
+          <SheetTitle className="flex items-center gap-2.5">
+            <BrandMark />
+            {siteConfig.name}
+          </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-1 px-4">
           {siteConfig.nav.map((item) => (
