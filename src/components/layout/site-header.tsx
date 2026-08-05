@@ -7,7 +7,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 
 export function SiteHeader() {
   return (
-    <header className="glass-surface fixed inset-x-0 top-0 z-50">
+    <header className="glass-surface sticky top-0 z-50">
       <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:h-24 sm:px-6">
         <div className="flex items-center gap-3 sm:gap-4">
           <MobileNav />

@@ -21,9 +21,10 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: error.message,
+          reason: error.reason,
           unavailableGamepassIds: error.unavailableGamepassIds,
         },
-        { status: 409 },
+        { status: error.reason === "store_unavailable" ? 403 : 409 },
       );
     }
 

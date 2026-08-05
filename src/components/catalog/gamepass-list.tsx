@@ -26,13 +26,27 @@ export function GamepassList({
   gameId,
   gameSlug,
   gameName,
+  orderingDisabled = false,
 }: {
   gamepasses: StoreGamepass[];
   gameId: string;
   gameSlug: string;
   gameName: string;
+  orderingDisabled?: boolean;
 }) {
-  const bestValueId = getBestValueId(gamepasses);
+  // Best Value is only meaningful among items you can actually buy right
+  // now — crowning an out-of-stock or coming-soon item would put the gold
+  // "you should buy this" treatment on a disabled card. Excluding rather
+  // than requiring an exact "available" match keeps this correct even if
+  // availability_status is ever missing (e.g. before the Store Operations
+  // migration has been applied).
+  const bestValueId = getBestValueId(
+    gamepasses.filter(
+      (g) =>
+        g.availability_status !== "out_of_stock" &&
+        g.availability_status !== "coming_soon",
+    ),
+  );
   const sections = groupByCategory(gamepasses);
 
   return (
@@ -72,6 +86,7 @@ export function GamepassList({
                       category={category}
                       badge={badge}
                       featured={isBestValue}
+                      orderingDisabled={orderingDisabled}
                     />
                   </motion.div>
                 );

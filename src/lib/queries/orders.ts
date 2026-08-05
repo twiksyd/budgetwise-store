@@ -1,34 +1,78 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateOrderNumber } from "@/lib/orders";
+import { resolveStoreStatus } from "@/lib/store-status";
+import { STORE_STATUS_DEFAULT_MESSAGES } from "@/types/store-operations";
 import type { CreateOrderInput } from "@/lib/validations/order";
 
 export class OrderCreationError extends Error {
-  constructor(public unavailableGamepassIds: string[]) {
-    super("One or more items in the cart are no longer available.");
+  constructor(
+    message: string,
+    public reason: "store_unavailable" | "unavailable_items",
+    public unavailableGamepassIds: string[] = [],
+  ) {
+    super(message);
   }
 }
 
+// The one place a cart's contents actually get validated against live
+// data — never trust quantities, prices, or availability the client
+// already believes to be true. Every check here re-reads the database.
 export async function createOrder(
   input: CreateOrderInput,
 ): Promise<{ orderNumber: string }> {
+  const { status, noticeMessage } = await resolveStoreStatus();
+  if (status !== "open") {
+    throw new OrderCreationError(
+      noticeMessage?.trim() || STORE_STATUS_DEFAULT_MESSAGES[status],
+      "store_unavailable",
+    );
+  }
+
   const supabase = createAdminClient();
   const gamepassIds = input.items.map((item) => item.gamepassId);
 
   const { data: gamepasses, error: fetchError } = await supabase
     .from("gamepasses")
-    .select("id, user_id, your_price, your_cost, robux_amount, is_active")
+    .select(
+      "id, user_id, game_id, your_price, your_cost, robux_amount, is_active, availability_status",
+    )
     .in("id", gamepassIds);
 
   if (fetchError) throw fetchError;
 
   const gamepassById = new Map((gamepasses ?? []).map((g) => [g.id, g]));
+
+  const gameIds = [
+    ...new Set((gamepasses ?? []).map((g) => g.game_id)),
+  ];
+  const { data: games, error: gamesError } = await supabase
+    .from("games")
+    .select("id, availability_status")
+    .in("id", gameIds);
+
+  if (gamesError) throw gamesError;
+
+  const gameById = new Map((games ?? []).map((g) => [g.id, g]));
+
   const unavailable = input.items
-    .filter((item) => !gamepassById.get(item.gamepassId)?.is_active)
+    .filter((item) => {
+      const gamepass = gamepassById.get(item.gamepassId);
+      if (!gamepass) return true;
+      if (!gamepass.is_active) return true;
+      if (gamepass.availability_status !== "available") return true;
+      const game = gameById.get(gamepass.game_id);
+      if (!game || game.availability_status !== "available") return true;
+      return false;
+    })
     .map((item) => item.gamepassId);
 
   if (unavailable.length > 0) {
-    throw new OrderCreationError(unavailable);
+    throw new OrderCreationError(
+      "One or more items in the cart are no longer available.",
+      "unavailable_items",
+      unavailable,
+    );
   }
 
   const orderNumber = generateOrderNumber();

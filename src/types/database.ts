@@ -1,4 +1,10 @@
-// Hand-written to match supabase/migrations/0001_store_public_views.sql.
+import type {
+  GameAvailabilityStatus,
+  ProductAvailabilityStatus,
+} from "@/types/store-operations";
+
+// Hand-written to match supabase/migrations/0001_store_public_views.sql
+// (and 0004_store_operations.sql, which added availability_status).
 // Regenerate with `supabase gen types typescript` once the CLI is linked to
 // the project, and keep only the store_* views in the Store's type surface.
 //
@@ -32,6 +38,7 @@ export type Database = {
           icon_url: string | null;
           sort_order: number | null;
           is_discounted: boolean | null;
+          availability_status: GameAvailabilityStatus;
         };
         Relationships: [];
       };
@@ -42,6 +49,7 @@ export type Database = {
           name: string;
           robux_amount: number;
           price: number;
+          availability_status: ProductAvailabilityStatus;
         };
         Relationships: [];
       };

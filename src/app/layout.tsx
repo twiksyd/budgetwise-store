@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Manrope } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { MotionProvider } from "@/components/motion-provider";
-import { SiteHeader } from "@/components/layout/site-header";
-import { SiteFooter } from "@/components/layout/site-footer";
-import { CartDrawer } from "@/components/cart/cart-drawer";
+import { StorefrontChrome } from "@/components/layout/storefront-chrome";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/config/site";
+import { resolveStoreStatusSafe } from "@/lib/store-status";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -47,11 +46,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { status, noticeMessage } = await resolveStoreStatusSafe();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -64,10 +65,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <MotionProvider>
-            <SiteHeader />
-            <main className="flex-1 pt-20 sm:pt-24">{children}</main>
-            <SiteFooter />
-            <CartDrawer />
+            <StorefrontChrome status={status} noticeMessage={noticeMessage}>
+              {children}
+            </StorefrontChrome>
             <Toaster position="top-center" />
           </MotionProvider>
         </ThemeProvider>

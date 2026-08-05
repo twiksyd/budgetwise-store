@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Gamepad2, Sparkles } from "lucide-react";
+import { ArrowRight, Clock, Construction, Gamepad2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { StoreGame } from "@/types/database";
@@ -16,6 +16,9 @@ export function FeaturedGameCard({
   wide?: boolean;
   className?: string;
 }) {
+  const isComingSoon = game.availability_status === "coming_soon";
+  const isUnavailable = game.availability_status === "temporarily_unavailable";
+
   return (
     <Link
       href={`/games/${game.slug}`}
@@ -47,6 +50,18 @@ export function FeaturedGameCard({
           <Sparkles className="size-3" />
           Featured
         </Badge>
+        {isComingSoon && (
+          <Badge variant="outline" className="bg-background/80 absolute top-3 right-3 gap-1">
+            <Clock className="size-3" />
+            Coming Soon
+          </Badge>
+        )}
+        {isUnavailable && (
+          <Badge variant="outline" className="bg-background/80 absolute top-3 right-3 gap-1">
+            <Construction className="size-3" />
+            Unavailable
+          </Badge>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-3 p-5">

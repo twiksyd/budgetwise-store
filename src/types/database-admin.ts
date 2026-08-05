@@ -6,6 +6,12 @@
 // generic select-string parser fails to resolve interface-declared shapes
 // through its conditional types and silently degrades every column to `never`.
 
+import type {
+  GameAvailabilityStatus,
+  ProductAvailabilityStatus,
+  StoreStatus,
+} from "@/types/store-operations";
+
 type GamepassRow = {
   id: string;
   user_id: string;
@@ -15,6 +21,47 @@ type GamepassRow = {
   your_price: number;
   your_cost: number;
   is_active: boolean;
+  availability_status: ProductAvailabilityStatus;
+};
+
+type GamepassUpdate = {
+  availability_status?: ProductAvailabilityStatus;
+};
+
+type GameRow = {
+  id: string;
+  name: string;
+  category: string | null;
+  sort_order: number | null;
+  availability_status: GameAvailabilityStatus;
+};
+
+type GameUpdate = {
+  availability_status?: GameAvailabilityStatus;
+};
+
+type StoreSettingsRow = {
+  id: boolean;
+  store_status: StoreStatus;
+  notice_message: string | null;
+  scheduled_status: StoreStatus | null;
+  scheduled_at: string | null;
+  scheduled_reopen_at: string | null;
+  updated_at: string;
+};
+
+export type StoreSettingsUpdate = {
+  store_status?: StoreStatus;
+  notice_message?: string | null;
+  scheduled_status?: StoreStatus | null;
+  scheduled_at?: string | null;
+  scheduled_reopen_at?: string | null;
+  updated_at?: string;
+};
+
+type AdminUserRow = {
+  user_id: string;
+  created_at: string;
 };
 
 type OrderRow = {
@@ -50,6 +97,24 @@ export type AdminDatabase = {
     Tables: {
       gamepasses: {
         Row: GamepassRow;
+        Insert: never;
+        Update: GamepassUpdate;
+        Relationships: [];
+      };
+      games: {
+        Row: GameRow;
+        Insert: never;
+        Update: GameUpdate;
+        Relationships: [];
+      };
+      store_settings: {
+        Row: StoreSettingsRow;
+        Insert: never;
+        Update: StoreSettingsUpdate;
+        Relationships: [];
+      };
+      admin_users: {
+        Row: AdminUserRow;
         Insert: never;
         Update: never;
         Relationships: [];

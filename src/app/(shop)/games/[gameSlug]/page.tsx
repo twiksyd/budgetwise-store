@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, Gamepad2, PackageSearch } from "lucide-react";
+import { ChevronRight, Clock, Construction, Gamepad2, PackageSearch } from "lucide-react";
 import { getGameBySlug, getGamepassesByGameId } from "@/lib/queries/catalog";
 import { GamepassList } from "@/components/catalog/gamepass-list";
 import { EmptyState } from "@/components/shared/empty-state";
+import { resolveStoreStatusSafe } from "@/lib/store-status";
 
 export const revalidate = 60;
 
@@ -33,7 +34,10 @@ export default async function GameDetailPage({ params }: Props) {
 
   if (!game) notFound();
 
-  const gamepasses = await getGamepassesByGameId(game.id);
+  const [gamepasses, { status: storeStatus }] = await Promise.all([
+    getGamepassesByGameId(game.id),
+    resolveStoreStatusSafe(),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16 sm:py-20">
@@ -72,7 +76,25 @@ export default async function GameDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {gamepasses.length === 0 ? (
+      {game.availability_status === "temporarily_unavailable" ? (
+        <div className="mt-12">
+          <EmptyState
+            icon={Construction}
+            title="Temporarily Unavailable"
+            description="We're currently restocking this game. No orders may be placed."
+            action={{ label: "Browse other games", href: "/games" }}
+          />
+        </div>
+      ) : game.availability_status === "coming_soon" ? (
+        <div className="mt-12">
+          <EmptyState
+            icon={Clock}
+            title="Coming Soon"
+            description="This game isn't available to order yet — check back soon."
+            action={{ label: "Browse other games", href: "/games" }}
+          />
+        </div>
+      ) : gamepasses.length === 0 ? (
         <div className="mt-12">
           <EmptyState
             icon={PackageSearch}
@@ -87,6 +109,7 @@ export default async function GameDetailPage({ params }: Props) {
           gameId={game.id}
           gameSlug={game.slug}
           gameName={game.name}
+          orderingDisabled={storeStatus !== "open"}
         />
       )}
     </div>

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Gamepad2 } from "lucide-react";
+import { Clock, Construction, Gamepad2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { StoreGame } from "@/types/database";
 
 export function GameCard({
@@ -11,10 +12,16 @@ export function GameCard({
   game: StoreGame;
   productCount?: number;
 }) {
+  const isComingSoon = game.availability_status === "coming_soon";
+  const isUnavailable = game.availability_status === "temporarily_unavailable";
+
   return (
     <Link
       href={`/games/${game.slug}`}
-      className="surface-premium surface-premium-hover group block overflow-hidden rounded-2xl transition-transform active:scale-[0.97]"
+      className={cn(
+        "surface-premium surface-premium-hover group block overflow-hidden rounded-2xl transition-transform active:scale-[0.97]",
+        (isComingSoon || isUnavailable) && "opacity-80",
+      )}
     >
       <div
         className="bg-muted relative flex aspect-square items-center justify-center overflow-hidden"
@@ -34,7 +41,19 @@ export function GameCard({
           <Gamepad2 className="text-muted-foreground size-10" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-        {game.is_discounted && (
+        {isComingSoon && (
+          <Badge variant="outline" className="bg-background/80 absolute top-2.5 right-2.5 gap-1">
+            <Clock className="size-3" />
+            Coming Soon
+          </Badge>
+        )}
+        {isUnavailable && (
+          <Badge variant="outline" className="bg-background/80 absolute top-2.5 right-2.5 gap-1">
+            <Construction className="size-3" />
+            Unavailable
+          </Badge>
+        )}
+        {!isComingSoon && !isUnavailable && game.is_discounted && (
           <Badge className="absolute top-2.5 right-2.5">Sale</Badge>
         )}
         {game.name === "ROBUX PLUS" && (
