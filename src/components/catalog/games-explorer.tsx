@@ -9,6 +9,7 @@ import { FeaturedGames } from "@/components/catalog/featured-games";
 import { CatalogStats } from "@/components/catalog/catalog-stats";
 import { EmptyState } from "@/components/shared/empty-state";
 import { featuredGameIds } from "@/config/featured-games";
+import { robuxGameIds } from "@/config/robux-products";
 import type { StoreGame } from "@/types/database";
 
 export function GamesExplorer({
@@ -28,23 +29,38 @@ export function GamesExplorer({
       .filter((g): g is StoreGame => g !== undefined);
   }, [games]);
 
+  // Robux top-ups aren't "a game" the way everything else in the catalog
+  // is — pulled into their own section (always shown, unaffected by
+  // search/category) so they don't dilute the regular games grid.
+  const robuxGames = useMemo(() => {
+    const byId = new Map(games.map((g) => [g.id, g]));
+    return robuxGameIds
+      .map((id) => byId.get(id))
+      .filter((g): g is StoreGame => g !== undefined);
+  }, [games]);
+
+  const catalogGames = useMemo(
+    () => games.filter((g) => !robuxGameIds.includes(g.id)),
+    [games],
+  );
+
   const categories = useMemo(() => {
     const unique = new Set(
-      games.map((g) => g.category).filter((c): c is string => Boolean(c)),
+      catalogGames.map((g) => g.category).filter((c): c is string => Boolean(c)),
     );
     return Array.from(unique).sort();
-  }, [games]);
+  }, [catalogGames]);
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return games.filter((game) => {
+    return catalogGames.filter((game) => {
       const matchesQuery =
         normalizedQuery.length === 0 ||
         game.name.toLowerCase().includes(normalizedQuery);
       const matchesCategory = !category || game.category === category;
       return matchesQuery && matchesCategory;
     });
-  }, [games, query, category]);
+  }, [catalogGames, query, category]);
 
   return (
     <div>
@@ -56,6 +72,15 @@ export function GamesExplorer({
       {featuredGames.length > 0 && (
         <div className="mt-8 sm:mt-10">
           <FeaturedGames games={featuredGames} productCounts={productCounts} />
+        </div>
+      )}
+
+      {robuxGames.length > 0 && (
+        <div className="mt-10 sm:mt-14">
+          <h2 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
+            💰 Robux
+          </h2>
+          <GameGrid games={robuxGames} productCounts={productCounts} />
         </div>
       )}
 
@@ -97,8 +122,12 @@ export function GamesExplorer({
         </div>
       </div>
 
+      <h2 className="font-heading mt-8 text-xl font-semibold tracking-tight sm:mt-12 sm:text-2xl">
+        🎮 Games
+      </h2>
+
       {filtered.length === 0 ? (
-        <div className="mt-16">
+        <div className="mt-10">
           <EmptyState
             icon={Gamepad2}
             title="No games match"

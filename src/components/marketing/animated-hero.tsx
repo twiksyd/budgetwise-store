@@ -30,13 +30,18 @@ export function AnimatedHero() {
       >
         <motion.div
           variants={item}
-          className="border-primary/25 bg-primary/10 text-primary mb-5 flex items-center gap-2.5 rounded-full border px-4 py-2 text-[13px] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_24px_-12px_color-mix(in_oklch,var(--primary)_40%,transparent)] sm:mb-8 sm:text-sm"
+          className="mb-5 flex items-center gap-2.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-[13px] font-semibold text-emerald-700 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_24px_-12px_rgba(16,185,129,0.35)] sm:mb-8 sm:text-sm dark:text-emerald-400"
         >
-          <span className="relative flex size-2">
-            <span className="bg-primary absolute inline-flex size-full animate-ping rounded-full opacity-75" />
-            <span className="bg-primary relative inline-flex size-2 rounded-full" />
+          <motion.span
+            animate={{ opacity: [1, 0.45, 1] }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+            className="size-2 shrink-0 rounded-full bg-emerald-500"
+          />
+          <span className="font-bold tracking-wide text-emerald-600 uppercase dark:text-emerald-400">
+            Live
           </span>
-          Now accepting orders
+          <span className="text-emerald-600/40 dark:text-emerald-400/40">•</span>
+          Now Accepting Orders
         </motion.div>
 
         <motion.h1

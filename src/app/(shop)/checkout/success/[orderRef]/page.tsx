@@ -4,8 +4,9 @@ import { getOrderConfirmation } from "@/lib/queries/orders";
 import { getMessengerLink, buildOrderMessage } from "@/lib/messenger";
 import { MessengerHandoff } from "@/components/checkout/messenger-handoff";
 import { SuccessHeader } from "@/components/checkout/success-header";
+import { OrderConfirmationSummary } from "@/components/checkout/order-confirmation-summary";
+import { NextStepGuidance } from "@/components/checkout/next-step-guidance";
 import { ClearCartOnSuccess } from "@/components/checkout/clear-cart-on-success";
-import { formatPrice } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Order confirmed",
@@ -25,15 +26,20 @@ export default async function CheckoutSuccessPage({ params }: Props) {
   const messengerLink = getMessengerLink(order.orderNumber, message);
 
   return (
-    <div className="mx-auto max-w-lg px-6 py-20 sm:py-24">
+    <div className="mx-auto max-w-lg px-6 py-16 sm:py-20">
       <ClearCartOnSuccess />
-      <SuccessHeader
-        orderNumber={order.orderNumber}
-        subtitle={`Total: ${formatPrice(order.total)} · Deliver to ${order.buyerRobloxUsername}`}
-      />
+      <SuccessHeader orderNumber={order.orderNumber} />
 
-      <div className="mt-10">
+      <div className="mt-8">
+        <OrderConfirmationSummary order={order} />
+      </div>
+
+      <div className="mt-6">
         <MessengerHandoff message={message} messengerLink={messengerLink} />
+      </div>
+
+      <div className="mt-8">
+        <NextStepGuidance />
       </div>
     </div>
   );

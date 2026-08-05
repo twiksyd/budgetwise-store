@@ -5,12 +5,6 @@ import { Check, Copy, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
-const steps = [
-  "Review your order below",
-  "Tap \"Open Messenger\" — it opens with your order already typed in",
-  "Just hit Send",
-];
-
 export function MessengerHandoff({
   message,
   messengerLink,
@@ -37,41 +31,33 @@ export function MessengerHandoff({
         Send us your order
       </h2>
 
-      <ol className="text-muted-foreground mt-4 flex flex-col gap-2 text-sm">
-        {steps.map((step, i) => (
-          <li key={step} className="flex gap-2.5">
-            <span className="text-foreground font-medium">{i + 1}.</span>
-            {step}
-          </li>
-        ))}
-      </ol>
-
-      <pre className="bg-muted/60 mt-5 rounded-xl p-4 text-xs leading-relaxed whitespace-pre-wrap">
+      <pre className="bg-muted/60 mt-4 rounded-xl p-4 text-xs leading-relaxed whitespace-pre-wrap">
         {message}
       </pre>
 
-      <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
-        <Button
-          variant="outline"
-          onClick={handleCopy}
-          className="h-11 flex-1"
-        >
-          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-          Copy message
-        </Button>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
         {messengerLink ? (
-          <Button asChild className="h-11 flex-1">
+          <Button asChild size="lg" className="h-14 flex-1 text-base font-semibold">
             <a href={messengerLink} target="_blank" rel="noopener noreferrer">
-              <MessageCircle className="size-4" />
+              <MessageCircle className="size-5" />
               Open Messenger
             </a>
           </Button>
         ) : (
-          <Button disabled className="h-11 flex-1">
-            <MessageCircle className="size-4" />
+          <Button disabled size="lg" className="h-14 flex-1 text-base font-semibold">
+            <MessageCircle className="size-5" />
             Open Messenger
           </Button>
         )}
+        <Button
+          variant="outline"
+          size="lg"
+          onClick={handleCopy}
+          className="h-14 flex-1 text-base font-semibold"
+        >
+          {copied ? <Check className="size-5" /> : <Copy className="size-5" />}
+          Copy Message
+        </Button>
       </div>
     </div>
   );
