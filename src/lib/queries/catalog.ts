@@ -68,6 +68,23 @@ export async function getFeaturedGamepasses(): Promise<FeaturedGamepass[]> {
     .filter((entry): entry is FeaturedGamepass => entry !== null);
 }
 
+// Lightweight per-game product counts for catalog UI (card counts, the
+// stats row) — one query for every game rather than N queries.
+export async function getGameProductCounts(): Promise<Record<string, number>> {
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from("store_gamepasses")
+    .select("game_id");
+
+  if (error) throw error;
+
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    counts[row.game_id] = (counts[row.game_id] ?? 0) + 1;
+  }
+  return counts;
+}
+
 export async function getGamepassesByGameId(
   gameId: string,
 ): Promise<StoreGamepass[]> {

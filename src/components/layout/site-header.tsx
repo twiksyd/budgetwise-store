@@ -12,7 +12,7 @@ export function SiteHeader() {
         <div className="flex items-center gap-3 sm:gap-4">
           <MobileNav />
           <Link href="/" className="flex items-center">
-            <BrandMark className="h-10 sm:h-14" />
+            <BrandMark className="h-12 sm:h-[65px]" />
           </Link>
         </div>
         <nav className="hidden items-center gap-10 text-sm sm:flex">

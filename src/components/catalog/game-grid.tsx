@@ -14,7 +14,13 @@ const item: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
 };
 
-export function GameGrid({ games }: { games: StoreGame[] }) {
+export function GameGrid({
+  games,
+  productCounts,
+}: {
+  games: StoreGame[];
+  productCounts?: Record<string, number>;
+}) {
   return (
     <motion.div
       variants={container}
@@ -24,7 +30,7 @@ export function GameGrid({ games }: { games: StoreGame[] }) {
     >
       {games.map((game) => (
         <motion.div key={game.id} variants={item}>
-          <GameCard game={game} />
+          <GameCard game={game} productCount={productCounts?.[game.id]} />
         </motion.div>
       ))}
     </motion.div>

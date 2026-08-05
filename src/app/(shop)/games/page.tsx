@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Gamepad2 } from "lucide-react";
-import { getGames } from "@/lib/queries/catalog";
+import { getGames, getGameProductCounts } from "@/lib/queries/catalog";
 import { GamesExplorer } from "@/components/catalog/games-explorer";
 import { EmptyState } from "@/components/shared/empty-state";
 
@@ -12,14 +12,17 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function GamesPage() {
-  const games = await getGames();
+  const [games, productCounts] = await Promise.all([
+    getGames(),
+    getGameProductCounts(),
+  ]);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-20 sm:py-24">
+    <div className="mx-auto max-w-6xl px-6 py-10 sm:py-16">
       <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
         Browse games
       </h1>
-      <p className="text-muted-foreground mt-3 text-[15px]">
+      <p className="text-muted-foreground mt-2 text-[15px]">
         Pick a game to see its available currencies and gamepasses.
       </p>
 
@@ -32,8 +35,8 @@ export default async function GamesPage() {
           />
         </div>
       ) : (
-        <div className="mt-10">
-          <GamesExplorer games={games} />
+        <div className="mt-6">
+          <GamesExplorer games={games} productCounts={productCounts} />
         </div>
       )}
     </div>
