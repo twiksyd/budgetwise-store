@@ -20,8 +20,8 @@ export default async function CheckoutSuccessPage({ params }: Props) {
 
   if (!order) notFound();
 
-  const messengerLink = getMessengerLink(order.orderNumber);
   const message = buildOrderMessage(order);
+  const messengerLink = getMessengerLink(order.orderNumber, message);
 
   return (
     <div className="mx-auto max-w-lg px-6 py-16">

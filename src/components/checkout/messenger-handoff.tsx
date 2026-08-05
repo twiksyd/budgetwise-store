@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 const steps = [
-  "Copy order (automatic)",
-  "Messenger opens automatically",
-  "Press Ctrl+V (desktop) or Paste (mobile), then send",
+  "Review your order below",
+  "Tap \"Open Messenger\" — it opens with your order already typed in",
+  "Just hit Send",
 ];
 
 export function MessengerHandoff({
@@ -19,43 +19,16 @@ export function MessengerHandoff({
   messengerLink: string | null;
 }) {
   const [copied, setCopied] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Deliberately not an async function: Safari (and some mobile browsers)
-  // will silently block window.open() if it's called anywhere inside an
-  // async function, even before the first await — the function itself
-  // returns a Promise, which is enough to break the "direct user gesture"
-  // chain on WebKit. window.open must be the first synchronous thing that
-  // runs on tap; everything after it is chained with .then()/.finally().
-  function handleCopyAndOpen() {
-    if (isProcessing) return;
-    setIsProcessing(true);
-
-    const messengerWindow = messengerLink
-      ? window.open("about:blank", "_blank")
-      : null;
-
-    navigator.clipboard
-      .writeText(message)
-      .then(() => {
-        setCopied(true);
-        toast.success("Order copied!");
-      })
-      .catch(() => {
-        toast.error(
-          "Couldn't copy automatically — copy the message below manually.",
-        );
-      })
-      .finally(() => {
-        if (messengerWindow && messengerLink) {
-          setTimeout(() => {
-            messengerWindow.location.href = messengerLink;
-            setIsProcessing(false);
-          }, 1000);
-        } else {
-          setIsProcessing(false);
-        }
-      });
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+      toast.success("Order copied!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Couldn't copy — select the message below manually.");
+    }
   }
 
   return (
@@ -77,16 +50,25 @@ export function MessengerHandoff({
         {message}
       </pre>
 
-      <Button
-        onClick={handleCopyAndOpen}
-        disabled={isProcessing}
-        className="mt-4 w-full"
-      >
-        {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-        {isProcessing
-          ? "Opening Messenger..."
-          : "Copy order & open Messenger"}
-      </Button>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <Button variant="outline" onClick={handleCopy} className="flex-1">
+          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+          Copy message
+        </Button>
+        {messengerLink ? (
+          <Button asChild className="flex-1">
+            <a href={messengerLink} target="_blank" rel="noopener noreferrer">
+              <MessageCircle className="size-4" />
+              Open Messenger
+            </a>
+          </Button>
+        ) : (
+          <Button disabled className="flex-1">
+            <MessageCircle className="size-4" />
+            Open Messenger
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
