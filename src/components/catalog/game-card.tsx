@@ -29,6 +29,11 @@ export function GameCard({ game }: { game: StoreGame }) {
           {game.is_discounted && (
             <Badge className="absolute top-2 right-2">Sale</Badge>
           )}
+          {game.name === "ROBUX PLUS" && (
+            <Badge variant="secondary" className="absolute top-2 left-2">
+              PLUS
+            </Badge>
+          )}
         </div>
         <div className="px-4 pb-4">
           <h3 className="font-heading truncate text-sm font-semibold">
