@@ -52,24 +52,31 @@ export function GamepassList({
   const sections = groupByCategory(gamepasses);
 
   return (
-    <div className="mt-10 flex flex-col gap-10">
+    <div className="mt-10 flex flex-col gap-12">
       {sections.map(({ category, items }) => {
         const SectionIcon = PRODUCT_CATEGORY_ICONS[category];
 
         return (
           <section key={category}>
-            <div className="flex items-center gap-2">
-              <SectionIcon className="text-muted-foreground size-4" />
-              <h2 className="font-heading text-sm font-semibold">
-                {PRODUCT_CATEGORY_LABELS[category]}
-              </h2>
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-xl">
+                <SectionIcon className="text-primary size-5" />
+              </div>
+              <div>
+                <h2 className="font-heading text-lg font-semibold tracking-tight sm:text-xl">
+                  {PRODUCT_CATEGORY_LABELS[category]}
+                </h2>
+                <p className="text-muted-foreground text-xs">
+                  {items.length} option{items.length === 1 ? "" : "s"}
+                </p>
+              </div>
             </div>
 
             <motion.div
               variants={container}
               initial="hidden"
               animate="show"
-              className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+              className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
             >
               {items.map((gamepass) => {
                 const isBestValue = gamepass.id === bestValueId;

@@ -1,7 +1,7 @@
 import { formatPrice } from "@/lib/pricing";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { ProductBadge, type ProductBadgeValue } from "@/components/catalog/product-badge";
-import { PRODUCT_CATEGORY_ICONS, type ProductCategory } from "@/lib/product-category";
+import type { ProductCategory } from "@/lib/product-category";
 import { cn } from "@/lib/utils";
 import type { StoreGamepass } from "@/types/database";
 
@@ -26,8 +26,6 @@ export function GamepassCard({
   featured?: boolean;
   orderingDisabled?: boolean;
 }) {
-  const Icon = PRODUCT_CATEGORY_ICONS[category];
-
   const isOutOfStock = gamepass.availability_status === "out_of_stock";
   const isComingSoon = gamepass.availability_status === "coming_soon";
   const isUnavailable = isOutOfStock || isComingSoon;
@@ -49,34 +47,44 @@ export function GamepassCard({
         ? "Unavailable"
         : undefined;
 
+  // Currency packs don't really have a "name" — the amount itself is the
+  // product, so it reads as a headline (tabular-nums, larger) instead of
+  // a title, and the underlying Robux cost (a backend/comparison detail,
+  // not something the customer is buying) is left off rather than
+  // stacking a third near-duplicate number under it.
+  const isCurrency = category === "currency";
+
   return (
     <div
       className={cn(
-        "surface-premium surface-premium-hover flex h-full flex-col gap-4 rounded-2xl p-5",
+        "surface-premium surface-premium-hover flex h-full flex-col gap-3 rounded-2xl p-5",
         featured &&
           "border-gold/40 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_48px_-14px_color-mix(in_oklch,var(--gold)_30%,transparent)] border-2 p-6",
         isUnavailable && "opacity-70",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div
-          className={cn(
-            "flex size-9 shrink-0 items-center justify-center rounded-lg",
-            featured ? "bg-gold/15" : "bg-primary/10",
-          )}
-        >
-          <Icon className={cn("size-4", featured ? "text-gold" : "text-primary")} />
+      {displayBadge && (
+        <div className="flex justify-end">
+          <ProductBadge kind={displayBadge} />
         </div>
-        {displayBadge && <ProductBadge kind={displayBadge} />}
-      </div>
+      )}
 
       <div>
-        <p className="font-heading text-[15px] leading-snug font-semibold text-balance">
+        <p
+          className={cn(
+            "font-heading leading-snug text-balance",
+            isCurrency
+              ? "text-lg font-bold [font-variant-numeric:tabular-nums]"
+              : "text-[15px] font-semibold",
+          )}
+        >
           {gamepass.name}
         </p>
-        <p className="text-muted-foreground mt-1 text-[13px]">
-          {gamepass.robux_amount.toLocaleString()} Robux
-        </p>
+        {!isCurrency && (
+          <p className="text-muted-foreground mt-1 text-[13px]">
+            {gamepass.robux_amount.toLocaleString()} Robux
+          </p>
+        )}
       </div>
 
       <div className="mt-auto flex flex-col gap-3">
