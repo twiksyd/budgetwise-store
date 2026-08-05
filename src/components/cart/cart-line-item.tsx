@@ -13,11 +13,13 @@ export function CartLineItem({ item }: { item: CartItem }) {
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{item.name}</p>
-        <p className="text-muted-foreground text-xs">
+        <p className="font-heading truncate text-[14px] font-semibold">
+          {item.name}
+        </p>
+        <p className="text-muted-foreground mt-0.5 text-xs">
           {item.gameName} · {item.robuxAmount.toLocaleString()} Robux
         </p>
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2.5 flex items-center gap-2">
           <Button
             variant="outline"
             size="icon-sm"

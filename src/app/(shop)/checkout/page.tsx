@@ -23,12 +23,14 @@ export default function CheckoutPage() {
   if (!hydrated || items.length === 0) return null;
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16">
-      <h1 className="font-heading text-3xl font-semibold tracking-tight">
+    <div className="mx-auto max-w-4xl px-6 py-20 sm:py-24">
+      <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
         Checkout
       </h1>
-      <div className="mt-10 grid gap-8 sm:grid-cols-2">
-        <CheckoutForm />
+      <div className="mt-10 grid gap-6 sm:grid-cols-2 sm:gap-8">
+        <div className="surface-premium rounded-2xl p-6 sm:p-7">
+          <CheckoutForm />
+        </div>
         <OrderSummary items={items} subtotal={subtotal} />
       </div>
     </div>

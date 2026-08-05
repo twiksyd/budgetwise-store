@@ -12,8 +12,8 @@ export default function CartPage() {
   const subtotal = useCartStore(selectCartSubtotal);
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="font-heading text-3xl font-semibold tracking-tight">
+    <div className="mx-auto max-w-2xl px-6 py-20 sm:py-24">
+      <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
         Your cart
       </h1>
 
@@ -26,7 +26,7 @@ export default function CartPage() {
           />
         </div>
       ) : (
-        <div className="mt-10 flex flex-col gap-6">
+        <div className="surface-premium mt-10 flex flex-col gap-6 rounded-2xl p-6 sm:p-7">
           <CartItems items={items} />
           <Separator />
           <CartSummary subtotal={subtotal} />

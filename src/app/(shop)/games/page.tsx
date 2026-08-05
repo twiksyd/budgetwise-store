@@ -15,11 +15,11 @@ export default async function GamesPage() {
   const games = await getGames();
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16">
-      <h1 className="font-heading text-3xl font-semibold tracking-tight">
+    <div className="mx-auto max-w-6xl px-6 py-20 sm:py-24">
+      <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
         Browse games
       </h1>
-      <p className="text-muted-foreground mt-2">
+      <p className="text-muted-foreground mt-3 text-[15px]">
         Pick a game to see its available currencies and gamepasses.
       </p>
 

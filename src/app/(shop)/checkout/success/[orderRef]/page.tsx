@@ -25,14 +25,14 @@ export default async function CheckoutSuccessPage({ params }: Props) {
   const messengerLink = getMessengerLink(order.orderNumber, message);
 
   return (
-    <div className="mx-auto max-w-lg px-6 py-16">
+    <div className="mx-auto max-w-lg px-6 py-20 sm:py-24">
       <ClearCartOnSuccess />
       <SuccessHeader
         orderNumber={order.orderNumber}
         subtitle={`Total: ${formatPrice(order.total)} · Deliver to ${order.buyerRobloxUsername}`}
       />
 
-      <div className="mt-8">
+      <div className="mt-10">
         <MessengerHandoff message={message} messengerLink={messengerLink} />
       </div>
     </div>

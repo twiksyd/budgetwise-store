@@ -16,14 +16,15 @@ export function SuccessHeader({
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
+        className="bg-primary/10 flex size-14 items-center justify-center rounded-full"
       >
-        <CheckCircle2 className="text-primary size-10" />
+        <CheckCircle2 className="text-primary size-7" />
       </motion.div>
       <motion.h1
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
-        className="font-heading mt-4 text-2xl font-semibold tracking-tight"
+        className="font-heading mt-5 text-2xl font-semibold tracking-tight sm:text-[28px]"
       >
         Order {orderNumber} placed
       </motion.h1>

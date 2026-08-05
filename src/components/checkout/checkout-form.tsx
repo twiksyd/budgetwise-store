@@ -59,11 +59,14 @@ export function CheckoutForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <h2 className="font-heading text-sm font-semibold">Contact details</h2>
+
       <div className="flex flex-col gap-2">
         <Label htmlFor="name">Your name</Label>
         <Input
           id="name"
+          className="h-11"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="How should we address you?"
@@ -76,6 +79,7 @@ export function CheckoutForm() {
         <Label htmlFor="robloxUsername">Roblox username</Label>
         <Input
           id="robloxUsername"
+          className="h-11"
           value={robloxUsername}
           onChange={(e) => setRobloxUsername(e.target.value)}
           placeholder="Where we'll deliver your order"
@@ -89,6 +93,7 @@ export function CheckoutForm() {
       <Button
         type="submit"
         size="lg"
+        className="h-11"
         disabled={isSubmitting || items.length === 0}
       >
         {isSubmitting ? "Placing order..." : "Place order"}

@@ -2,7 +2,6 @@
 
 import { motion, type Variants } from "framer-motion";
 import { ShieldCheck, Sparkles, Zap } from "lucide-react";
-import { Card } from "@/components/ui/card";
 
 const trustPoints = [
   {
@@ -37,27 +36,48 @@ const item: Variants = {
 
 export function TrustPoints() {
   return (
-    <motion.section
+    <section
       id="how-it-works"
-      variants={container}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: "-80px" }}
-      className="mx-auto grid max-w-6xl gap-4 px-6 pb-24 sm:grid-cols-3"
+      className="mx-auto max-w-6xl px-6 pt-4 pb-28 sm:pb-36"
     >
-      {trustPoints.map(({ icon: Icon, title, description }) => (
-        <motion.div key={title} variants={item}>
-          <Card className="glass-surface h-full p-6">
-            <Icon className="text-primary size-5" />
-            <h3 className="font-heading mt-4 text-base font-semibold">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-80px" }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="mx-auto max-w-xl text-center"
+      >
+        <p className="text-primary text-sm font-medium">Why BudgetWise</p>
+        <h2 className="font-heading mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+          Built like a real storefront, not a middleman.
+        </h2>
+      </motion.div>
+
+      <motion.div
+        variants={container}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-80px" }}
+        className="mt-14 grid gap-5 sm:grid-cols-3"
+      >
+        {trustPoints.map(({ icon: Icon, title, description }) => (
+          <motion.div
+            key={title}
+            variants={item}
+            className="surface-premium surface-premium-hover rounded-2xl p-7"
+          >
+            <div className="bg-primary/10 flex size-10 items-center justify-center rounded-xl">
+              <Icon className="text-primary size-5" />
+            </div>
+            <h3 className="font-heading mt-5 text-base font-semibold">
               {title}
             </h3>
-            <p className="text-muted-foreground mt-2 text-sm">
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
               {description}
             </p>
-          </Card>
-        </motion.div>
-      ))}
-    </motion.section>
+          </motion.div>
+        ))}
+      </motion.div>
+    </section>
   );
 }

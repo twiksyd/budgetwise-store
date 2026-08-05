@@ -8,27 +8,29 @@ export function SiteHeader() {
   return (
     <header className="glass-surface fixed inset-x-0 top-0 z-50">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <MobileNav />
-          <Link
-            href="/"
-            className="font-heading text-lg font-semibold tracking-tight"
-          >
-            {siteConfig.name}
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="bg-primary text-primary-foreground font-heading flex size-7 items-center justify-center rounded-[9px] text-sm font-bold">
+              B
+            </span>
+            <span className="font-heading text-[15px] font-semibold tracking-tight">
+              {siteConfig.name}
+            </span>
           </Link>
         </div>
-        <nav className="hidden items-center gap-8 text-sm text-muted-foreground sm:flex">
+        <nav className="hidden items-center gap-10 text-sm sm:flex">
           {siteConfig.nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="transition-colors hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground bg-[linear-gradient(currentColor,currentColor)] bg-position-[0%_100%] bg-no-repeat bg-[length:0%_1px] py-0.5 transition-[background-size,color] duration-300 ease-out hover:bg-[length:100%_1px]"
             >
               {item.label}
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <CartTrigger />
           <ThemeToggle />
         </div>

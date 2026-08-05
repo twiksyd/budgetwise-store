@@ -22,12 +22,12 @@ export function CartDrawer() {
 
   return (
     <Sheet open={isCartOpen} onOpenChange={setCartOpen}>
-      <SheetContent className="flex flex-col">
-        <SheetHeader>
-          <SheetTitle>Your cart</SheetTitle>
+      <SheetContent className="flex flex-col gap-0">
+        <SheetHeader className="border-border/60 border-b">
+          <SheetTitle className="text-base">Your cart</SheetTitle>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-4">
+        <div className="flex-1 overflow-y-auto px-4 py-5">
           {items.length === 0 ? (
             <EmptyState
               icon={ShoppingBag}
@@ -40,7 +40,7 @@ export function CartDrawer() {
         </div>
 
         {items.length > 0 && (
-          <SheetFooter>
+          <SheetFooter className="border-border/60 border-t">
             <CartSummary subtotal={subtotal} />
           </SheetFooter>
         )}

@@ -1,4 +1,3 @@
-import { Card } from "@/components/ui/card";
 import { formatPrice } from "@/lib/pricing";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import type { StoreGamepass } from "@/types/database";
@@ -15,15 +14,17 @@ export function GamepassCard({
   gameName: string;
 }) {
   return (
-    <Card className="flex-row items-center justify-between p-4">
-      <div>
-        <p className="font-heading text-sm font-semibold">{gamepass.name}</p>
-        <p className="text-muted-foreground mt-0.5 text-xs">
+    <div className="surface-premium surface-premium-hover flex items-center justify-between gap-4 rounded-xl px-5 py-4">
+      <div className="min-w-0">
+        <p className="font-heading truncate text-[15px] font-semibold">
+          {gamepass.name}
+        </p>
+        <p className="text-muted-foreground mt-1 text-[13px]">
           {gamepass.robux_amount.toLocaleString()} Robux
         </p>
       </div>
-      <div className="flex items-center gap-4">
-        <p className="text-primary font-heading text-base font-semibold">
+      <div className="flex shrink-0 items-center gap-5">
+        <p className="font-heading text-lg font-semibold">
           {formatPrice(gamepass.price)}
         </p>
         <AddToCartButton
@@ -33,6 +34,6 @@ export function GamepassCard({
           gameName={gameName}
         />
       </div>
-    </Card>
+    </div>
   );
 }
