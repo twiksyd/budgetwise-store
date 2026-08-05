@@ -6,12 +6,49 @@ export type Review = {
   platform: "Facebook";
 };
 
+// Low-signal Facebook comment-thread noise that isn't an actual review
+// (order-status pings, one-word bumps) — filtered out automatically below
+// so pasting in a fresh batch of raw comments doesn't require hand-picking
+// through them first.
+const NON_REVIEW_PATTERNS: RegExp[] = [
+  /^pm$/i,
+  /^repl(y|ies)$/i,
+  /^ups?$/i,
+  /^mine$/i,
+  /^available\??$/i,
+  /^h+m+\??$/i,
+  /^price\??$/i,
+  /^magkano\??$/i,
+  /^how\s*much\??$/i,
+  /^meron\s*pa\??$/i,
+];
+
+// One-word comments are usually thread noise ("Up", "Mine", "Price?") — but
+// short one-word vouches ("Legit", "Trusted", "Vouch") are the single most
+// common genuine review on this page, so they're kept.
+const GENUINE_ONE_WORD = /legit|trust|vouch|solid|recommend|bilis/i;
+
+function isGenuineReview(text: string): boolean {
+  const normalized = text.trim();
+  if (NON_REVIEW_PATTERNS.some((pattern) => pattern.test(normalized))) {
+    return false;
+  }
+
+  const words = normalized.replace(/[!?.,]+$/g, "").split(/\s+/);
+  if (words.length === 1 && !GENUINE_ONE_WORD.test(words[0])) {
+    return false;
+  }
+
+  return true;
+}
+
 // Sourced from real customer comments on the BudgetWise Facebook vouch post
 // (facebook.com/share/p/1Ub2UPFdkv), cleaned up for encoding artifacts and
-// trimmed to first names only. Paste in more the same way — the homepage
-// carousel and "View more reviews" button both key off this file and need
-// no other changes.
-export const reviews: Review[] = [
+// trimmed to first names only. Paste in more the same way — isGenuineReview
+// above strips out any non-review noise automatically, and the homepage
+// carousel and "View more reviews" button both key off the exported
+// `reviews` list and need no other changes.
+const rawReviews: Review[] = [
   { id: "1", name: "Paul", rating: 5, text: "Legit broooo!", platform: "Facebook" },
   { id: "2", name: "Joaquin", rating: 5, text: "Legit fast transaction!", platform: "Facebook" },
   { id: "3", name: "John", rating: 5, text: "Super l!", platform: "Facebook" },
@@ -279,3 +316,7 @@ export const reviews: Review[] = [
   { id: "265", name: "Ma", rating: 5, text: "100% legit po!", platform: "Facebook" },
   { id: "266", name: "Triman", rating: 5, text: "LEGIT DITO PROMISE!", platform: "Facebook" },
 ];
+
+export const reviews: Review[] = rawReviews.filter((review) =>
+  isGenuineReview(review.text),
+);

@@ -6,6 +6,7 @@ import { PopularGames } from "@/components/marketing/popular-games";
 import { FeaturedProducts } from "@/components/marketing/featured-products";
 import { FaqPreview } from "@/components/marketing/faq-preview";
 import { getGames, getFeaturedGamepasses } from "@/lib/queries/catalog";
+import { continuePlayingGameIds } from "@/config/homepage-picks";
 
 export const revalidate = 60;
 
@@ -15,13 +16,18 @@ export default async function LandingPage() {
     getFeaturedGamepasses(),
   ]);
 
+  const gameById = new Map(games.map((game) => [game.id, game]));
+  const continuePlayingGames = continuePlayingGameIds
+    .map((id) => gameById.get(id))
+    .filter((game) => game != null);
+
   return (
     <div>
       <AnimatedHero />
       <TrustPoints />
       <CustomerReviews />
       <HowItWorksPreview />
-      <PopularGames games={games.slice(0, 5)} />
+      <PopularGames games={continuePlayingGames} />
       <FeaturedProducts products={featuredProducts} />
       <FaqPreview />
     </div>

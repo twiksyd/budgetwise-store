@@ -1,16 +1,14 @@
 import { cn } from "@/lib/utils";
 
-// A smaller Taglish clarification rendered directly under an English
-// primary text — the site's bilingual pattern (see how-ordering-works,
-// faq, terms, refund-policy, privacy, contact, checkout, and select
-// homepage sections). This is a paraphrase/clarification for Filipino
-// customers, not a literal translation, and must never outweigh the
-// English text above it: muted (and slightly dimmer than the site's usual
-// muted-foreground, since several English paragraphs it sits under are
-// already that color), normal weight, italic (matching the convention
-// used for it elsewhere), ~80-85% size, tighter leading. `size="md"` is
-// for use under headings (still clearly a caption, just legible next to
-// larger text); `size="sm"` (default) is for use under body copy.
+// A short Taglish clarification rendered directly under an English primary
+// text — the site's bilingual pattern (how-ordering-works, faq, terms,
+// refund-policy, privacy, and contact). This is a brief supporting note for
+// Filipino customers (the key takeaway, not a re-translation of the English
+// above it), styled as quiet helper text rather than a quote: same font
+// family as the English, regular weight, muted-foreground, ~80-85% size,
+// slightly tighter leading, no italic. `size="md"` is for use under
+// headings (still clearly a caption, just legible next to larger text);
+// `size="sm"` (default) is for use under body copy.
 export function Taglish({
   children,
   size = "sm",
@@ -23,8 +21,8 @@ export function Taglish({
   return (
     <p
       className={cn(
-        "text-muted-foreground/80 mt-1 font-normal italic leading-snug",
-        size === "sm" ? "text-[13px]" : "text-sm",
+        "text-muted-foreground mt-1 font-normal leading-snug",
+        size === "sm" ? "text-[12px]" : "text-[13px]",
         className,
       )}
     >

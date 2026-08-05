@@ -11,32 +11,32 @@ const sections = [
   {
     title: "What we collect",
     body: `When you check out, we collect the name and Roblox username you provide — that's what we need to create and deliver your order. Standard technical information (like IP address) may also be collected automatically by our hosting infrastructure, as with any website.`,
-    taglish: `Pag mag-checkout ka, kukunin namin yung pangalan at Roblox username na ibinigay mo — yun lang naman yung kailangan namin para magawa at ma-deliver yung order mo. Yung mga karaniwang technical na info (tulad ng IP address) puwede ring makuha automatic, katulad sa ibang website.`,
+    taglish: `Kinukuha lang namin yung information na kailangan para ma-process at ma-deliver yung order mo.`,
   },
   {
     title: "How we use it",
     body: `Your information is used only to process, deliver, and follow up on your order. We don't use it for advertising, and we don't sell it to anyone.`,
-    taglish: `Ginagamit lang namin yung info mo para asikasuhin, i-deliver, at i-follow up yung order mo. Hindi namin ginagamit sa advertising, at hindi namin ito ibinebenta kahit kanino.`,
+    taglish: `Ginagamit lang namin yung info mo para sa order mo. Hindi namin ito binebenta o ginagamit sa advertising.`,
   },
   {
     title: "Messenger conversations",
     body: `Once you send your order to us on Messenger, that conversation is also subject to Meta's own privacy policy, since it takes place on their platform rather than ours.`,
-    taglish: `Pag na-send mo na yung order sa Messenger, covered na rin yun ng privacy policy ng Meta dahil sa platform nila nangyayari yung usapan natin.`,
+    taglish: `Pag nasa Messenger na ang usapan, covered na rin ito ng privacy policy ng Meta.`,
   },
   {
     title: "Who we share it with",
     body: `We don't share your information with anyone outside of what's needed to fulfill your own order. We don't sell customer data.`,
-    taglish: `Hindi namin ibinibigay yung info mo sa iba maliban kung talagang kailangan para maasikaso yung order mo. Hindi kami nagbebenta ng customer data.`,
+    taglish: `Hindi namin sini-share ang information mo maliban kung kailangan para ma-complete ang order mo.`,
   },
   {
     title: "How long we keep it",
     body: `Order records are kept for as long as reasonably needed for business and accounting purposes, such as resolving a dispute or refund request.`,
-    taglish: `Itinatago namin yung record ng order mo hangga't kailangan para sa negosyo at accounting, tulad ng pag-aayos ng dispute o refund request.`,
+    taglish: `Iniingatan namin ang order records hangga't kailangan para sa business at customer support.`,
   },
   {
     title: "Questions about your data",
     body: `Message us any time if you want to know what information we have on file for you, or if you'd like it removed.`,
-    taglish: `I-message mo lang kami kahit kailan kung gusto mong malaman kung anong info namin tungkol sa'yo, o kung gusto mo itong tanggalin.`,
+    taglish: `May tanong tungkol sa data mo? Message mo lang kami at tutulungan ka namin.`,
   },
 ];
 

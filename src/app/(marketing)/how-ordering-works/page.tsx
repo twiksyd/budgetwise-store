@@ -23,7 +23,7 @@ const steps = [
     description:
       "Browse the available games and choose the gamepasses or in-game currency you want. Add everything to your cart before proceeding to checkout.",
     taglish:
-      "Tignan mo lang yung mga games namin, pumili ka ng gamepass o currency na gusto mo, tapos idagdag mo sa cart bago ka mag-checkout.",
+      "Mamili lang ng gusto mong gamepass o in-game currency, tapos idagdag lahat sa cart bago mag-checkout.",
   },
   {
     icon: ClipboardList,
@@ -32,7 +32,7 @@ const steps = [
       "Fill in the required information, including your Roblox username. The website automatically generates an Order Number and securely records your order.",
     note: "Creating an order does NOT mean it is already being processed.",
     taglish:
-      "Punan mo yung details, kasama yung Roblox username mo. Awtomatic na magbibigay yung site ng Order Number mo. Pero take note — hindi pa ito nangangahulugang ginagawa na namin agad yung order mo.",
+      "Ilagay lang yung tamang details at Roblox username mo. Magkakaroon ka agad ng Order Number, pero hindi pa nagsisimula yung order dito.",
   },
   {
     icon: Send,
@@ -40,7 +40,7 @@ const steps = [
     description:
       "After checkout, Messenger automatically opens with your completed order form already prepared. Simply review the message and press Send. This allows our team to receive your order details.",
     taglish:
-      "Pagkatapos mo mag-checkout, automatic na bubukas yung Messenger na may kasamang order details mo na. I-check mo lang tapos pindutin yung Send. Dun namin makikita yung order mo.",
+      "Pagkatapos mag-checkout, bubukas yung Messenger na ready na yung order form. I-send mo lang para matanggap namin yung order mo.",
   },
 ];
 
@@ -80,9 +80,9 @@ export default function HowOrderingWorksPage() {
         instructions before sending any payment.
       </p>
       <Taglish size="md">
-        Ito yung buong flow mula sa checkout hanggang sa delivery — kasama
-        yung isang step na madalas nakakalimutan: hintayin muna yung payment
-        instructions namin bago mag-send ng bayad.
+        Sundan mo lang yung steps sa baba. Ang pinaka-importante: huwag muna
+        magbayad hangga&apos;t wala pa kaming payment instructions sa
+        Messenger.
       </Taglish>
 
       <div className="mt-12 flex flex-col gap-8">
@@ -163,10 +163,9 @@ export default function HowOrderingWorksPage() {
                 ))}
               </ul>
               <Taglish className="border-primary/15 mt-4 border-t pt-3">
-                Hintayin mo muna yung payment instructions namin sa Messenger
-                bago mag-send ng payment. Kasama na doon yung tamang GCash
-                number at lahat ng kailangan mong sundin para
-                makapag-proceed sa payment.
+                Hintayin mo muna yung payment instructions namin sa Messenger.
+                Pag na-send na namin yung payment details, saka ka lang
+                magbayad.
               </Taglish>
             </div>
           </div>
@@ -197,11 +196,9 @@ export default function HowOrderingWorksPage() {
               ))}
             </ul>
             <Taglish>
-              Pagkatapos mong makuha yung payment instructions: magpadala ka
-              ng bayad, che-check namin kung tama, kung kailangan ida-add
-              namin yung Roblox account mo, ipapadala namin yung binili mo
-              habang online ka. Tapos, mama-mark na yung order mo as
-              Delivered.
+              Pag na-confirm na yung payment mo, aasikasuhin na namin yung
+              order hanggang ma-deliver. Kung kailangan ka naming i-add sa
+              Roblox, sasabihan ka namin.
             </Taglish>
           </div>
         </div>
@@ -222,9 +219,9 @@ export default function HowOrderingWorksPage() {
           payment verification.
         </p>
         <Taglish>
-          Hintayin mo muna yung payment instructions namin sa Messenger bago
-          mag-send ng payment. Para siguradong tama yung account na
-          sesendan at ready na rin kaming i-process agad yung order mo.
+          Huwag muna mag-send ng payment hangga&apos;t wala pa kaming
+          message. Pag na-send na namin yung payment details, saka ka lang
+          magbayad.
         </Taglish>
       </div>
 

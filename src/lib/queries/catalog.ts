@@ -58,12 +58,17 @@ export async function getFeaturedGamepasses(): Promise<FeaturedGamepass[]> {
   if (gamesError) throw gamesError;
 
   const gameById = new Map((games ?? []).map((g) => [g.id, g]));
+  const gamepassById = new Map(gamepasses.map((g) => [g.id, g]));
 
-  return gamepasses
-    .map((gamepass) => {
-      const game = gameById.get(gamepass.game_id);
-      const badge = featuredGamepasses[gamepass.id];
-      return game && badge ? { gamepass, game, badge } : null;
+  // .in() doesn't guarantee row order matches `ids`, so re-derive it from
+  // the config's own key order to keep the section's display order
+  // editable in one place.
+  return ids
+    .map((id) => {
+      const gamepass = gamepassById.get(id);
+      const game = gamepass && gameById.get(gamepass.game_id);
+      const badge = featuredGamepasses[id];
+      return gamepass && game && badge ? { gamepass, game, badge } : null;
     })
     .filter((entry): entry is FeaturedGamepass => entry !== null);
 }

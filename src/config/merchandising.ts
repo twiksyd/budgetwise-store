@@ -11,11 +11,12 @@ export const productBadgeLabels: Record<ProductBadgeKind, string> = {
 // automatically per game from live pricing (see lib/merchandising.ts),
 // since it's a factual claim rather than a curation choice.
 //
-// This starter set picks one cheap, approachable item from a few different
-// games so the section isn't empty — replace with your own picks any time.
+// Display order on the homepage follows this object's key order (see
+// getFeaturedGamepasses in lib/queries/catalog.ts) — reorder the entries
+// below to reorder the section.
 export const featuredGamepasses: Record<string, ProductBadgeKind> = {
-  "1a71baf2-eb92-40fd-b38e-ccf83c1f2ef1": "most-popular", // Grow a garden 2 — 1 roll
-  "1f772fcd-4c2e-4898-a7b7-daaf044e2607": "most-popular", // Slime RNG — lucky rolls
-  "cc0de4f5-52ea-4122-a827-f1d0df365222": "recommended", // Anime Squadron — Upgrade
-  "a508b3b2-4dd8-4f40-a129-4c38198a98c7": "recommended", // EVADE — 30 Points
+  "c753f1bf-5697-497e-8235-7275e14c5b13": "recommended", // Gakuran — 50 rerolls
+  "57a9ddf1-0980-4a48-a1f8-9eeb4a8130be": "most-popular", // Drag Drive Simulator — Rp 500,000,000
+  "845652a9-7fdf-4ba3-91fa-b54da7ea5a26": "recommended", // Drag Drive Simulator — Dragspec Pass
+  "c16890cd-22e3-4f89-aff1-5ca73f844ff3": "most-popular", // Grow a garden 2 — Rainbow carpet
 };

@@ -31,8 +31,8 @@ export default function RefundPolicyPage() {
         exactly when a refund applies.
       </p>
       <Taglish size="md">
-        Mas gusto naming sabihin sa&apos;yo agad kaysa iwan kang nagtataka.
-        Eto na yung exact na sitwasyon kung kelan puwede mag-refund.
+        Nakalagay dito kung kailan puwedeng mag-refund at kung kailan
+        hindi.
       </Taglish>
 
       <div className="mt-10 grid gap-5 sm:grid-cols-2">
@@ -54,9 +54,8 @@ export default function RefundPolicyPage() {
             ))}
           </ul>
           <Taglish className="border-border/60 mt-4 border-t pt-3">
-            Puwede kang mag-refund kung: hindi na-deliver yung order mo
-            kahit na-confirm na yung bayad, mali yung natanggap mong item o
-            amount, o na-double charge ka sa parehong order.
+            Puwede kang mag-refund kung hindi na-deliver yung order, mali
+            yung natanggap mo, o na-double charge ka.
           </Taglish>
         </div>
 
@@ -78,9 +77,9 @@ export default function RefundPolicyPage() {
             ))}
           </ul>
           <Taglish className="border-border/60 mt-4 border-t pt-3">
-            Hindi puwede mag-refund kung: nagbago lang isip mo pagkatapos
-            ma-deliver yung order, mali yung username na nilagay mo sa
-            checkout, o naka-ban o restricted yung Roblox account mo.
+            Hindi puwedeng mag-refund kung nagbago lang isip mo, mali yung
+            Roblox username na nilagay mo, o may problema mismo sa Roblox
+            account mo.
           </Taglish>
         </div>
       </div>
@@ -98,10 +97,8 @@ export default function RefundPolicyPage() {
             update.
           </p>
           <Taglish>
-            Bawat order, chine-check at kina-confirm namin nang mano-mano
-            pagkatapos mong i-send sa Messenger — totoong tao ang sasagot
-            sa&apos;yo, hindi bot. Kung medyo matagal yung order mo,
-            sasabihin namin agad sa&apos;yo.
+            Lahat ng orders chine-check namin manually. Kung matatagalan,
+            sasabihan ka namin agad.
           </Taglish>
         </div>
         <div>
@@ -117,9 +114,8 @@ export default function RefundPolicyPage() {
             and get back to you.
           </p>
           <Taglish>
-            I-message mo lang kami sa Messenger ng order number mo at kung
-            ano yung problema. Titingnan namin agad tapos babalikan ka
-            namin.
+            Message mo lang kami sa Messenger kasama yung Order Number at
+            sabihin kung anong nangyari.
           </Taglish>
         </div>
       </div>

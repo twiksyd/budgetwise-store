@@ -11,24 +11,16 @@ import { reviews } from "@/config/reviews";
 import { siteConfig } from "@/config/site";
 
 export function CustomerReviews() {
-  // Continuous auto-scroll never truly settles — stopOnInteraction:false
-  // means it resumes drifting moments after any swipe, so on mobile (where
-  // one slide = the whole viewport) it can never reliably rest on a single
-  // fully-visible card. Fine-pointer (mouse) devices keep the original
-  // ambient marquee; touch devices get a plain swipe-driven carousel that
-  // snaps and stays put.
-  const [plugins] = useState(() =>
-    typeof window !== "undefined" &&
-    window.matchMedia("(pointer: coarse)").matches
-      ? []
-      : [
-          AutoScroll({
-            speed: 0.7,
-            stopOnMouseEnter: true,
-            stopOnInteraction: false,
-          }),
-        ],
-  );
+  // Ambient marquee on every pointer type, including touch — it drifts on
+  // its own, pauses the instant a finger (or the mouse) touches it, and
+  // resumes automatically once released (stopOnInteraction: false).
+  const [plugins] = useState(() => [
+    AutoScroll({
+      speed: 0.7,
+      stopOnMouseEnter: true,
+      stopOnInteraction: false,
+    }),
+  ]);
   // dragFree is intentionally off: snapping (the Embla default) is what
   // guarantees a swipe always settles on exactly one fully-visible,
   // centered card instead of stopping mid-transition between two.
@@ -73,7 +65,7 @@ export function CustomerReviews() {
             {reviews.map((review) => (
               <div
                 key={review.id}
-                className="basis-full shrink-0 sm:basis-[46%] lg:basis-[30%]"
+                className="basis-[85%] shrink-0 sm:basis-[46%] lg:basis-[30%]"
               >
                 <ReviewCard review={review} />
               </div>
