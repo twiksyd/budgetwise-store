@@ -52,7 +52,7 @@ export default function RootLayout({
         >
           <MotionProvider>
             <SiteHeader />
-            <main className="flex-1 pt-[76px]">{children}</main>
+            <main className="flex-1 pt-16 sm:pt-[76px]">{children}</main>
             <SiteFooter />
             <CartDrawer />
             <Toaster position="top-center" />

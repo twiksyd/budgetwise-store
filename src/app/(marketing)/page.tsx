@@ -16,7 +16,7 @@ export default async function LandingPage() {
   ]);
 
   return (
-    <div className="flex flex-col">
+    <div>
       <AnimatedHero />
       <TrustPoints />
       <CustomerReviews />

@@ -37,7 +37,7 @@ export function HeroBanner() {
           fill
           priority
           sizes="100vw"
-          className="object-cover blur-[9px]"
+          className="object-cover object-[center_22%] blur-[9px] sm:object-center"
         />
       </motion.div>
 

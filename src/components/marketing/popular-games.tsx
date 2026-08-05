@@ -10,7 +10,7 @@ export function PopularGames({ games }: { games: StoreGame[] }) {
   if (games.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-28 sm:pb-36">
+    <section className="mx-auto max-w-6xl px-6 pb-16 sm:pb-28">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}

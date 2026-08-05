@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,11 +10,20 @@ import { useCartStore } from "@/stores/cart-store";
 export function CheckoutForm() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState("");
   const [robloxUsername, setRobloxUsername] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Focused after a beat so it lands once the page transition from the cart
+  // drawer has settled, rather than yanking focus (and the keyboard, on
+  // mobile) mid-navigation.
+  useEffect(() => {
+    const timer = setTimeout(() => nameInputRef.current?.focus(), 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -66,6 +75,7 @@ export function CheckoutForm() {
         <Label htmlFor="name">Your name</Label>
         <Input
           id="name"
+          ref={nameInputRef}
           className="h-11"
           value={name}
           onChange={(e) => setName(e.target.value)}

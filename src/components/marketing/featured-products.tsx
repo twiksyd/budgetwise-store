@@ -22,7 +22,7 @@ export function FeaturedProducts({
   if (products.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-28 sm:pb-36">
+    <section className="mx-auto max-w-6xl px-6 pb-16 sm:pb-28">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -41,7 +41,7 @@ export function FeaturedProducts({
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-80px" }}
-        className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
+        className="mt-8 grid gap-4 sm:mt-14 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4"
       >
         {products.map((product) => (
           <motion.div key={product.gamepass.id} variants={item}>

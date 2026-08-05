@@ -26,11 +26,11 @@ export function AnimatedHero() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 pt-24 pb-16 text-center sm:pt-32 sm:pb-20"
+        className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 pt-8 pb-6 text-center sm:pt-32 sm:pb-20"
       >
         <motion.div
           variants={item}
-          className="border-border/60 text-muted-foreground mb-8 flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium"
+          className="border-border/60 text-muted-foreground mb-4 flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium sm:mb-8"
         >
           <span className="relative flex size-1.5">
             <span className="bg-primary absolute inline-flex size-full animate-ping rounded-full opacity-75" />
@@ -41,14 +41,14 @@ export function AnimatedHero() {
 
         <motion.h1
           variants={item}
-          className="font-heading max-w-3xl text-5xl font-semibold tracking-[-0.03em] text-balance sm:text-7xl"
+          className="font-heading max-w-3xl text-4xl font-semibold tracking-[-0.03em] text-balance sm:text-7xl"
         >
           Buy gamepasses. Skip overpriced stores.
         </motion.h1>
 
         <motion.p
           variants={item}
-          className="text-muted-foreground mt-7 max-w-lg text-lg text-balance sm:text-xl"
+          className="text-muted-foreground mt-3 max-w-lg text-base text-balance sm:mt-7 sm:text-xl"
         >
           A digital marketplace for discounted in-game currency, gamepasses,
           and subscriptions — built for gamers who expect a real storefront.
@@ -56,9 +56,9 @@ export function AnimatedHero() {
 
         <motion.div
           variants={item}
-          className="mt-11 flex flex-col gap-3 sm:flex-row"
+          className="mt-5 flex flex-col gap-2 sm:mt-11 sm:flex-row sm:gap-3"
         >
-          <Button size="lg" asChild className="h-12 px-7 text-[15px]">
+          <Button size="lg" asChild className="h-11 px-7 text-[15px] sm:h-12">
             <Link href="/games">
               Browse games
               <ArrowRight className="size-4" />
@@ -68,7 +68,7 @@ export function AnimatedHero() {
             size="lg"
             variant="outline"
             asChild
-            className="h-12 px-7 text-[15px]"
+            className="h-11 px-7 text-[15px] sm:h-12"
           >
             <Link href="/#how-it-works">How it works</Link>
           </Button>

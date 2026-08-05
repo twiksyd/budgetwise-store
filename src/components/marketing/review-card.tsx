@@ -27,8 +27,8 @@ export function ReviewCard({ review }: { review: Review }) {
             />
           ))}
         </div>
-        <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs font-medium">
-          <FacebookGlyph className="size-3.5 text-[#1877F2]" />
+        <span className="text-muted-foreground/70 flex shrink-0 items-center gap-1 text-[11px] font-medium">
+          <FacebookGlyph className="size-3" />
           {review.platform}
         </span>
       </div>

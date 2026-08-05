@@ -24,7 +24,7 @@ export default function CheckoutPage() {
   if (!hydrated || items.length === 0) return null;
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-20 sm:py-24">
+    <div className="mx-auto max-w-4xl px-6 py-10 sm:py-24">
       <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
         Checkout
       </h1>

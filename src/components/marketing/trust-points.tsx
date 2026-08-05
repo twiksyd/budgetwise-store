@@ -36,7 +36,7 @@ const item: Variants = {
 
 export function TrustPoints() {
   return (
-    <section className="mx-auto max-w-6xl px-6 pt-4 pb-28 sm:pb-36">
+    <section className="mx-auto max-w-6xl px-6 pt-4 pb-16 sm:pb-28">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -55,7 +55,7 @@ export function TrustPoints() {
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-80px" }}
-        className="mt-14 grid gap-5 sm:grid-cols-3"
+        className="mt-8 grid gap-5 sm:mt-14 sm:grid-cols-3"
       >
         {trustPoints.map(({ icon: Icon, title, description }) => (
           <motion.div

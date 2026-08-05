@@ -15,7 +15,7 @@ export function FaqPreview() {
   const preview = faqs.slice(0, 4);
 
   return (
-    <section className="mx-auto max-w-2xl px-6 pb-28 sm:pb-36">
+    <section className="mx-auto max-w-2xl px-6 pb-16 sm:pb-28">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -35,7 +35,7 @@ export function FaqPreview() {
         viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
       >
-        <Accordion type="single" collapsible className="mt-10">
+        <Accordion type="single" collapsible className="mt-6 sm:mt-10">
           {preview.map((faq) => (
             <AccordionItem key={faq.question} value={faq.question}>
               <AccordionTrigger className="font-heading text-left text-[15px] font-semibold">

@@ -20,7 +20,7 @@ export function GameGrid({ games }: { games: StoreGame[] }) {
       variants={container}
       initial="hidden"
       animate="show"
-      className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5"
+      className="mt-6 grid grid-cols-2 gap-5 sm:mt-10 sm:grid-cols-3 lg:grid-cols-5"
     >
       {games.map((game) => (
         <motion.div key={game.id} variants={item}>

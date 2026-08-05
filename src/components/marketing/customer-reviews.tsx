@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import useEmblaCarousel from "embla-carousel-react";
 import AutoScroll from "embla-carousel-auto-scroll";
@@ -10,14 +11,37 @@ import { reviews } from "@/config/reviews";
 import { siteConfig } from "@/config/site";
 
 export function CustomerReviews() {
-  const [emblaRef] = useEmblaCarousel({ loop: true, dragFree: true, align: "start" }, [
-    AutoScroll({ speed: 0.7, stopOnMouseEnter: true, stopOnInteraction: false }),
-  ]);
+  // Continuous auto-scroll never truly settles — stopOnInteraction:false
+  // means it resumes drifting moments after any swipe, so on mobile (where
+  // one slide = the whole viewport) it can never reliably rest on a single
+  // fully-visible card. Fine-pointer (mouse) devices keep the original
+  // ambient marquee; touch devices get a plain swipe-driven carousel that
+  // snaps and stays put.
+  const [plugins] = useState(() =>
+    typeof window !== "undefined" &&
+    window.matchMedia("(pointer: coarse)").matches
+      ? []
+      : [
+          AutoScroll({
+            speed: 0.7,
+            stopOnMouseEnter: true,
+            stopOnInteraction: false,
+          }),
+        ],
+  );
+  // dragFree is intentionally off: snapping (the Embla default) is what
+  // guarantees a swipe always settles on exactly one fully-visible,
+  // centered card instead of stopping mid-transition between two.
+  const [emblaRef] = useEmblaCarousel({ loop: true, align: "start" }, plugins);
 
   if (reviews.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-28 sm:pb-36">
+    // min-w-0 guards against the flex "min-width: auto" blowout: without it,
+    // a flex-item ancestor would size itself to the carousel track's huge
+    // intrinsic content width (hundreds of non-shrinking full-width slides)
+    // instead of the viewport, forcing the whole page wider than the screen.
+    <section className="mx-auto min-w-0 max-w-6xl px-6 pb-16 sm:pb-28">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -38,18 +62,18 @@ export function CustomerReviews() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
-        className="relative mt-14"
+        className="relative mt-8 sm:mt-14"
       >
         <div className="hero-glow pointer-events-none absolute -inset-x-6 -inset-y-10 -z-10 rounded-[2.5rem]" />
         <div
           ref={emblaRef}
-          className="overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]"
+          className="overflow-hidden sm:[mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)] sm:[-webkit-mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]"
         >
           <div className="flex gap-4">
             {reviews.map((review) => (
               <div
                 key={review.id}
-                className="basis-[82%] shrink-0 sm:basis-[46%] lg:basis-[30%]"
+                className="basis-full shrink-0 sm:basis-[46%] lg:basis-[30%]"
               >
                 <ReviewCard review={review} />
               </div>
