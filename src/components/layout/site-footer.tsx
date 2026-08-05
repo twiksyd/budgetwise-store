@@ -13,7 +13,17 @@ export function SiteFooter() {
       <div className="mx-auto max-w-6xl px-6 py-16">
         <div className="grid gap-12 sm:grid-cols-[1.3fr_1fr_1fr]">
           <div>
-            <BrandMark className="h-12" />
+            <div className="flex items-center gap-3">
+              <BrandMark className="h-12" />
+              <span className="flex flex-col justify-center">
+                <span className="font-heading text-base leading-tight font-semibold tracking-tight">
+                  {siteConfig.name}
+                </span>
+                <span className="text-muted-foreground mt-0.5 text-[11px] leading-tight font-normal">
+                  {siteConfig.slogan}
+                </span>
+              </span>
+            </div>
             <p className="text-muted-foreground mt-4 max-w-xs text-sm leading-relaxed">
               A digital marketplace for discounted in-game currency,
               gamepasses, and subscriptions. Every order is placed on the

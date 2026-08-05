@@ -24,14 +24,27 @@ const manrope = Manrope({
   subsets: ["latin"],
 });
 
+const defaultTitle = `${siteConfig.name} — ${siteConfig.slogan}`;
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: "BudgetWise — Discounted In-Game Currency & Gamepasses",
+    default: defaultTitle,
     template: "%s | BudgetWise",
   },
-  description:
-    "BudgetWise is a premium digital marketplace for discounted in-game currencies, gamepasses, and subscriptions — fast, trustworthy, and built for gamers.",
+  description: siteConfig.description,
+  openGraph: {
+    title: defaultTitle,
+    description: siteConfig.ogDescription,
+    siteName: siteConfig.name,
+    url: siteConfig.url,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: defaultTitle,
+    description: siteConfig.ogDescription,
+  },
 };
 
 export default function RootLayout({
@@ -52,7 +65,7 @@ export default function RootLayout({
         >
           <MotionProvider>
             <SiteHeader />
-            <main className="flex-1 pt-[72px] sm:pt-24">{children}</main>
+            <main className="flex-1 pt-20 sm:pt-24">{children}</main>
             <SiteFooter />
             <CartDrawer />
             <Toaster position="top-center" />

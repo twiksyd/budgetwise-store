@@ -8,11 +8,19 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 export function SiteHeader() {
   return (
     <header className="glass-surface fixed inset-x-0 top-0 z-50">
-      <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4 sm:h-24 sm:px-6">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:h-24 sm:px-6">
         <div className="flex items-center gap-3 sm:gap-4">
           <MobileNav />
-          <Link href="/" className="flex items-center">
-            <BrandMark className="h-12 sm:h-[65px]" />
+          <Link href="/" className="flex items-center gap-3 sm:gap-4">
+            <BrandMark className="h-14 sm:h-[76px]" />
+            <span className="flex flex-col justify-center">
+              <span className="font-heading text-[17px] leading-tight font-semibold tracking-tight sm:text-lg">
+                {siteConfig.name}
+              </span>
+              <span className="text-muted-foreground mt-0.5 text-[11px] leading-tight font-normal sm:text-xs">
+                {siteConfig.slogan}
+              </span>
+            </span>
           </Link>
         </div>
         <nav className="hidden items-center gap-10 text-sm sm:flex">

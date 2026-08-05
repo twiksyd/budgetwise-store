@@ -1,8 +1,15 @@
 export const siteConfig = {
   name: "BudgetWise",
-  tagline: "Premium prices for your favorite games.",
+  // The permanent brand slogan — shown under the name in the navbar and
+  // footer, not a rotating marketing headline (that's the hero copy).
+  slogan: "All about delivering value.",
   description:
-    "BudgetWise is a premium digital marketplace for discounted in-game currencies, gamepasses, and subscriptions — fast, trustworthy, and built for gamers.",
+    "Premium gamepasses and in-game currencies at competitive prices with a transparent and trusted ordering experience.",
+  // Shorter, slogan-led variant specifically for social share cards
+  // (Open Graph / Twitter) — the main description above is tuned for
+  // search snippets instead.
+  ogDescription:
+    "All about delivering value. Premium gamepasses and in-game currencies at competitive prices.",
   url: "https://budgetwise.shop",
   // m.me accepts a numeric Facebook Page ID directly, which is what this Page
   // uses since it hasn't claimed a custom username (its URL is profile.php?id=...).

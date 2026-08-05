@@ -1,36 +1,21 @@
-import { readFileSync } from "fs";
-import { join } from "path";
-import { ImageResponse } from "next/og";
+import { renderBrandIcon } from "@/lib/brand-icon";
 
-export const size = { width: 32, height: 32 };
 export const contentType = "image/png";
 
-export default function Icon() {
-  const logo = readFileSync(join(process.cwd(), "public/icons/NOBGLogo.png"));
-  const dataUri = `data:image/png;base64,${logo.toString("base64")}`;
+const sizes: Record<string, number> = {
+  small: 16,
+  medium: 32,
+  large: 48,
+};
 
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#0b0614",
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={dataUri}
-          alt=""
-          width={size.width}
-          height={size.height}
-          style={{ objectFit: "contain" }}
-        />
-      </div>
-    ),
-    { ...size },
-  );
+export function generateImageMetadata() {
+  return Object.entries(sizes).map(([id, px]) => ({
+    id,
+    size: { width: px, height: px },
+    contentType,
+  }));
+}
+
+export default function Icon({ id }: { id: string }) {
+  return renderBrandIcon(sizes[id]);
 }
