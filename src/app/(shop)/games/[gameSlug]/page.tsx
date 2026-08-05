@@ -78,6 +78,7 @@ export default async function GameDetailPage({ params }: Props) {
             icon={PackageSearch}
             title="No gamepasses available"
             description="This game doesn't have any active gamepasses right now. Check back soon."
+            action={{ label: "Browse other games", href: "/games" }}
           />
         </div>
       ) : (

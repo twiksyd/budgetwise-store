@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Gamepad2 } from "lucide-react";
 import { getGames } from "@/lib/queries/catalog";
-import { GameGrid } from "@/components/catalog/game-grid";
+import { GamesExplorer } from "@/components/catalog/games-explorer";
 import { EmptyState } from "@/components/shared/empty-state";
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export default async function GamesPage() {
       </p>
 
       {games.length === 0 ? (
-        <div className="mt-12">
+        <div className="mt-16">
           <EmptyState
             icon={Gamepad2}
             title="No games yet"
@@ -32,7 +32,9 @@ export default async function GamesPage() {
           />
         </div>
       ) : (
-        <GameGrid games={games} />
+        <div className="mt-10">
+          <GamesExplorer games={games} />
+        </div>
       )}
     </div>
   );

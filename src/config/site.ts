@@ -9,6 +9,18 @@ export const siteConfig = {
   messengerPageId: "61589047545427",
   nav: [
     { label: "Games", href: "/games" },
-    { label: "How it works", href: "/#how-it-works" },
+    { label: "How it works", href: "/how-ordering-works" },
   ],
+  footerNav: {
+    Company: [
+      { label: "How ordering works", href: "/how-ordering-works" },
+      { label: "FAQ", href: "/faq" },
+      { label: "Contact us", href: "/contact" },
+    ],
+    Legal: [
+      { label: "Terms", href: "/terms" },
+      { label: "Refund & order policy", href: "/refund-policy" },
+      { label: "Privacy policy", href: "/privacy" },
+    ],
+  },
 } as const;

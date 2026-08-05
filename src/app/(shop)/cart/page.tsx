@@ -23,6 +23,7 @@ export default function CartPage() {
             icon={ShoppingBag}
             title="Your cart is empty"
             description="Browse games and add a gamepass to get started."
+            action={{ label: "Browse games", href: "/games" }}
           />
         </div>
       ) : (

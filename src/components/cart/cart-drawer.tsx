@@ -33,6 +33,8 @@ export function CartDrawer() {
               icon={ShoppingBag}
               title="Your cart is empty"
               description="Browse games and add a gamepass to get started."
+              action={{ label: "Browse games", href: "/games" }}
+              onActionClick={() => setCartOpen(false)}
             />
           ) : (
             <CartItems items={items} />

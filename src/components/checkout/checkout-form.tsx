@@ -98,6 +98,10 @@ export function CheckoutForm() {
       >
         {isSubmitting ? "Placing order..." : "Place order"}
       </Button>
+      <p className="text-muted-foreground -mt-3 text-center text-xs">
+        No payment is taken here — you&apos;ll confirm payment on Messenger
+        next.
+      </p>
     </form>
   );
 }

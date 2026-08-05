@@ -17,6 +17,12 @@ export function buildOrderMessage(order: OrderConfirmation): string {
   ].join("\n");
 }
 
+// Plain contact link for pre-purchase questions — no order to reference yet.
+export function getGeneralMessengerLink(): string | null {
+  if (!siteConfig.messengerPageId) return null;
+  return `https://m.me/${siteConfig.messengerPageId}`;
+}
+
 // `ref` carries the order number through as referral data for future bot/
 // automation use; `text` pre-fills the actual Messenger compose box so the
 // customer only has to review and tap Send. Meta blocks auto-*sending* a

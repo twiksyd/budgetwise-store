@@ -2,6 +2,7 @@
 
 import { motion, type Variants } from "framer-motion";
 import { GamepassCard } from "@/components/catalog/gamepass-card";
+import { getBestValueId, getConfiguredBadge } from "@/lib/merchandising";
 import type { StoreGamepass } from "@/types/database";
 
 const container: Variants = {
@@ -25,6 +26,8 @@ export function GamepassList({
   gameSlug: string;
   gameName: string;
 }) {
+  const bestValueId = getBestValueId(gamepasses);
+
   return (
     <motion.div
       variants={container}
@@ -39,6 +42,10 @@ export function GamepassList({
             gameId={gameId}
             gameSlug={gameSlug}
             gameName={gameName}
+            badge={
+              getConfiguredBadge(gamepass.id) ??
+              (gamepass.id === bestValueId ? "best-value" : null)
+            }
           />
         </motion.div>
       ))}

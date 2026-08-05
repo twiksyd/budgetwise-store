@@ -36,10 +36,7 @@ const item: Variants = {
 
 export function TrustPoints() {
   return (
-    <section
-      id="how-it-works"
-      className="mx-auto max-w-6xl px-6 pt-4 pb-28 sm:pb-36"
-    >
+    <section className="mx-auto max-w-6xl px-6 pt-4 pb-28 sm:pb-36">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}

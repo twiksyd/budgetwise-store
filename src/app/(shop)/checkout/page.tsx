@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { OrderSummary } from "@/components/checkout/order-summary";
+import { WhatHappensNext } from "@/components/checkout/what-happens-next";
 import {
   useCartStore,
   useCartHydrated,
@@ -33,6 +34,7 @@ export default function CheckoutPage() {
         </div>
         <OrderSummary items={items} subtotal={subtotal} />
       </div>
+      <WhatHappensNext />
     </div>
   );
 }
