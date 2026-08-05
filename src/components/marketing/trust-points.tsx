@@ -2,6 +2,7 @@
 
 import { motion, type Variants } from "framer-motion";
 import { ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { Taglish } from "@/components/shared/taglish";
 
 const trustPoints = [
   {
@@ -9,18 +10,24 @@ const trustPoints = [
     title: "Trustworthy",
     description:
       "Every order is tracked from checkout to delivery — no guesswork, no back-alley deals.",
+    taglish:
+      "Nasusubaybayan ang bawat order mula checkout hanggang delivery — walang tsamba, walang lihim na deal.",
   },
   {
     icon: Zap,
     title: "Fast",
     description:
       "Orders are picked up and fulfilled quickly, with clear status every step of the way.",
+    taglish:
+      "Mabilis na pinoproseso ang mga order, may malinaw na status sa bawat hakbang.",
   },
   {
     icon: Sparkles,
     title: "Premium prices",
     description:
       "Discounted rates on the currencies, gamepasses, and subscriptions you already play for.",
+    taglish:
+      "May diskwento sa currency, gamepasses, at subscriptions na regular mo nang ginagastusan.",
   },
 ];
 
@@ -57,7 +64,7 @@ export function TrustPoints() {
         viewport={{ once: true, margin: "-80px" }}
         className="mt-8 grid gap-5 sm:mt-14 sm:grid-cols-3"
       >
-        {trustPoints.map(({ icon: Icon, title, description }) => (
+        {trustPoints.map(({ icon: Icon, title, description, taglish }) => (
           <motion.div
             key={title}
             variants={item}
@@ -72,6 +79,7 @@ export function TrustPoints() {
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
               {description}
             </p>
+            <Taglish>{taglish}</Taglish>
           </motion.div>
         ))}
       </motion.div>

@@ -9,6 +9,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Taglish } from "@/components/shared/taglish";
 import { faqs } from "@/config/faqs";
 
 export function FaqPreview() {
@@ -43,6 +44,7 @@ export function FaqPreview() {
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground text-[15px] leading-relaxed">
                 {faq.answer}
+                <Taglish>{faq.taglish}</Taglish>
               </AccordionContent>
             </AccordionItem>
           ))}

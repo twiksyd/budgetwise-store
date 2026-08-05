@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Taglish } from "@/components/shared/taglish";
 import { useCartStore } from "@/stores/cart-store";
 
 export function CheckoutForm() {
@@ -108,10 +109,15 @@ export function CheckoutForm() {
       >
         {isSubmitting ? "Placing order..." : "Place order"}
       </Button>
-      <p className="text-muted-foreground -mt-3 text-center text-xs">
-        No payment is taken here — you&apos;ll confirm payment on Messenger
-        next.
-      </p>
+      <div className="-mt-3">
+        <p className="text-muted-foreground text-center text-xs">
+          No payment is taken here — you&apos;ll confirm payment on Messenger
+          next.
+        </p>
+        <Taglish className="text-center">
+          Walang babayaran dito — kukumpirmahin mo ang bayad sa Messenger.
+        </Taglish>
+      </div>
     </form>
   );
 }

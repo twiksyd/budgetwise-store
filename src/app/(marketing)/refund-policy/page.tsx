@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2, XCircle } from "lucide-react";
+import { Taglish } from "@/components/shared/taglish";
 
 export const metadata: Metadata = {
   title: "Refund & order policy",
@@ -29,6 +30,10 @@ export default function RefundPolicyPage() {
         We&apos;d rather be upfront about this than leave you guessing. Here&apos;s
         exactly when a refund applies.
       </p>
+      <Taglish size="md">
+        Mas gusto naming maging tapat kaysa iwan kang nagtataka. Narito ang
+        eksaktong panahon kung kailan puwede ang refund.
+      </Taglish>
 
       <div className="mt-10 grid gap-5 sm:grid-cols-2">
         <div className="surface-premium rounded-2xl p-6">
@@ -48,6 +53,11 @@ export default function RefundPolicyPage() {
               </li>
             ))}
           </ul>
+          <Taglish className="border-border/60 mt-4 border-t pt-3">
+            Puwede ang refund kung: hindi na-deliver ang order kahit
+            kumpirmado na ang bayad, mali ang natanggap mong item o halaga,
+            o na-double charge ka sa parehong order.
+          </Taglish>
         </div>
 
         <div className="surface-premium rounded-2xl p-6">
@@ -67,6 +77,12 @@ export default function RefundPolicyPage() {
               </li>
             ))}
           </ul>
+          <Taglish className="border-border/60 mt-4 border-t pt-3">
+            Hindi puwede ang refund kung: nagbago lang ang isip mo
+            pagkatapos ma-deliver ang order, mali ang username na inilagay
+            sa checkout, o naka-ban o restricted ang sarili mong Roblox
+            account.
+          </Taglish>
         </div>
       </div>
 
@@ -82,6 +98,12 @@ export default function RefundPolicyPage() {
             usual, we&apos;ll tell you directly rather than leave you without an
             update.
           </p>
+          <Taglish>
+            Ang mga order ay sinusuri at kinukumpirma nang manual pagkatapos
+            mong i-send sa Messenger — totoong tao ang sasagot, hindi
+            automated. Kung mas matagal ang order mo sa karaniwan, sasabihin
+            namin agad sa iyo.
+          </Taglish>
         </div>
         <div>
           <h2 className="font-heading text-base font-semibold">
@@ -95,6 +117,10 @@ export default function RefundPolicyPage() {
             with your order number and what went wrong. We&apos;ll look into it
             and get back to you.
           </p>
+          <Taglish>
+            I-message kami sa Messenger ng order number mo at kung ano ang
+            problema. Titingnan namin ito at babalikan ka.
+          </Taglish>
         </div>
       </div>
     </div>

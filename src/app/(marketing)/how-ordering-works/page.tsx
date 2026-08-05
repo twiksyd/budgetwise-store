@@ -7,6 +7,7 @@ import {
   PackageCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Taglish } from "@/components/shared/taglish";
 
 export const metadata: Metadata = {
   title: "How ordering works",
@@ -19,24 +20,32 @@ const steps = [
     title: "Browse and add to cart",
     description:
       "Pick a game, choose the currency or gamepass you want, and add it to your cart. Prices are shown up front — no hidden fees.",
+    taglish:
+      "Pumili ng game, piliin ang currency o gamepass na gusto mo, at idagdag sa cart. Nakalagay na agad ang presyo — walang tagong bayad.",
   },
   {
     icon: ClipboardList,
     title: "Check out on the site",
     description:
       "Enter your name and Roblox username. This creates a real order with its own order number — the site is the source of truth, not a chat log.",
+    taglish:
+      "Ilagay ang pangalan at Roblox username mo. Dito nagsisimula ang totoong order na may sariling order number — ang website ang pinagbabatayan, hindi ang chat.",
   },
   {
     icon: MessageCircle,
     title: "Confirm on Messenger",
     description:
       "Your order confirmation page opens Messenger with your order already typed in. Review it and hit send — that's how we know to start on your order and how we arrange payment.",
+    taglish:
+      "Magbubukas ang Messenger mula sa confirmation page mo na may nakasulat nang order. I-check at i-send — dito namin malalaman na simulan na ang order mo at pag-usapan ang bayad.",
   },
   {
     icon: PackageCheck,
     title: "We deliver to your account",
     description:
       "Once payment is confirmed, we deliver directly to the Roblox username you provided. If anything needs your attention, we'll reach out on Messenger.",
+    taglish:
+      "Kapag kumpirmado na ang bayad, ide-deliver namin agad sa Roblox username na ibinigay mo. Kung may kailangan pang linawin, kokontakin ka namin sa Messenger.",
   },
 ];
 
@@ -51,6 +60,11 @@ export default function HowOrderingWorksPage() {
         only used to confirm payment and communicate — never to place the
         order itself.
       </p>
+      <Taglish size="md">
+        Dito sa website nagagawa at nasusubaybayan ang order mo. Ang
+        Messenger ay ginagamit lang para kumpirmahin ang bayad at mag-usap —
+        hindi rito ginagawa ang order.
+      </Taglish>
 
       <div className="mt-12 flex flex-col gap-8">
         {steps.map((step, i) => (
@@ -73,6 +87,7 @@ export default function HowOrderingWorksPage() {
               <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
                 {step.description}
               </p>
+              <Taglish>{step.taglish}</Taglish>
             </div>
           </div>
         ))}
@@ -85,6 +100,9 @@ export default function HowOrderingWorksPage() {
         <p className="text-muted-foreground mt-1.5 text-sm">
           Pick a game and see what&apos;s available.
         </p>
+        <Taglish className="text-center">
+          Pumili ng game at tingnan kung ano ang available.
+        </Taglish>
         <Button asChild size="lg" className="mt-5 h-11">
           <Link href="/games">Browse games</Link>
         </Button>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { Taglish } from "@/components/shared/taglish";
 import { getGeneralMessengerLink } from "@/lib/messenger";
 
 export function SiteFooter() {
@@ -18,6 +19,11 @@ export function SiteFooter() {
               gamepasses, and subscriptions. Every order is placed on the
               site first, then confirmed with a real person over Messenger.
             </p>
+            <Taglish className="max-w-xs">
+              Isang online store para sa mas mura na in-game currency,
+              gamepasses, at subscriptions. Ang bawat order ay ginagawa
+              muna sa site, tapos kinukumpirma ng tunay na tao sa Messenger.
+            </Taglish>
             {messengerLink && (
               <a
                 href={messengerLink}
