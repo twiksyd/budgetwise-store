@@ -21,31 +21,41 @@ export function MessengerHandoff({
   const [copied, setCopied] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  async function handleCopyAndOpen() {
+  // Deliberately not an async function: Safari (and some mobile browsers)
+  // will silently block window.open() if it's called anywhere inside an
+  // async function, even before the first await — the function itself
+  // returns a Promise, which is enough to break the "direct user gesture"
+  // chain on WebKit. window.open must be the first synchronous thing that
+  // runs on tap; everything after it is chained with .then()/.finally().
+  function handleCopyAndOpen() {
     if (isProcessing) return;
     setIsProcessing(true);
 
-    // Open the tab synchronously, inside the click handler, so browsers don't
-    // treat it as a popup — then navigate it once the copy/delay finish.
-    // A delayed window.open() call would get silently blocked.
     const messengerWindow = messengerLink
       ? window.open("about:blank", "_blank")
       : null;
 
-    try {
-      await navigator.clipboard.writeText(message);
-      setCopied(true);
-      toast.success("Order copied!");
-    } catch {
-      toast.error("Couldn't copy automatically — copy the message below manually.");
-    }
-
-    if (messengerWindow && messengerLink) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      messengerWindow.location.href = messengerLink;
-    }
-
-    setIsProcessing(false);
+    navigator.clipboard
+      .writeText(message)
+      .then(() => {
+        setCopied(true);
+        toast.success("Order copied!");
+      })
+      .catch(() => {
+        toast.error(
+          "Couldn't copy automatically — copy the message below manually.",
+        );
+      })
+      .finally(() => {
+        if (messengerWindow && messengerLink) {
+          setTimeout(() => {
+            messengerWindow.location.href = messengerLink;
+            setIsProcessing(false);
+          }, 1000);
+        } else {
+          setIsProcessing(false);
+        }
+      });
   }
 
   return (
