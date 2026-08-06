@@ -1,31 +1,62 @@
+"use client";
+
+import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/pricing";
 import type { OrderConfirmation } from "@/lib/queries/orders";
+
+const INITIAL_VISIBLE_ITEMS = 3;
 
 export function OrderConfirmationSummary({
   order,
 }: {
   order: OrderConfirmation;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasHiddenItems = order.lines.length > INITIAL_VISIBLE_ITEMS;
+  const visibleLines = expanded
+    ? order.lines
+    : order.lines.slice(0, INITIAL_VISIBLE_ITEMS);
+
   return (
-    <div className="surface-premium rounded-2xl p-6 sm:p-7">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-heading text-sm font-semibold">Order summary</h2>
-        <p className="text-muted-foreground truncate text-xs">
-          Deliver to <span className="text-foreground font-medium">{order.buyerRobloxUsername}</span>
-        </p>
+    <div className="surface-premium rounded-2xl p-4 sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="font-heading text-base font-semibold">
+            Order Summary
+          </h2>
+          <p className="text-muted-foreground mt-1 truncate text-sm">
+            Roblox username:{" "}
+            <span className="text-foreground font-medium">
+              {order.buyerRobloxUsername}
+            </span>
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-muted-foreground text-xs font-medium">Total</p>
+          <p className="font-heading text-primary text-xl leading-none font-bold [font-variant-numeric:tabular-nums]">
+            {formatPrice(order.total)}
+          </p>
+        </div>
       </div>
 
-      <div className="mt-5 flex flex-col gap-3.5">
-        {order.lines.map((line) => (
+      <Separator className="my-4" />
+
+      <div className="flex flex-col gap-3">
+        {visibleLines.map((line, index) => (
           <div
-            key={line.gamepassId}
-            className="flex items-center justify-between gap-3 text-sm"
+            key={`${line.gamepassId}-${index}`}
+            className="flex items-start justify-between gap-3 text-sm"
           >
             <div className="min-w-0">
-              <p className="truncate font-medium">{line.gamepassName}</p>
-              <p className="text-muted-foreground text-xs">
-                {line.robuxAmount.toLocaleString()} Robux
+              <p className="truncate font-medium">
+                {line.quantity > 1 ? `${line.quantity}× ` : ""}
+                {line.gamepassName}
+              </p>
+              <p className="text-muted-foreground mt-0.5 truncate text-xs">
+                {line.gameName} · {line.robuxAmount.toLocaleString()} Robux
               </p>
             </div>
             <p className="shrink-0 font-medium [font-variant-numeric:tabular-nums]">
@@ -35,14 +66,27 @@ export function OrderConfirmationSummary({
         ))}
       </div>
 
-      <Separator className="my-5" />
-
-      <div className="flex items-center justify-between">
-        <span className="text-muted-foreground text-sm">Total</span>
-        <span className="font-heading text-primary text-xl font-bold [font-variant-numeric:tabular-nums]">
-          {formatPrice(order.total)}
-        </span>
-      </div>
+      {hasHiddenItems && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setExpanded((value) => !value)}
+          className="mt-4 w-full"
+        >
+          {expanded ? (
+            <>
+              Show fewer items
+              <ChevronUp className="size-3.5" />
+            </>
+          ) : (
+            <>
+              View all items
+              <ChevronDown className="size-3.5" />
+            </>
+          )}
+        </Button>
+      )}
     </div>
   );
 }

@@ -5,7 +5,6 @@ import { getMessengerLink, buildOrderMessage } from "@/lib/messenger";
 import { MessengerHandoff } from "@/components/checkout/messenger-handoff";
 import { SuccessHeader } from "@/components/checkout/success-header";
 import { OrderConfirmationSummary } from "@/components/checkout/order-confirmation-summary";
-import { NextStepGuidance } from "@/components/checkout/next-step-guidance";
 import { ClearCartOnSuccess } from "@/components/checkout/clear-cart-on-success";
 
 export const metadata: Metadata = {
@@ -26,20 +25,16 @@ export default async function CheckoutSuccessPage({ params }: Props) {
   const messengerLink = getMessengerLink(order.orderNumber, message);
 
   return (
-    <div className="mx-auto max-w-lg px-6 py-16 sm:py-20">
+    <div className="mx-auto max-w-xl px-6 py-8 sm:py-16">
       <ClearCartOnSuccess />
       <SuccessHeader orderNumber={order.orderNumber} />
 
-      <div className="mt-8">
-        <OrderConfirmationSummary order={order} />
-      </div>
-
-      <div className="mt-6">
+      <div className="mt-5">
         <MessengerHandoff message={message} messengerLink={messengerLink} />
       </div>
 
-      <div className="mt-8">
-        <NextStepGuidance />
+      <div className="mt-6">
+        <OrderConfirmationSummary order={order} />
       </div>
     </div>
   );

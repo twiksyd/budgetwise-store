@@ -104,9 +104,11 @@ export async function createOrder(
 
 export interface OrderConfirmationLine {
   gamepassId: string;
+  gameName: string;
   gamepassName: string;
   robuxAmount: number;
   sellingPrice: number;
+  quantity: number;
 }
 
 export interface OrderConfirmation {
@@ -137,12 +139,22 @@ export async function getOrderConfirmation(
   const gamepassIds = orders.map((o) => o.gamepass_id);
   const { data: gamepasses, error: gamepassError } = await supabase
     .from("gamepasses")
-    .select("id, name")
+    .select("id, name, game_id, your_price, robux_amount")
     .in("id", gamepassIds);
 
   if (gamepassError) throw gamepassError;
 
-  const nameById = new Map((gamepasses ?? []).map((g) => [g.id, g.name]));
+  const gamepassById = new Map((gamepasses ?? []).map((g) => [g.id, g]));
+  const gameIds = [...new Set((gamepasses ?? []).map((g) => g.game_id))];
+
+  const { data: games, error: gamesError } = await supabase
+    .from("games")
+    .select("id, name")
+    .in("id", gameIds);
+
+  if (gamesError) throw gamesError;
+
+  const gameNameById = new Map((games ?? []).map((g) => [g.id, g.name]));
 
   return {
     orderNumber,
@@ -151,11 +163,30 @@ export async function getOrderConfirmation(
     status: orders[0].status,
     createdAt: orders[0].created_at,
     total: orders.reduce((sum, o) => sum + o.selling_price, 0),
-    lines: orders.map((o) => ({
-      gamepassId: o.gamepass_id,
-      gamepassName: nameById.get(o.gamepass_id) ?? "Gamepass",
-      robuxAmount: o.robux_amount,
-      sellingPrice: o.selling_price,
-    })),
+    lines: orders.map((o) => {
+      const gamepass = gamepassById.get(o.gamepass_id);
+      const quantityFromPrice =
+        gamepass?.your_price && gamepass.your_price > 0
+          ? o.selling_price / gamepass.your_price
+          : 0;
+      const quantityFromRobux =
+        gamepass?.robux_amount && gamepass.robux_amount > 0
+          ? o.robux_amount / gamepass.robux_amount
+          : 0;
+      const quantity = Number.isInteger(quantityFromPrice) && quantityFromPrice > 0
+        ? quantityFromPrice
+        : Number.isInteger(quantityFromRobux) && quantityFromRobux > 0
+          ? quantityFromRobux
+          : 1;
+
+      return {
+        gamepassId: o.gamepass_id,
+        gameName: gameNameById.get(gamepass?.game_id ?? "") ?? "BudgetWise",
+        gamepassName: gamepass?.name ?? "Gamepass",
+        robuxAmount: o.robux_amount,
+        sellingPrice: o.selling_price,
+        quantity,
+      };
+    }),
   };
 }

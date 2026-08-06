@@ -16,7 +16,9 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       aria-label="Toggle theme"
+      onPointerDown={(event) => event.preventDefault()}
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+      className="focus-visible:ring-2 focus-visible:ring-ring/40"
     >
       {mounted && resolvedTheme === "dark" ? (
         <Sun className="size-4" />
