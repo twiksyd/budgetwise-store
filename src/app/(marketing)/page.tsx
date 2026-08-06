@@ -1,20 +1,15 @@
 import { AnimatedHero } from "@/components/marketing/animated-hero";
-import { TrustPoints } from "@/components/marketing/trust-points";
 import { CustomerReviews } from "@/components/marketing/customer-reviews";
-import { HowItWorksPreview } from "@/components/marketing/how-it-works-preview";
+import { TrustPoints } from "@/components/marketing/trust-points";
 import { PopularGames } from "@/components/marketing/popular-games";
-import { FeaturedProducts } from "@/components/marketing/featured-products";
 import { FaqPreview } from "@/components/marketing/faq-preview";
-import { getGames, getFeaturedGamepasses } from "@/lib/queries/catalog";
 import { continuePlayingGameIds } from "@/config/homepage-picks";
+import { getGames } from "@/lib/queries/catalog";
 
 export const revalidate = 60;
 
 export default async function LandingPage() {
-  const [games, featuredProducts] = await Promise.all([
-    getGames(),
-    getFeaturedGamepasses(),
-  ]);
+  const games = await getGames();
 
   const gameById = new Map(games.map((game) => [game.id, game]));
   const continuePlayingGames = continuePlayingGameIds
@@ -24,14 +19,9 @@ export default async function LandingPage() {
   return (
     <div>
       <AnimatedHero />
-      <TrustPoints />
-      {/* Shopping content surfaces right after the quick trust points —
-          Reviews/How-It-Works are worthwhile reinforcement, but shouldn't
-          sit between a first-time visitor and the actual product grid. */}
-      <PopularGames games={continuePlayingGames} />
-      <FeaturedProducts products={featuredProducts} />
       <CustomerReviews />
-      <HowItWorksPreview />
+      <TrustPoints />
+      <PopularGames games={continuePlayingGames} />
       <FaqPreview />
     </div>
   );

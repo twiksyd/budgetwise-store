@@ -115,7 +115,7 @@ export function AnimatedHero() {
             asChild
             className="h-11 px-7 text-[15px] sm:h-12"
           >
-            <Link href="/#how-it-works">How it works</Link>
+            <Link href="/how-ordering-works">How it works</Link>
           </Button>
         </motion.div>
       </motion.div>
