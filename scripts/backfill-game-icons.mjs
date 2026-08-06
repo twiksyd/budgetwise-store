@@ -6,10 +6,16 @@
 //
 // Run with: node --env-file=.env.local scripts/backfill-game-icons.mjs
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
+);
+
+const configuredUniverseIds = JSON.parse(
+  readFileSync(join(process.cwd(), "src/config/roblox-universe-ids.json"), "utf8"),
 );
 
 function normalize(name) {
@@ -75,6 +81,24 @@ async function findConfidentMatch(name, aliases) {
   return null;
 }
 
+async function resolveGameIcon(game) {
+  const configuredUniverseId = configuredUniverseIds[game.id];
+  if (configuredUniverseId) {
+    return {
+      matchName: `configured universe ${configuredUniverseId}`,
+      iconUrl: await fetchIconUrl(configuredUniverseId),
+    };
+  }
+
+  const match = await findConfidentMatch(game.name, game.aliases);
+  if (!match) return null;
+
+  return {
+    matchName: match.name,
+    iconUrl: await fetchIconUrl(match.universeId),
+  };
+}
+
 async function main() {
   const { data: games, error } = await supabase
     .from("games")
@@ -90,16 +114,15 @@ async function main() {
 
   for (const game of games) {
     try {
-      const match = await findConfidentMatch(game.name, game.aliases);
+      const resolved = await resolveGameIcon(game);
 
-      if (!match) {
+      if (!resolved) {
         skipped.push(game.name);
         console.log(`⨯ No confident match: "${game.name}"`);
         continue;
       }
 
-      const iconUrl = await fetchIconUrl(match.universeId);
-      if (!iconUrl) {
+      if (!resolved.iconUrl) {
         skipped.push(game.name);
         console.log(`⨯ No icon returned: "${game.name}"`);
         continue;
@@ -107,13 +130,13 @@ async function main() {
 
       const { error: updateError } = await supabase
         .from("games")
-        .update({ icon_url: iconUrl })
+        .update({ icon_url: resolved.iconUrl })
         .eq("id", game.id);
 
       if (updateError) throw updateError;
 
       updated++;
-      console.log(`✓ "${game.name}" → matched "${match.name}"`);
+      console.log(`✓ "${game.name}" → matched "${resolved.matchName}"`);
     } catch (err) {
       skipped.push(game.name);
       console.log(`⨯ Error on "${game.name}": ${err.message}`);
