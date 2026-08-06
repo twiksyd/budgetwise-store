@@ -28,28 +28,40 @@ export type Database = {
   public: {
     Tables: {
       // Store-owned cache table (see
-      // supabase/migrations/0006_roblox_gamepass_icon_cache.sql) — a real
-      // table, not a view, so it's listed here rather than under Views.
+      // supabase/migrations/0006_roblox_gamepass_icon_cache.sql and
+      // 0008_roblox_sync_change_tracking.sql) — a real table, not a view,
+      // so it's listed here rather than under Views. The Store app only
+      // ever reads gamepass_id/icon_url from this (getRobloxIconCache) —
+      // the rest of the columns exist for the sync script (plain JS,
+      // untyped) and are listed here for completeness/type accuracy.
       roblox_gamepass_icon_cache: {
         Row: {
           gamepass_id: string;
           roblox_universe_id: number;
           status: "matched" | "no_match" | "ambiguous";
+          source: "manual" | "roblox" | null;
           roblox_gamepass_id: number | null;
           icon_url: string | null;
           matched_name: string | null;
           candidate_count: number;
           synced_at: string;
+          last_verified_at: string;
+          roblox_updated_at: string | null;
+          first_flagged_at: string | null;
         };
         Insert: {
           gamepass_id: string;
           roblox_universe_id: number;
           status: "matched" | "no_match" | "ambiguous";
+          source?: "manual" | "roblox" | null;
           roblox_gamepass_id?: number | null;
           icon_url?: string | null;
           matched_name?: string | null;
           candidate_count?: number;
           synced_at?: string;
+          last_verified_at?: string;
+          roblox_updated_at?: string | null;
+          first_flagged_at?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["roblox_gamepass_icon_cache"]["Insert"]
