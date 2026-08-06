@@ -95,8 +95,8 @@ export function AnimatedHero() {
           variants={item}
           className="text-muted-foreground mt-3 max-w-lg text-base text-balance sm:mt-7 sm:text-xl"
         >
-          A digital marketplace for discounted in-game currency, gamepasses,
-          and subscriptions — built for gamers who expect a real storefront.
+          Pumili ng game at items na gusto ninyo. Pagkatapos gumawa ng order
+          slip, i-send ang buong order message sa amin through Messenger.
         </motion.p>
 
         <motion.div
@@ -105,7 +105,7 @@ export function AnimatedHero() {
         >
           <Button size="lg" asChild className="h-11 px-7 text-[15px] sm:h-12">
             <Link href="/games">
-              Browse games
+              Umorder Na
               <ArrowRight className="size-4" />
             </Link>
           </Button>
@@ -115,7 +115,7 @@ export function AnimatedHero() {
             asChild
             className="h-11 px-7 text-[15px] sm:h-12"
           >
-            <Link href="/how-ordering-works">How it works</Link>
+            <Link href="/how-ordering-works">Paano Umorder</Link>
           </Button>
         </motion.div>
       </motion.div>

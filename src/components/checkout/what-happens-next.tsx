@@ -1,29 +1,34 @@
-import { ClipboardCheck, MessageCircle, ShieldCheck, PackageCheck } from "lucide-react";
+import {
+  ClipboardCheck,
+  MessageCircle,
+  ShieldCheck,
+  PackageCheck,
+} from "lucide-react";
 
 const points = [
   {
     icon: ClipboardCheck,
-    title: "Your order is created first",
+    title: "Gagawa muna ng Order Slip",
     description:
-      "Clicking \"Place order\" doesn't charge you anything — it creates a real order with its own order number on our system.",
+      "Pag-click ng Gumawa ng Order Slip, wala pa pong bayad. Gagawa lang ito ng order reference sa system namin.",
   },
   {
     icon: MessageCircle,
-    title: "Send the full message",
+    title: "I-send ang buong message",
     description:
-      "You'll land on a confirmation page with a prepared order message. Copy it, open Messenger, then paste and send the full message.",
+      "Sa next page, kopyahin ang buong order message, buksan ang Messenger, tapos i-paste at i-send.",
   },
   {
     icon: ShieldCheck,
-    title: "Payment isn't taken on this site",
+    title: "Walang payment dito",
     description:
-      "We don't collect payment details here. You'll arrange payment directly with us over Messenger, after you send your order.",
+      "Payment instructions ay ibibigay lang namin sa Messenger pagkatapos naming ma-review ang order.",
   },
   {
     icon: PackageCheck,
-    title: "We take it from there",
+    title: "Kami na ang magpo-process",
     description:
-      "Once payment is confirmed, we process your order and deliver to the Roblox username you provided.",
+      "Kapag confirmed na ang payment, ipprocess namin ang order sa Roblox Username na nilagay ninyo.",
   },
 ];
 
@@ -31,7 +36,7 @@ export function WhatHappensNext() {
   return (
     <div className="mt-6 sm:mt-8">
       <h2 className="font-heading text-center text-sm font-semibold">
-        What happens after you click Place order
+        Ano ang mangyayari pagkatapos gumawa ng Order Slip
       </h2>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {points.map((point) => (

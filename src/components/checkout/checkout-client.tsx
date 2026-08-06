@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { OrderSummary } from "@/components/checkout/order-summary";
 import { WhatHappensNext } from "@/components/checkout/what-happens-next";
+import { OrderingProgress } from "@/components/ordering/ordering-progress";
+import { MessengerHelpLink } from "@/components/ordering/messenger-help-link";
 import {
   useCartStore,
   useCartHydrated,
@@ -25,9 +27,17 @@ export function CheckoutClient() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 sm:py-24">
-      <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
-        Checkout
+      <OrderingProgress
+        currentStep={3}
+        description="Gagamitin namin ang details na ito para mahanap ang inyong order at Messenger conversation."
+      />
+
+      <h1 className="font-heading mt-6 text-3xl font-semibold tracking-tight sm:text-4xl">
+        Ilagay ang Tamang Details
       </h1>
+      <div className="mt-3">
+        <MessengerHelpLink />
+      </div>
       <div className="mt-10 grid gap-6 sm:grid-cols-2 sm:gap-8">
         <div className="surface-premium rounded-2xl p-6 sm:p-7">
           <CheckoutForm />

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ArrowRight, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MessengerHelpLink } from "@/components/ordering/messenger-help-link";
 import { useStoreStatus } from "@/components/shared/store-status-provider";
 import { getGeneralMessengerLink } from "@/lib/messenger";
 import { Price } from "@/components/shared/price";
@@ -34,13 +35,17 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
         <Price amount={subtotal} variant="cart" />
       </div>
 
+      <p className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 rounded-xl border px-3.5 py-2.5 text-center text-xs leading-relaxed">
+        Wala pa pong kailangang bayaran.
+      </p>
+
       {status === "open" ? (
         <Button
           size="lg"
           className="h-12 w-full text-[15px]"
           onClick={handleCheckout}
         >
-          Proceed to Checkout
+          Magpatuloy sa Checkout
           <ArrowRight className="size-4" />
         </Button>
       ) : (
@@ -48,23 +53,26 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
           {/* Checkout is a dead end right now — don't send customers there
               just to bounce them back. Your cart is untouched either way. */}
           <p className="bg-muted/60 text-muted-foreground rounded-xl px-3.5 py-2.5 text-center text-xs leading-relaxed">
-            Ordering is paused right now. Your cart is saved — message us on
-            Messenger with any questions.
+            Paused po muna ang ordering. Saved pa rin ang cart ninyo.
           </p>
           {messengerLink ? (
             <Button asChild size="lg" className="h-12 w-full text-[15px]">
               <a href={messengerLink} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="size-4" />
-                Message us on Messenger
+                I-message kami sa Messenger
               </a>
             </Button>
           ) : (
             <Button disabled size="lg" className="h-12 w-full text-[15px]">
-              Ordering Paused
+              Paused ang Ordering
             </Button>
           )}
         </>
       )}
+
+      <div className="flex justify-center pt-1">
+        <MessengerHelpLink />
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   ShieldQuestion,
 } from "lucide-react";
 import { GamepassCard } from "@/components/catalog/gamepass-card";
+import { OrderingProgress } from "@/components/ordering/ordering-progress";
 import { Badge } from "@/components/ui/badge";
 import { robuxViaLinkGameIds, robuxViaLinkTile } from "@/config/robux-via-link";
 import { getGamepassesByGameId } from "@/lib/queries/catalog";
@@ -45,7 +46,12 @@ export default async function RobuxViaLinkPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-6 sm:py-14">
-      <nav className="text-muted-foreground flex items-center gap-1.5 text-xs sm:text-sm">
+      <OrderingProgress
+        currentStep={2}
+        description="Piliin at i-add sa cart ang gamepasses o items na gusto ninyong bilhin."
+      />
+
+      <nav className="text-muted-foreground mt-5 flex items-center gap-1.5 text-xs sm:text-sm">
         <Link href="/games" className="hover:text-foreground transition-colors">
           Games
         </Link>
@@ -74,7 +80,7 @@ export default async function RobuxViaLinkPage() {
             {robuxViaLinkTile.name}
           </h1>
           <p className="text-muted-foreground mt-1.5 max-w-2xl text-sm leading-relaxed sm:text-base">
-            Choose from the available Robux packs below.
+            Piliin ang Robux pack sa baba, tapos i-add sa cart.
           </p>
         </div>
       </div>
@@ -99,8 +105,8 @@ export default async function RobuxViaLinkPage() {
           <div>
             <h2 className="font-heading text-sm font-semibold">Tax Covered</h2>
             <p className="text-muted-foreground mt-1 text-xs leading-snug">
-              You receive the listed Robux amount. BudgetWise covers Roblox&apos;s
-              marketplace tax.
+              Matatanggap ninyo ang listed Robux amount. BudgetWise ang sasagot
+              sa Roblox marketplace tax.
             </p>
           </div>
         </div>
@@ -109,9 +115,9 @@ export default async function RobuxViaLinkPage() {
           <div>
             <h2 className="font-heading text-sm font-semibold">Tax Not Covered</h2>
             <p className="text-muted-foreground mt-1 text-xs leading-snug">
-              Roblox deducts 30%, so{" "}
+              Roblox ang magbabawas ng 30%, kaya{" "}
               <span className="text-foreground font-medium">1,000 Robux</span>{" "}
-              delivers{" "}
+              ay magiging{" "}
               <span className="text-foreground font-medium">700 Robux</span>.
             </p>
           </div>
@@ -133,7 +139,7 @@ export default async function RobuxViaLinkPage() {
                   Recommended
                 </Badge>
                 <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-                  Choose an amount where the listed Robux is what you receive.
+                  Piliin ito kung gusto ninyong listed Robux ang matatanggap.
                 </p>
               </div>
             </div>
@@ -170,7 +176,7 @@ export default async function RobuxViaLinkPage() {
                   Tax Not Covered
                 </h2>
                 <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-                  Choose a lower-price amount where Roblox deducts its tax.
+                  Piliin ito kung okay lang na Roblox ang magbawas ng tax.
                 </p>
               </div>
             </div>

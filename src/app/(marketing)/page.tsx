@@ -1,5 +1,6 @@
 import { AnimatedHero } from "@/components/marketing/animated-hero";
 import { CustomerReviews } from "@/components/marketing/customer-reviews";
+import { HomepageOrderingGuide } from "@/components/marketing/homepage-ordering-guide";
 import { TrustPoints } from "@/components/marketing/trust-points";
 import { PopularGames } from "@/components/marketing/popular-games";
 import { FaqPreview } from "@/components/marketing/faq-preview";
@@ -19,6 +20,7 @@ export default async function LandingPage() {
   return (
     <div>
       <AnimatedHero />
+      <HomepageOrderingGuide />
       <CustomerReviews />
       <TrustPoints />
       <PopularGames games={continuePlayingGames} />

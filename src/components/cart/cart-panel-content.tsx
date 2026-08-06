@@ -18,9 +18,9 @@ export function CartPanelContent({ onClose }: { onClose: () => void }) {
         {items.length === 0 ? (
           <EmptyState
             icon={ShoppingBag}
-            title="Your cart is empty."
-            description="Browse our catalog to start your order."
-            action={{ label: "Browse Games", href: "/games" }}
+            title="Wala pang laman ang inyong cart."
+            description="Pumili muna po ng game at item para makagawa ng order slip."
+            action={{ label: "Pumili ng Game", href: "/games" }}
             onActionClick={onClose}
           />
         ) : (

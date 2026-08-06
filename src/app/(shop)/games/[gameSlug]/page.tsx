@@ -20,6 +20,7 @@ import {
 } from "@/lib/queries/product-artwork";
 import { GamepassList } from "@/components/catalog/gamepass-list";
 import { EmptyState } from "@/components/shared/empty-state";
+import { OrderingProgress } from "@/components/ordering/ordering-progress";
 import { robloxUniverseIds } from "@/config/roblox-universe-ids";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
 
@@ -84,7 +85,12 @@ export default async function GameDetailPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-6 sm:py-14">
-      <nav className="text-muted-foreground flex items-center gap-1.5 text-xs sm:text-sm">
+      <OrderingProgress
+        currentStep={2}
+        description="Piliin at i-add sa cart ang gamepasses o items na gusto ninyong bilhin."
+      />
+
+      <nav className="text-muted-foreground mt-5 flex items-center gap-1.5 text-xs sm:text-sm">
         <Link href="/games" className="hover:text-foreground transition-colors">
           Games
         </Link>
@@ -121,7 +127,7 @@ export default async function GameDetailPage({ params }: Props) {
             {game.name}
           </h1>
           <p className="text-muted-foreground mt-1.5 max-w-2xl text-sm leading-relaxed sm:text-base">
-            Choose from the available currency packs and gamepasses below.
+            Piliin ang items sa baba, tapos i-add sa cart.
           </p>
         </div>
       </section>

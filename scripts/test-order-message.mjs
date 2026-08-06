@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildOrderMessage,
   normalizePlainTextMessage,
+  normalizeOrderMessageForMessenger,
 } from "../src/lib/order-message.mjs";
 
 function order(overrides = {}) {
@@ -32,6 +33,12 @@ function assertPlainTextOnly(message) {
   assert.equal(message.includes("\t"), false);
   assert.equal(/<\/?[a-z][\s\S]*>/i.test(message), false);
   assert.equal(/\*\*/.test(message), false);
+}
+
+function buildMessengerHref(message) {
+  const messengerUrl = new URL("https://m.me/61589047545427");
+  messengerUrl.searchParams.set("text", normalizeOrderMessageForMessenger(message));
+  return messengerUrl.toString();
 }
 
 test("one item message uses separate contact and item lines", () => {
@@ -193,4 +200,61 @@ test("long product names remain plain text", () => {
 
 test("clipboard text normalization keeps plain LF line endings", () => {
   assert.equal(normalizePlainTextMessage("a\r\nb\rc"), "a\nb\nc");
+});
+
+test("decoded Messenger text keeps username, order number, and items separated", () => {
+  const message = buildOrderMessage(
+    order({
+      orderNumber: "BW-XXXXXX",
+      buyerName: "José Toyotab ✨",
+      buyerRobloxUsername: "toyotab",
+      total: 444,
+      lines: [
+        {
+          gamepassId: "drag",
+          gameName: "Drag Drive Simulator",
+          gamepassName: "Product",
+          robuxAmount: 123,
+          sellingPrice: 111,
+          quantity: 2,
+        },
+        {
+          gamepassId: "covered",
+          gameName: "Robux Sell - Covered Tax",
+          gamepassName: "1,000 Robux",
+          robuxAmount: 1000,
+          sellingPrice: 222,
+          quantity: 1,
+        },
+        {
+          gamepassId: "no-tax",
+          gameName: "Robux Sell - No Tax",
+          gamepassName: "600 Robux",
+          robuxAmount: 600,
+          sellingPrice: 111,
+          quantity: 1,
+        },
+      ],
+    }),
+  );
+
+  const href = buildMessengerHref(message);
+  const decoded = new URL(href).searchParams.get("text");
+
+  assert.equal(decoded, normalizeOrderMessageForMessenger(message));
+  assert.equal(decoded.includes("toyotabDrag Drive Simulator"), false);
+  assert.match(
+    decoded,
+    /Facebook Name: José Toyotab ✨\nRoblox Username: toyotab\nOrder Number: BW-XXXXXX\n\nORDER ITEMS\n\nDrag Drive Simulator\n• Product ×2 — 123 Robux — ₱111/,
+  );
+  assert.match(decoded, /\n\nRobux Sell - Covered Tax\n• 1,000 Robux/);
+  assert.match(decoded, /\n\nRobux Sell - No Tax\n• 600 Robux/);
+  assert.match(decoded, /TOTAL: ₱444/);
+  assert.equal(decoded.includes("%E2%82%B1"), false);
+  assertPlainTextOnly(decoded);
+});
+
+test("Messenger text normalization removes tabs without changing line breaks", () => {
+  const normalized = normalizeOrderMessageForMessenger("a\tb\r\n\nc\rd");
+  assert.equal(normalized, "ab\n\nc\nd");
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
@@ -31,8 +32,9 @@ export function AddToCartButton({
   disabled?: boolean;
   label?: string;
 }) {
+  const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
-  const openCart = useUIStore((state) => state.openCart);
+  const closeCart = useUIStore((state) => state.closeCart);
   const [justAdded, setJustAdded] = useState(false);
   const revertTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -81,10 +83,14 @@ export function AddToCartButton({
           // Adding an item shouldn't interrupt browsing — a quiet toast
           // with a "View Cart" escape hatch instead of yanking the sheet
           // open, so the customer decides when they're ready to look.
-          toast.success(`${gamepass.name} added to cart`, {
+          toast.success("Na-add na sa cart.", {
+            description: "Pwede pa kayong magdagdag ng ibang item.",
             action: {
-              label: "View Cart",
-              onClick: () => openCart(),
+              label: "Tingnan ang Cart",
+              onClick: () => {
+                closeCart();
+                router.push("/cart");
+              },
             },
           });
         }}
@@ -100,7 +106,7 @@ export function AddToCartButton({
               className="inline-flex items-center gap-1.5"
             >
               <Check className="size-4" />
-              Added
+              Na-add
             </motion.span>
           ) : (
             <motion.span
@@ -112,7 +118,7 @@ export function AddToCartButton({
               className="inline-flex items-center gap-1.5"
             >
               {!disabled && !label && <ShoppingBag className="size-4" />}
-              {label ?? "Add to cart"}
+              {label ?? "I-add sa Cart"}
             </motion.span>
           )}
         </AnimatePresence>

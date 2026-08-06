@@ -19,9 +19,11 @@ const MESSAGE_PREVIEW_ITEM_LIMIT = 3;
 export function MessengerHandoff({
   message,
   messengerLink,
+  orderNumber,
 }: {
   message: string;
   messengerLink: string | null;
+  orderNumber: string;
 }) {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -33,103 +35,91 @@ export function MessengerHandoff({
     window.setTimeout(() => setCopied(false), 2200);
   }
 
-  async function handleCopyOnly() {
-    try {
-      await copyMessage();
-      toast.success("Full order message copied.", {
-        description: "Paste and send it inside Messenger.",
-      });
-    } catch {
-      setCopyFailed(true);
-      toast.error("Couldn't copy the message automatically.");
-    }
-  }
-
   async function handleCopyAndOpenMessenger() {
+    let copiedBackup = false;
+
     try {
       await copyMessage();
-      toast.success("Order message copied.", {
-        description: "Paste and send it inside Messenger.",
-      });
-
-      if (messengerLink) {
-        window.setTimeout(() => {
-          window.location.href = messengerLink;
-        }, 350);
-      }
+      copiedBackup = true;
     } catch {
       setCopyFailed(true);
-      toast.error("Couldn't copy the message automatically.");
+    }
+
+    toast.success("Binubuksan ang Messenger.", {
+      description: copiedBackup
+        ? "Naka-ready na ang order message. Pindutin lang po ang Send."
+        : "Kung walang message, gamitin ang preview bilang backup.",
+    });
+
+    if (messengerLink) {
+      window.setTimeout(() => {
+        window.location.href = messengerLink;
+      }, 250);
     }
   }
 
   return (
     <div className="space-y-4">
-      <div className="surface-premium rounded-2xl p-4 sm:p-6">
-        <div>
+      <div className="surface-premium rounded-2xl p-3.5 sm:p-5">
+        <div className="text-center">
           <p className="text-primary text-xs font-semibold tracking-wide uppercase">
             Final step
           </p>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-            Send the full prepared order message to BudgetWise on Messenger so
-            we can review it.
+            I-click ang button sa ibaba. Magbubukas ang Messenger na
+            naka-ready na ang buong order message.
           </p>
         </div>
 
-        <div className="bg-destructive/10 text-destructive border-destructive/20 mt-4 rounded-xl border p-3.5">
+        <div className="mt-3 flex flex-col gap-2.5">
+          <Button
+            size="lg"
+            onClick={handleCopyAndOpenMessenger}
+            className="h-12 w-full text-base font-semibold"
+            disabled={!messengerLink}
+          >
+            <Send className="size-5" />
+            Buksan ang Messenger
+          </Button>
+          <p className="text-muted-foreground -mt-1 text-center text-xs leading-relaxed">
+            I-check ang message at pindutin lang po ang Send.
+            <br />
+            Hindi lumabas ang message? I-paste po ang nakopyang order message
+            sa Messenger.
+          </p>
+        </div>
+
+        {copyFailed ? (
+          <p className="text-destructive mt-3 text-sm leading-relaxed">
+            Na-block ng browser ang copy. Piliin ang buong message sa preview,
+            tapos i-paste sa Messenger.
+          </p>
+        ) : copied ? (
+          <p className="text-primary mt-3 text-sm font-medium leading-relaxed">
+            Nakopya na rin bilang backup.
+          </p>
+        ) : null}
+
+        <div className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 mt-3 rounded-xl border p-3.5">
           <div className="flex gap-2.5">
-            <ShieldAlert className="mt-0.5 size-4 shrink-0" />
+            <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" />
             <div>
               <p className="text-sm font-semibold leading-relaxed">
-                Send the complete order message. The order code alone is not
-                enough for us to review your order.
+                Buong order message po ang i-send.
               </p>
               <p className="mt-1 text-xs leading-relaxed">
-                I-send po ang buong order message sa Messenger, hindi lang po
-                ang order number or screenshot.
+                Hindi sapat ang order number o screenshot lang. Kailangan naming
+                makita ang Facebook Name, Roblox Username, items, at total.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3">
-          <Button
-            size="lg"
-            onClick={handleCopyAndOpenMessenger}
-            className="h-[58px] w-full text-base font-semibold"
-            disabled={!messengerLink}
-          >
-            <Send className="size-5" />
-            Copy Order & Open Messenger
-          </Button>
+        <p className="text-muted-foreground mt-3 text-center text-xs font-medium [font-variant-numeric:tabular-nums]">
+          Order No.: <span className="text-foreground">{orderNumber}</span>
+        </p>
 
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={handleCopyOnly}
-            className="h-[52px] w-full text-base font-semibold"
-          >
-            {copied ? (
-              <Check className="size-5" />
-            ) : (
-              <Copy className="size-5" />
-            )}
-            Copy Full Order Message
-          </Button>
-        </div>
-
-        {copyFailed ? (
-          <p className="text-destructive mt-3 text-sm leading-relaxed">
-            Copying was blocked by this browser. Use the preview below to select
-            the full message manually, then paste it into Messenger.
-          </p>
-        ) : copied ? (
-          <p className="text-primary mt-3 text-sm font-medium leading-relaxed">
-            Copied. Paste and send the full message inside Messenger.
-          </p>
-        ) : null}
-
-        <div className="border-border mt-5 border-t pt-4">
+        <div className="border-border mt-3 border-t pt-3">
           <PreparedMessagePreview message={message} />
         </div>
       </div>
@@ -142,11 +132,12 @@ export function MessengerHandoff({
               Wait for our reply
             </p>
             <p className="mt-1 text-sm font-semibold leading-relaxed">
-              Wait for our reply before sending any payment.
+              Hintayin muna ang reply at official payment instructions namin
+              bago magsend ng payment.
             </p>
             <p className="mt-1 text-sm leading-relaxed">
-              After sending your order slip, please wait for a BudgetWise
-              representative to reply with the official payment instructions.
+              Huwag po munang magsend ng payment habang wala pa kaming official
+              payment instructions.
             </p>
             <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
               Pag na-send niyo na po yung order slip, hintayin muna yung reply
@@ -179,12 +170,12 @@ export function PreparedMessagePreview({ message }: { message: string }) {
     try {
       await copyPlainText(message);
       setCopied(true);
-      toast.success("Full order message copied.", {
-        description: "Paste and send it inside Messenger.",
+      toast.success("Nakopya ang buong order message.", {
+        description: "I-paste at i-send ito sa Messenger.",
       });
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Couldn't copy. Select the message preview manually.");
+      toast.error("Hindi nakopya. Piliin ang message preview manually.");
     }
   }
 
@@ -206,16 +197,16 @@ export function PreparedMessagePreview({ message }: { message: string }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-heading text-sm font-semibold">
-            Message to Send
+            Ito ang I-send sa Messenger
           </h2>
           <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-            Copy and send this complete message to BudgetWise on Messenger.
+            Ito ang buong message na lalabas sa Messenger.
           </p>
         </div>
         <button
           type="button"
           onClick={handleCopy}
-          aria-label="Copy full order message"
+          aria-label="Kopyahin ang buong order message"
           className="border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground inline-flex size-9 shrink-0 items-center justify-center rounded-full border transition-colors"
         >
           {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
@@ -241,7 +232,7 @@ export function PreparedMessagePreview({ message }: { message: string }) {
           onClick={handleTogglePreview}
           className="text-primary hover:text-primary/80 focus-visible:ring-ring mt-2.5 inline-flex min-h-10 items-center rounded-md text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
         >
-          {expanded ? "Show less" : "View full message"}
+          {expanded ? "Paiksiin" : "Tingnan ang Buong Message"}
         </button>
       ) : null}
     </div>

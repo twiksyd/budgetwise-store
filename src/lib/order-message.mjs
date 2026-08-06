@@ -15,6 +15,10 @@ export function normalizePlainTextMessage(message) {
   return message.replace(/\r\n?/g, "\n");
 }
 
+export function normalizeOrderMessageForMessenger(message) {
+  return normalizePlainTextMessage(message).replace(/\t/g, "");
+}
+
 export function buildOrderMessage(order) {
   const groups = new Map();
 

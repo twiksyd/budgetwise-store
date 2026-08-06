@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,7 +69,7 @@ export function CheckoutForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <h2 className="font-heading text-sm font-semibold">Contact details</h2>
+      <h2 className="font-heading text-sm font-semibold">Details</h2>
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="name">Facebook Name</Label>
@@ -78,13 +79,13 @@ export function CheckoutForm() {
           className="h-11"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Name on your Facebook account"
+          placeholder="Exact Facebook Name"
           required
           maxLength={80}
         />
         <p className="text-muted-foreground text-xs leading-relaxed">
-          Enter the exact name shown on the Facebook account you will use to
-          message us.
+          Ilagay ang exact name na ginagamit ninyo sa Facebook account na
+          ipangme-message sa amin.
         </p>
       </div>
 
@@ -95,17 +96,31 @@ export function CheckoutForm() {
           className="h-11"
           value={robloxUsername}
           onChange={(e) => setRobloxUsername(e.target.value)}
-          placeholder="Your exact Roblox username"
+          placeholder="Exact Roblox Username"
           required
           maxLength={50}
         />
         <p className="text-muted-foreground text-xs leading-relaxed">
-          Enter your exact Roblox username, not your Display Name. You can copy
-          it from your Roblox profile.
+          Ilagay ang exact Roblox username ninyo. Huwag po ang Display Name.
         </p>
       </div>
 
       {error && <p className="text-destructive text-sm">{error}</p>}
+
+      <div className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 rounded-xl border p-3.5">
+        <div className="flex gap-2.5">
+          <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" />
+          <div>
+            <p className="text-sm font-semibold leading-relaxed">
+              Hindi pa po masesend sa amin ang order pagkatapos nito.
+            </p>
+            <p className="mt-1 text-xs leading-relaxed">
+              Kailangan pa ninyong i-send ang buong order message through
+              Messenger.
+            </p>
+          </div>
+        </div>
+      </div>
 
       <Button
         type="submit"
@@ -113,12 +128,11 @@ export function CheckoutForm() {
         className="h-11"
         disabled={isSubmitting || items.length === 0}
       >
-        {isSubmitting ? "Placing order..." : "Place order"}
+        {isSubmitting ? "Gumagawa ng Order Slip..." : "Gumawa ng Order Slip"}
       </Button>
       <div className="-mt-3">
         <p className="text-muted-foreground text-center text-xs">
-          No payment is taken here - you&apos;ll confirm payment on Messenger
-          next.
+          Wala pa pong kailangang bayaran dito.
         </p>
       </div>
     </form>

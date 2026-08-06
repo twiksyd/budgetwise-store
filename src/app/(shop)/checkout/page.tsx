@@ -14,11 +14,11 @@ export default async function CheckoutPage() {
           icon={status === "maintenance" ? Construction : Lock}
           title={
             status === "maintenance"
-              ? "Ordering paused for maintenance"
-              : "BudgetWise is temporarily closed"
+              ? "Paused po muna ang ordering"
+              : "Temporarily closed po ang BudgetWise"
           }
           description={noticeMessage?.trim() || STORE_STATUS_DEFAULT_MESSAGES[status]}
-          action={{ label: "Back to cart", href: "/cart" }}
+          action={{ label: "Bumalik sa Cart", href: "/cart" }}
         />
       </div>
     );

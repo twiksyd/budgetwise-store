@@ -6,6 +6,7 @@ import { MessengerHandoff } from "@/components/checkout/messenger-handoff";
 import { SuccessHeader } from "@/components/checkout/success-header";
 import { OrderConfirmationSummary } from "@/components/checkout/order-confirmation-summary";
 import { ClearCartOnSuccess } from "@/components/checkout/clear-cart-on-success";
+import { OrderingProgress } from "@/components/ordering/ordering-progress";
 
 export const metadata: Metadata = {
   title: "Order confirmed",
@@ -25,12 +26,20 @@ export default async function CheckoutSuccessPage({ params }: Props) {
   const messengerLink = getMessengerLink(order.orderNumber, message);
 
   return (
-    <div className="mx-auto max-w-xl px-6 py-8 sm:py-16">
+    <div className="mx-auto max-w-xl px-6 py-5 sm:py-12">
       <ClearCartOnSuccess />
-      <SuccessHeader orderNumber={order.orderNumber} />
+      <OrderingProgress
+        currentStep={4}
+        description="I-send ang buong order message sa Messenger para ma-review namin."
+      />
+      <SuccessHeader />
 
-      <div className="mt-5">
-        <MessengerHandoff message={message} messengerLink={messengerLink} />
+      <div className="mt-3">
+        <MessengerHandoff
+          message={message}
+          messengerLink={messengerLink}
+          orderNumber={order.orderNumber}
+        />
       </div>
 
       <div className="mt-6">
