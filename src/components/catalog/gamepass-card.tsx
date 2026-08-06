@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Gamepad2, ShieldCheck } from "lucide-react";
+import { Gamepad2 } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +57,7 @@ export function GamepassCard({
     return (
       <div
         className={cn(
-          "surface-premium surface-premium-hover flex h-full flex-col rounded-2xl p-4",
+          "surface-premium surface-premium-hover flex h-full flex-col rounded-2xl p-3.5",
           featured &&
             "border-gold/50 bg-gold/5 border-2 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_42px_-18px_color-mix(in_oklch,var(--gold)_38%,transparent)]",
           isUnavailable && "opacity-70",
@@ -65,7 +65,7 @@ export function GamepassCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-heading text-xl leading-tight font-semibold text-balance [font-variant-numeric:tabular-nums]">
+            <p className="font-heading text-lg leading-tight font-semibold text-balance [font-variant-numeric:tabular-nums]">
               {gamepass.name}
             </p>
             <p className="text-muted-foreground mt-1 text-xs font-medium">
@@ -76,16 +76,16 @@ export function GamepassCard({
         </div>
 
         {featured && !isUnavailable && (
-          <p className="text-gold-foreground mt-3 text-xs font-medium">
+          <p className="text-gold-foreground dark:text-gold mt-1.5 text-xs font-medium">
             Most value for the price
           </p>
         )}
 
-        <div className="mt-4 flex items-end justify-between gap-4">
-          <p className="font-heading text-primary text-3xl leading-none font-bold [font-variant-numeric:tabular-nums]">
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <p className="font-heading text-primary text-2xl leading-none font-bold [font-variant-numeric:tabular-nums]">
             {formatPrice(gamepass.price)}
           </p>
-          <div className="min-w-32 flex-1">
+          <div className="w-[9.25rem] max-w-[58%] shrink-0">
             <AddToCartButton
               gamepass={gamepass}
               gameId={gameId}
@@ -105,20 +105,20 @@ export function GamepassCard({
   return (
     <div
       className={cn(
-        "surface-premium surface-premium-hover flex h-full flex-col rounded-2xl p-4",
+        "surface-premium surface-premium-hover flex h-full flex-col rounded-2xl p-3.5",
         featured &&
           "border-gold/50 bg-gold/5 border-2 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_42px_-18px_color-mix(in_oklch,var(--gold)_38%,transparent)]",
         isUnavailable && "opacity-70",
       )}
     >
-      <div className="grid grid-cols-[5.5rem_1fr] gap-4">
+      <div className="grid grid-cols-[4.75rem_1fr] gap-3">
         <div className="bg-muted relative aspect-square overflow-hidden rounded-2xl">
           {robloxIconUrl ? (
             <Image
               src={robloxIconUrl}
               alt=""
               fill
-              sizes="88px"
+              sizes="76px"
               className="object-contain"
             />
           ) : gameIconUrl ? (
@@ -126,11 +126,11 @@ export function GamepassCard({
               src={gameIconUrl}
               alt=""
               fill
-              sizes="88px"
+              sizes="76px"
               className="object-cover opacity-75"
             />
           ) : (
-            <Gamepad2 className="text-muted-foreground absolute inset-0 m-auto size-8 opacity-70" />
+            <Gamepad2 className="text-muted-foreground absolute inset-0 m-auto size-7 opacity-70" />
           )}
         </div>
 
@@ -142,33 +142,23 @@ export function GamepassCard({
             {displayBadge && <ProductBadge kind={displayBadge} />}
           </div>
 
-          <h3 className="font-heading mt-2 text-[15px] leading-snug font-semibold text-balance">
+          <h3 className="font-heading mt-1.5 text-[15px] leading-snug font-semibold text-balance">
             {gamepass.name}
           </h3>
 
           {featured && !isUnavailable && (
-            <p className="text-gold-foreground mt-1.5 text-xs font-medium">
+            <p className="text-gold-foreground dark:text-gold mt-1.5 text-xs font-medium">
               Most customers choose this
             </p>
           )}
         </div>
       </div>
 
-      <div className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium">
-        {robloxIconUrl && (
-          <span className="inline-flex items-center gap-1">
-            <ShieldCheck className="size-3" />
-            Official Gamepass
-          </span>
-        )}
-        <span>No Login Needed</span>
-      </div>
-
-      <div className="mt-4 flex items-end justify-between gap-4">
-        <p className="font-heading text-primary text-3xl leading-none font-bold [font-variant-numeric:tabular-nums]">
+      <div className="mt-3 flex items-end justify-between gap-3">
+        <p className="font-heading text-primary text-2xl leading-none font-bold [font-variant-numeric:tabular-nums]">
           {formatPrice(gamepass.price)}
         </p>
-        <div className="min-w-32 flex-1">
+        <div className="w-[9.25rem] max-w-[58%] shrink-0">
           <AddToCartButton
             gamepass={gamepass}
             gameId={gameId}

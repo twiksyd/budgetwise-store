@@ -8,16 +8,16 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 export function SiteHeader() {
   return (
     <header className="glass-surface sticky top-0 z-50">
-      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:h-24 sm:px-6">
-        <div className="flex items-center gap-3 sm:gap-4">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:h-20 sm:px-6">
+        <div className="flex items-center gap-2.5 sm:gap-4">
           <MobileNav />
           <Link href="/" className="flex items-center gap-2 sm:gap-2.5">
-            <BrandMark className="h-8 sm:h-10" />
+            <BrandMark className="h-7 sm:h-10" />
             <span className="flex flex-col justify-center gap-0.5">
-              <span className="font-heading text-[15px] leading-none font-semibold tracking-tight sm:text-base">
+              <span className="font-heading text-sm leading-none font-semibold tracking-tight sm:text-base">
                 {siteConfig.name}
               </span>
-              <span className="text-muted-foreground text-[10px] leading-none font-normal sm:text-[11px]">
+              <span className="text-muted-foreground text-[9.5px] leading-none font-normal sm:text-[11px]">
                 {siteConfig.slogan}
               </span>
             </span>

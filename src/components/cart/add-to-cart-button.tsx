@@ -51,7 +51,7 @@ export function AddToCartButton({
         size={fullWidth ? "default" : "sm"}
         className={cn(
           fullWidth &&
-            "h-12 w-full rounded-xl text-[15px] font-semibold shadow-[0_12px_28px_-14px_color-mix(in_oklch,var(--primary)_65%,transparent)] sm:h-10",
+            "h-11 w-full rounded-xl px-3 text-sm font-semibold shadow-[0_10px_24px_-16px_color-mix(in_oklch,var(--primary)_60%,transparent)] sm:h-10",
           // Local, in-place confirmation exactly where the customer
           // tapped — the toast still fires, but this doesn't ask them to
           // glance somewhere else to know it worked.

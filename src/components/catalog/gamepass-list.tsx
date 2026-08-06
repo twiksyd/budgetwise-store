@@ -64,32 +64,37 @@ export function GamepassList({
   const sections = groupByCategory(gamepasses);
 
   return (
-    <div className="mt-10 flex flex-col gap-10 sm:mt-12 sm:gap-14">
+    <div className="mt-7 flex flex-col gap-8 sm:mt-12 sm:gap-14">
       {sections.map(({ category, items }, index) => {
         const SectionIcon = PRODUCT_CATEGORY_ICONS[category];
 
         return (
           <section
             key={category}
-            className={cn(index > 0 && "border-border/60 border-t pt-10")}
+            className={cn(index > 0 && "border-border/60 border-t pt-8 sm:pt-10")}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-3">
                 <div
                   className={cn(
-                    "flex size-10 shrink-0 items-center justify-center rounded-2xl",
+                    "flex size-9 shrink-0 items-center justify-center rounded-2xl sm:size-10",
                     sectionChipClassName(category),
                   )}
                 >
-                  <SectionIcon className="size-5" />
+                  <SectionIcon className="size-4.5 sm:size-5" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+                  <h2 className="font-heading text-xl font-semibold tracking-tight sm:text-3xl">
                     {PRODUCT_CATEGORY_LABELS[category]}
                   </h2>
-                  <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+                  <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
                     {sectionDescriptions[category]}
                   </p>
+                  {category === "gamepasses" && (
+                    <p className="text-muted-foreground mt-1 text-xs font-medium">
+                      Official Roblox gamepasses · No login details required
+                    </p>
+                  )}
                 </div>
               </div>
               <p className="bg-muted text-muted-foreground shrink-0 rounded-full px-3 py-1 text-xs font-medium">
@@ -102,7 +107,7 @@ export function GamepassList({
               initial="hidden"
               animate="show"
               className={cn(
-                "mt-5 grid grid-cols-1 gap-3.5 sm:gap-5",
+                "mt-4 grid grid-cols-1 gap-3 sm:gap-5",
                 category === "currency"
                   ? "sm:grid-cols-2 lg:grid-cols-3"
                   : "sm:grid-cols-2 xl:grid-cols-3",
