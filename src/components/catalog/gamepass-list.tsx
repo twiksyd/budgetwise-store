@@ -13,24 +13,17 @@ import {
 import { cn } from "@/lib/utils";
 import type { StoreGamepass } from "@/types/database";
 
-// Each category gets its own accent so a scroll through five sections reads
-// as distinct "aisles" rather than one undifferentiated list — the eye can
-// orient on color before it even reads the label. Currency and Gamepasses
-// (the two largest, most routine buckets) stay on the neutral primary tint;
-// VIP and Limited lean into their existing semantic colors (premium violet,
-// urgent amber) so the section header reinforces what the badges already say.
-// Violet was ruled out for VIP — the site's own --primary is already a
-// blue-violet, so a violet "premium" accent read as barely different from
-// the default currency/gamepasses chip instead of standing apart. Teal
-// sits clearly outside both the primary purple and the rose/amber used
-// elsewhere here.
-const CATEGORY_CHIP_CLASSNAME: Record<ProductCategory, string> = {
-  currency: "bg-primary/10 text-primary",
-  gamepasses: "bg-primary/10 text-primary",
-  vip: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
-  bundle: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-  limited: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-};
+// The design system deliberately runs on a single accent hue — a per-category
+// color taxonomy (one hue per category) was tried and reverted: it read as
+// decorative rather than functional and worked against that restraint.
+// Limited is the one justified exception, reusing the same amber this app
+// already uses site-wide for "pay attention, time-sensitive" (maintenance
+// banners, etc.) — an urgency cue, not a taxonomy color.
+function sectionChipClassName(category: ProductCategory): string {
+  return category === "limited"
+    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+    : "bg-primary/10 text-primary";
+}
 
 const container: Variants = {
   hidden: {},
@@ -73,7 +66,11 @@ export function GamepassList({
   const sections = groupByCategory(gamepasses);
 
   return (
-    <div className="mt-10 flex flex-col gap-14 sm:gap-16">
+    // Section-to-section spacing is deliberately just the border+padding on
+    // each divided section (~56/64px) — an earlier version also put a large
+    // gap on this container, which stacked with that padding into ~110px+
+    // of dead scroll between categories instead of the intended amount.
+    <div className="mt-10 flex flex-col gap-4 sm:gap-5">
       {sections.map(({ category, items }, index) => {
         const SectionIcon = PRODUCT_CATEGORY_ICONS[category];
 
@@ -88,7 +85,7 @@ export function GamepassList({
               <div
                 className={cn(
                   "flex size-10 shrink-0 items-center justify-center rounded-xl",
-                  CATEGORY_CHIP_CLASSNAME[category],
+                  sectionChipClassName(category),
                 )}
               >
                 <SectionIcon className="size-5" />

@@ -1,20 +1,10 @@
 import { formatPrice } from "@/lib/pricing";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
+import { Badge } from "@/components/ui/badge";
 import { ProductBadge, type ProductBadgeValue } from "@/components/catalog/product-badge";
 import type { ProductCategory } from "@/lib/product-category";
 import { cn } from "@/lib/utils";
 import type { StoreGamepass } from "@/types/database";
-
-// A thin top accent stripe on the two categories that most benefit from
-// standing out at a glance: VIP (premium — worth paying attention to) and
-// Limited (urgency — don't scroll past it). Currency and Bundle stay neutral
-// so the accent doesn't turn into noise across every card on the page. A
-// dedicated stripe element (rather than recoloring the card's ring) sidesteps
-// having to fight surface-premium's own ring color for specificity.
-const CATEGORY_CARD_STRIPE: Partial<Record<ProductCategory, string>> = {
-  vip: "bg-teal-500/60",
-  limited: "bg-amber-500/60",
-};
 
 export function GamepassCard({
   gamepass,
@@ -67,25 +57,16 @@ export function GamepassCard({
   // full product card, since there's genuinely less to say about it.
   const isCurrency = category === "currency";
 
-  // Best Value's gold treatment already commands full attention on its
-  // own — layering a second category stripe on top of it would compete
-  // rather than reinforce, so featured cards opt out of the stripe.
-  const stripeColor = !featured ? CATEGORY_CARD_STRIPE[category] : undefined;
-
   return (
     <div
       className={cn(
-        "surface-premium surface-premium-hover relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl p-5",
+        "surface-premium surface-premium-hover flex h-full flex-col gap-3 rounded-2xl p-5",
         isCurrency && "items-center gap-2.5 p-4 text-center",
         featured &&
           "border-gold/40 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_48px_-14px_color-mix(in_oklch,var(--gold)_30%,transparent)] border-2 p-6",
         isUnavailable && "opacity-70",
       )}
     >
-      {stripeColor && (
-        <div className={cn("absolute inset-x-0 top-0 h-1", stripeColor)} />
-      )}
-
       {displayBadge && (
         <div className={cn("flex", isCurrency ? "justify-center" : "justify-end")}>
           <ProductBadge kind={displayBadge} />
@@ -104,9 +85,9 @@ export function GamepassCard({
           {gamepass.name}
         </p>
         {!isCurrency && (
-          <span className="bg-muted text-muted-foreground mt-1.5 inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-medium">
+          <Badge variant="secondary" className="mt-1.5">
             {gamepass.robux_amount.toLocaleString()} Robux
-          </span>
+          </Badge>
         )}
       </div>
 
