@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Manrope } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { MotionProvider } from "@/components/motion-provider";
 import { StorefrontChrome } from "@/components/layout/storefront-chrome";
+import { StoreStatusProvider } from "@/components/shared/store-status-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/config/site";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
@@ -65,9 +66,11 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <MotionProvider>
-            <StorefrontChrome status={status} noticeMessage={noticeMessage}>
-              {children}
-            </StorefrontChrome>
+            <StoreStatusProvider status={status}>
+              <StorefrontChrome status={status} noticeMessage={noticeMessage}>
+                {children}
+              </StorefrontChrome>
+            </StoreStatusProvider>
             <Toaster
               position="top-center"
               offset={{ top: "calc(env(safe-area-inset-top) + 108px)" }}

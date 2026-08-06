@@ -2,7 +2,16 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, Clock, Construction, Gamepad2, PackageSearch } from "lucide-react";
+import {
+  ChevronRight,
+  Clock,
+  Construction,
+  Gamepad2,
+  MessageCircle,
+  PackageCheck,
+  PackageSearch,
+  ShieldCheck,
+} from "lucide-react";
 import { getGameBySlug, getGamepassesByGameId } from "@/lib/queries/catalog";
 import { GamepassList } from "@/components/catalog/gamepass-list";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -74,6 +83,21 @@ export default async function GameDetailPage({ params }: Props) {
             {game.name}
           </h1>
         </div>
+      </div>
+
+      <div className="text-muted-foreground mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+        <span className="inline-flex items-center gap-1.5">
+          <ShieldCheck className="size-3.5" />
+          No payment on this website
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <MessageCircle className="size-3.5" />
+          Messenger confirmation required
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <PackageCheck className="size-3.5" />
+          Delivered to your Roblox username
+        </span>
       </div>
 
       {game.availability_status === "temporarily_unavailable" ? (

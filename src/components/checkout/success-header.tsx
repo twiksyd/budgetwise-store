@@ -20,7 +20,7 @@ export function SuccessHeader({ orderNumber }: { orderNumber: string }) {
         transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
         className="text-muted-foreground mt-5 text-xs font-semibold tracking-wide uppercase"
       >
-        Order placed
+        Order number created
       </motion.p>
       <motion.p
         initial={{ opacity: 0, y: 8 }}
@@ -29,6 +29,15 @@ export function SuccessHeader({ orderNumber }: { orderNumber: string }) {
         className="font-heading text-primary mt-1 text-4xl font-bold tracking-tight [font-variant-numeric:tabular-nums] sm:text-5xl"
       >
         {orderNumber}
+      </motion.p>
+      <motion.p
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.35, ease: "easeOut" }}
+        className="text-muted-foreground mt-3 max-w-xs text-sm leading-relaxed"
+      >
+        This doesn&apos;t mean your order is being processed yet — send it
+        on Messenger below to continue.
       </motion.p>
     </div>
   );

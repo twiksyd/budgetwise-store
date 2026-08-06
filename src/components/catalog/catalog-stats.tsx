@@ -1,4 +1,7 @@
+"use client";
+
 import { Gamepad2, Package, RefreshCw, Zap } from "lucide-react";
+import { useStoreStatus } from "@/components/shared/store-status-provider";
 
 export function CatalogStats({
   gameCount,
@@ -7,11 +10,16 @@ export function CatalogStats({
   gameCount: number;
   productCount: number;
 }) {
+  const status = useStoreStatus();
+
   const stats = [
     { icon: Gamepad2, text: `${gameCount} games` },
     { icon: Package, text: `${productCount}+ products` },
     { icon: RefreshCw, text: "Updated daily" },
-    { icon: Zap, text: "Fast delivery" },
+    // A live-fulfillment claim doesn't belong here while orders aren't
+    // actually being processed — the rest of the stats (catalog size,
+    // freshness) stay true regardless of store status.
+    ...(status === "open" ? [{ icon: Zap, text: "Fast delivery" }] : []),
   ];
 
   return (

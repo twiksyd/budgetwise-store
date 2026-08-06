@@ -92,10 +92,15 @@ export function CheckoutForm() {
           className="h-11"
           value={robloxUsername}
           onChange={(e) => setRobloxUsername(e.target.value)}
-          placeholder="Where we'll deliver your order"
+          placeholder="Your exact Roblox username"
           required
           maxLength={50}
         />
+        <p className="text-muted-foreground text-xs leading-relaxed">
+          This must be your exact Roblox{" "}
+          <span className="text-foreground font-medium">@username</span> —
+          not your display name. We deliver to whatever you enter here.
+        </p>
       </div>
 
       {error && <p className="text-destructive text-sm">{error}</p>}
