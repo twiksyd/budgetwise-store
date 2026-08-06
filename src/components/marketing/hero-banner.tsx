@@ -3,8 +3,9 @@
 import { useRef } from "react";
 import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
+import bannerSrc from "../../../public/icons/NOBGbanner-hero.webp";
 
-const BANNER_SRC = "/icons/NOBGbanner.png";
+const BANNER_SRC = bannerSrc;
 
 // The official BudgetWise mark, transparent PNG, used as hero backdrop —
 // branding, not decoration. Blurred at 13px (~20% of Tailwind's 64px max
@@ -38,6 +39,7 @@ export function HeroBanner() {
           alt=""
           fill
           priority
+          quality={62}
           sizes="100vw"
           className="scale-150 object-contain opacity-80 blur-[13px] saturate-75 sm:scale-125"
         />

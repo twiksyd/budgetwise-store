@@ -1,10 +1,4 @@
-export type Review = {
-  id: string;
-  name: string;
-  rating: 1 | 2 | 3 | 4 | 5;
-  text: string;
-  platform: "Facebook";
-};
+import type { Review } from "@/types/review";
 
 // Low-signal Facebook comment-thread noise that isn't an actual review
 // (order-status pings, one-word bumps) — filtered out automatically below

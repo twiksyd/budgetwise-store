@@ -25,17 +25,28 @@ export async function getProductArtworkMap(
   if (ids.length === 0) return artwork;
 
   const supabase = createAdminClient();
+  const includeRoblox = options.includeRoblox ?? true;
 
-  const { data: overrides, error: overrideError } = await supabase
+  const overridePromise = supabase
     .from("product_artwork_overrides")
     .select("gamepass_id, source, icon_url")
     .in("gamepass_id", ids);
+  const robloxPromise = includeRoblox
+    ? supabase
+        .from("roblox_gamepass_icon_cache")
+        .select("gamepass_id, status, icon_url")
+        .in("gamepass_id", ids)
+        .eq("status", "matched")
+    : Promise.resolve({ data: null, error: null });
+
+  const [
+    { data: overrides, error: overrideError },
+    { data: robloxRows, error: robloxError },
+  ] = await Promise.all([overridePromise, robloxPromise]);
 
   if (overrideError && !isMissingArtworkTableError(overrideError)) {
     throw overrideError;
   }
-
-  const placeholderIds = new Set<string>();
 
   for (const override of overrideError ? [] : (overrides ?? [])) {
     if (override.source === "manual" && override.icon_url) {
@@ -44,7 +55,6 @@ export async function getProductArtworkMap(
         url: override.icon_url,
       });
     } else if (override.source === "placeholder") {
-      placeholderIds.add(override.gamepass_id);
       artwork.set(override.gamepass_id, {
         source: "placeholder",
         url: null,
@@ -52,27 +62,15 @@ export async function getProductArtworkMap(
     }
   }
 
-  if (options.includeRoblox ?? true) {
-    const robloxIds = ids.filter(
-      (id) => !artwork.has(id) && !placeholderIds.has(id),
-    );
+  if (robloxError) throw robloxError;
 
-    if (robloxIds.length > 0) {
-      const { data: robloxRows, error: robloxError } = await supabase
-        .from("roblox_gamepass_icon_cache")
-        .select("gamepass_id, status, icon_url")
-        .in("gamepass_id", robloxIds)
-        .eq("status", "matched");
-
-      if (robloxError) throw robloxError;
-
-      for (const row of robloxRows ?? []) {
-        if (row.icon_url) {
-          artwork.set(row.gamepass_id, {
-            source: "roblox",
-            url: row.icon_url,
-          });
-        }
+  if (includeRoblox) {
+    for (const row of robloxRows ?? []) {
+      if (row.icon_url && !artwork.has(row.gamepass_id)) {
+        artwork.set(row.gamepass_id, {
+          source: "roblox",
+          url: row.icon_url,
+        });
       }
     }
   }

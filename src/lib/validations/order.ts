@@ -5,7 +5,7 @@ export const MAX_QUANTITY_PER_PRODUCT = 50;
 export const MAX_TOTAL_ORDER_UNITS =
   MAX_DISTINCT_ORDER_ITEMS * MAX_QUANTITY_PER_PRODUCT;
 
-const ROBLOX_USERNAME_RE = /^(?=.{3,20}$)[A-Za-z0-9]+(?:_[A-Za-z0-9]+)?$/;
+const CONTROL_CHARACTER_RE = /[\x00-\x1f\x7f]/;
 
 const orderItemSchema = z
   .object({
@@ -16,8 +16,31 @@ const orderItemSchema = z
 
 const contactSchema = z
   .object({
-    name: z.string().trim().min(1).max(100),
-    robloxUsername: z.string().superRefine((value, context) => {
+    name: z.string().trim().superRefine((value, context) => {
+      if (value.length === 0) {
+        context.addIssue({
+          code: "custom",
+          message: "Enter your Facebook name.",
+        });
+        return;
+      }
+
+      if (value.length > 80) {
+        context.addIssue({
+          code: "custom",
+          message: "Facebook name must be 80 characters or fewer.",
+        });
+        return;
+      }
+
+      if (CONTROL_CHARACTER_RE.test(value)) {
+        context.addIssue({
+          code: "custom",
+          message: "Facebook name contains unsupported characters.",
+        });
+      }
+    }),
+    robloxUsername: z.string().trim().superRefine((value, context) => {
       if (value.length === 0) {
         context.addIssue({
           code: "custom",
@@ -26,20 +49,18 @@ const contactSchema = z
         return;
       }
 
-      if (value !== value.trim()) {
+      if (value.length > 50) {
         context.addIssue({
           code: "custom",
-          message:
-            "Roblox username cannot start or end with spaces.",
+          message: "Roblox username must be 50 characters or fewer.",
         });
         return;
       }
 
-      if (!ROBLOX_USERNAME_RE.test(value)) {
+      if (CONTROL_CHARACTER_RE.test(value)) {
         context.addIssue({
           code: "custom",
-          message:
-            "Roblox username must be 3-20 letters or numbers, with at most one underscore not at the start or end.",
+          message: "Roblox username contains unsupported characters.",
         });
       }
     }),

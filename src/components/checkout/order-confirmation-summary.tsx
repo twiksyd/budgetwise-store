@@ -28,7 +28,13 @@ export function OrderConfirmationSummary({
             Order Summary
           </h2>
           <p className="text-muted-foreground mt-1 truncate text-sm">
-            Roblox username:{" "}
+            Facebook Name:{" "}
+            <span className="text-foreground font-medium">
+              {order.buyerName}
+            </span>
+          </p>
+          <p className="text-muted-foreground mt-0.5 truncate text-sm">
+            Roblox Username:{" "}
             <span className="text-foreground font-medium">
               {order.buyerRobloxUsername}
             </span>

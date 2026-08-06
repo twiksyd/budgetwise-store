@@ -38,9 +38,9 @@ const steps = [
     icon: Send,
     title: "Send the Prepared Order",
     description:
-      "After checkout, Messenger automatically opens with your completed order form already prepared. Simply review the message and press Send. This allows our team to receive your order details.",
+      "After checkout, copy the prepared order message, open Messenger, then paste and send the complete message. This allows our team to receive your order details.",
     taglish:
-      "Pagkatapos mag-checkout, bubukas yung Messenger na ready na yung order form. I-send mo lang para matanggap namin yung order mo.",
+      "Pagkatapos mag-checkout, kopyahin yung buong order message, buksan ang Messenger, tapos i-paste at i-send para matanggap namin yung order mo.",
   },
 ];
 

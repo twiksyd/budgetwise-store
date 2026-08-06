@@ -66,13 +66,14 @@ export default async function GameDetailPage({ params }: Props) {
     redirect("/games/robux-via-link");
   }
 
+  const storeStatusPromise = resolveStoreStatusSafe();
   const game = await getGameBySlug(gameSlug);
 
   if (!game) notFound();
 
   const [gamepasses, { status: storeStatus }] = await Promise.all([
     getGamepassesByGameId(game.id),
-    resolveStoreStatusSafe(),
+    storeStatusPromise,
   ]);
 
   const productArtwork = await getProductArtworkMap(

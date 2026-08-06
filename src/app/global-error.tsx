@@ -2,8 +2,9 @@
 
 import { useEffect } from "react";
 import { AppLoadError } from "@/components/shared/app-load-error";
+import "./globals.css";
 
-export default function ShopError({
+export default function GlobalError({
   error,
   reset,
 }: {
@@ -11,12 +12,18 @@ export default function ShopError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Shop route failed", {
+    console.error("Global app shell failed", {
       name: error.name,
       message: error.message,
       digest: error.digest,
     });
   }, [error]);
 
-  return <AppLoadError onRetry={reset} />;
+  return (
+    <html lang="en">
+      <body>
+        <AppLoadError onRetry={reset} />
+      </body>
+    </html>
+  );
 }

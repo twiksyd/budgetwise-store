@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Manrope } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { MotionProvider } from "@/components/motion-provider";
 import { StorefrontChrome } from "@/components/layout/storefront-chrome";
+import { ChunkLoadRecovery } from "@/components/shared/chunk-load-recovery";
 import { StoreStatusProvider } from "@/components/shared/store-status-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/config/site";
@@ -12,16 +13,19 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const manrope = Manrope({
   variable: "--font-heading",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const defaultTitle = `${siteConfig.name} — ${siteConfig.slogan}`;
@@ -59,6 +63,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} flex min-h-screen flex-col antialiased`}
       >
+        <ChunkLoadRecovery />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"

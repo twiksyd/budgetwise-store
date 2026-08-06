@@ -1,6 +1,6 @@
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Review } from "@/config/reviews";
+import type { Review } from "@/types/review";
 
 function FacebookGlyph({ className }: { className?: string }) {
   return (

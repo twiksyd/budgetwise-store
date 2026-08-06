@@ -56,9 +56,8 @@ export function CheckoutForm() {
       }
 
       const { orderNumber } = await response.json();
-      // The cart is cleared on the success page itself, not here — clearing
-      // it while still on /checkout would trip the "cart is empty" redirect
-      // guard on this page and race against this navigation away from it.
+      // The cart is cleared on the success page itself, not here. Clearing it
+      // while still on /checkout would race against navigation away.
       router.push(`/checkout/success/${orderNumber}`);
     } catch {
       setError("Something went wrong. Please try again.");
@@ -72,21 +71,25 @@ export function CheckoutForm() {
       <h2 className="font-heading text-sm font-semibold">Contact details</h2>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="name">Your name</Label>
+        <Label htmlFor="name">Facebook Name</Label>
         <Input
           id="name"
           ref={nameInputRef}
           className="h-11"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="How should we address you?"
+          placeholder="Name on your Facebook account"
           required
-          maxLength={100}
+          maxLength={80}
         />
+        <p className="text-muted-foreground text-xs leading-relaxed">
+          Enter the exact name shown on the Facebook account you will use to
+          message us.
+        </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="robloxUsername">Roblox username</Label>
+        <Label htmlFor="robloxUsername">Roblox Username</Label>
         <Input
           id="robloxUsername"
           className="h-11"
@@ -97,9 +100,8 @@ export function CheckoutForm() {
           maxLength={50}
         />
         <p className="text-muted-foreground text-xs leading-relaxed">
-          This must be your exact Roblox{" "}
-          <span className="text-foreground font-medium">@username</span> —
-          not your display name. We deliver to whatever you enter here.
+          Enter your exact Roblox username, not your Display Name. You can copy
+          it from your Roblox profile.
         </p>
       </div>
 
@@ -115,7 +117,7 @@ export function CheckoutForm() {
       </Button>
       <div className="-mt-3">
         <p className="text-muted-foreground text-center text-xs">
-          No payment is taken here — you&apos;ll confirm payment on Messenger
+          No payment is taken here - you&apos;ll confirm payment on Messenger
           next.
         </p>
       </div>

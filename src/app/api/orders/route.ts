@@ -102,7 +102,7 @@ function validationMessage(
   }
 
   if (firstPath.startsWith("contact.name")) {
-    return "Enter the name we should use for your order.";
+    return "Enter the Facebook name you will use to message us.";
   }
 
   if (firstPath.startsWith("items")) {

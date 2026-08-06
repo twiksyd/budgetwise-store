@@ -7,6 +7,7 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
+    "test:order-message": "node scripts/test-order-message.mjs",
     "db:backfill-icons": "node --env-file=.env.local scripts/backfill-game-icons.mjs",
     "sync:roblox-gamepasses": "node --env-file=.env.local scripts/sync-roblox-gamepasses.mjs"
   },

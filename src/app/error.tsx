@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { AppLoadError } from "@/components/shared/app-load-error";
 
-export default function ShopError({
+export default function AppError({
   error,
   reset,
 }: {
@@ -11,7 +11,7 @@ export default function ShopError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Shop route failed", {
+    console.error("App route failed", {
       name: error.name,
       message: error.message,
       digest: error.digest,

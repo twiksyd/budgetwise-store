@@ -9,9 +9,9 @@ const points = [
   },
   {
     icon: MessageCircle,
-    title: "Messenger opens automatically",
+    title: "Send the full message",
     description:
-      "You'll land on a confirmation page that opens Messenger with your order already typed in. Just review and hit send.",
+      "You'll land on a confirmation page with a prepared order message. Copy it, open Messenger, then paste and send the full message.",
   },
   {
     icon: ShieldCheck,
