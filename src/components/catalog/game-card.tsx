@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Clock, Gamepad2 } from "lucide-react";
+import { Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { GameArtworkFallback } from "@/components/catalog/game-artwork-fallback";
 import { UnavailableRibbon } from "@/components/catalog/unavailable-ribbon";
 import { cn } from "@/lib/utils";
 import type { StoreGame } from "@/types/database";
@@ -35,7 +36,11 @@ export function GameCard({
           )}
         />
       ) : (
-        <Gamepad2 className="text-muted-foreground size-10" />
+        <GameArtworkFallback
+          name={game.name}
+          color={game.color}
+          className="text-5xl opacity-20"
+        />
       )}
       {!isUnavailable && (
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />

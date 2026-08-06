@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   ChevronRight,
   Clock,
@@ -23,10 +23,26 @@ type Props = {
   params: Promise<{ gameSlug: string }>;
 };
 
+// These games were merged into a single page (see
+// supabase/migrations/0005_catalog_data_integrity.sql and
+// config/robux-via-link.ts) and are now hidden from store_games — a request
+// for their old slug should land customers on the merged page instead of a
+// 404, since links to them may already be shared/bookmarked.
+const ROBUX_MERGE_REDIRECT_SLUGS = new Set([
+  "robux-sell",
+  "robux-sell-covered-tax",
+  "robux-sell-no-tax",
+]);
+
 export async function generateMetadata({
   params,
 }: Props): Promise<Metadata> {
   const { gameSlug } = await params;
+
+  if (ROBUX_MERGE_REDIRECT_SLUGS.has(gameSlug)) {
+    return { title: "Robux (Via Link)" };
+  }
+
   const game = await getGameBySlug(gameSlug);
 
   if (!game) return {};
@@ -39,6 +55,11 @@ export async function generateMetadata({
 
 export default async function GameDetailPage({ params }: Props) {
   const { gameSlug } = await params;
+
+  if (ROBUX_MERGE_REDIRECT_SLUGS.has(gameSlug)) {
+    redirect("/games/robux-via-link");
+  }
+
   const game = await getGameBySlug(gameSlug);
 
   if (!game) notFound();
