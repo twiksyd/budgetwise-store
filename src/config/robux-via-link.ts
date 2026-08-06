@@ -10,6 +10,14 @@ export const robuxViaLinkGameIds = {
   notCoveredTax: "e5318653-6b19-417c-9f89-1a7baa2331aa",
 } as const;
 
+const robuxViaLinkSourceGameIdSet = new Set<string>(
+  Object.values(robuxViaLinkGameIds),
+);
+
+export function isRobuxViaLinkSourceGame(gameId: string): boolean {
+  return robuxViaLinkSourceGameIdSet.has(gameId);
+}
+
 // Display metadata for the catalog tile linking to this page — reuses the
 // existing "Robux Sell" artwork/color since neither source game had its own
 // thumbnail, and this is the same icon customers already recognize from the

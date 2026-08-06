@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateOrderNumber } from "@/lib/orders";
 import { resolveStoreStatus } from "@/lib/store-status";
 import { STORE_STATUS_DEFAULT_MESSAGES } from "@/types/store-operations";
+import { isRobuxViaLinkSourceGame } from "@/config/robux-via-link";
 import type { CreateOrderInput } from "@/lib/validations/order";
 
 export class OrderCreationError extends Error {
@@ -62,7 +63,12 @@ export async function createOrder(
       if (!gamepass.is_active) return true;
       if (gamepass.availability_status !== "available") return true;
       const game = gameById.get(gamepass.game_id);
-      if (!game || game.availability_status !== "available") return true;
+      if (!game) return true;
+      const parentGameIsAcceptable =
+        game.availability_status === "available" ||
+        (game.availability_status === "hidden" &&
+          isRobuxViaLinkSourceGame(gamepass.game_id));
+      if (!parentGameIsAcceptable) return true;
       return false;
     })
     .map((item) => item.gamepassId);

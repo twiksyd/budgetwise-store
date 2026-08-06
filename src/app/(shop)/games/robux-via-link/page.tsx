@@ -10,6 +10,10 @@ import { GamepassCard } from "@/components/catalog/gamepass-card";
 import { Badge } from "@/components/ui/badge";
 import { robuxViaLinkGameIds, robuxViaLinkTile } from "@/config/robux-via-link";
 import { getGamepassesByGameId } from "@/lib/queries/catalog";
+import {
+  getProductArtworkMap,
+  getProductArtworkUrlMap,
+} from "@/lib/queries/product-artwork";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
 
 export const revalidate = 60;
@@ -32,6 +36,12 @@ export default async function RobuxViaLinkPage() {
   ]);
 
   const orderingDisabled = storeStatus !== "open";
+  const productArtworkUrls = getProductArtworkUrlMap(
+    await getProductArtworkMap(
+      [...coveredTax, ...notCoveredTax].map((gamepass) => gamepass.id),
+      { includeRoblox: false },
+    ),
+  );
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-6 sm:py-14">
@@ -143,6 +153,7 @@ export default async function RobuxViaLinkPage() {
                 gameIconUrl={robuxViaLinkTile.iconUrl}
                 category="currency"
                 orderingDisabled={orderingDisabled}
+                robloxIconUrl={productArtworkUrls.get(gamepass.id)}
               />
             ))}
           </div>
@@ -179,6 +190,7 @@ export default async function RobuxViaLinkPage() {
                 gameIconUrl={robuxViaLinkTile.iconUrl}
                 category="currency"
                 orderingDisabled={orderingDisabled}
+                robloxIconUrl={productArtworkUrls.get(gamepass.id)}
               />
             ))}
           </div>

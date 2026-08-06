@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Gamepad2 } from "lucide-react";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
+import { ProductArtworkImage } from "@/components/catalog/product-artwork-image";
 import { Price } from "@/components/shared/price";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -112,13 +113,7 @@ export function GamepassCard({
       <div className="grid grid-cols-[4.75rem_1fr] gap-3">
         <div className="bg-muted relative aspect-square overflow-hidden rounded-2xl">
           {robloxIconUrl ? (
-            <Image
-              src={robloxIconUrl}
-              alt=""
-              fill
-              sizes="76px"
-              className="object-contain"
-            />
+            <ProductArtworkImage src={robloxIconUrl} />
           ) : gameIconUrl ? (
             <Image
               src={gameIconUrl}

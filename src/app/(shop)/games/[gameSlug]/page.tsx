@@ -13,8 +13,11 @@ import {
 import {
   getGameBySlug,
   getGamepassesByGameId,
-  getRobloxIconCache,
 } from "@/lib/queries/catalog";
+import {
+  getProductArtworkMap,
+  getProductArtworkUrlMap,
+} from "@/lib/queries/product-artwork";
 import { GamepassList } from "@/components/catalog/gamepass-list";
 import { EmptyState } from "@/components/shared/empty-state";
 import { robloxUniverseIds } from "@/config/roblox-universe-ids";
@@ -72,18 +75,11 @@ export default async function GameDetailPage({ params }: Props) {
     resolveStoreStatusSafe(),
   ]);
 
-  // Product artwork priority chain: (1) manual override — not implemented
-  // yet; when it is, resolve and merge it into this same map here, ahead of
-  // the Roblox cache, since GamepassCard just renders whatever the map
-  // gives it — (2) cached Roblox Game Pass artwork, below — (3) default
-  // placeholder, which is simply what GamepassCard already renders when a
-  // gamepass has no entry in this map at all.
-  //
-  // Pilot only (see config/roblox-universe-ids.ts) — every other game skips
-  // this query entirely rather than looking up an always-empty cache.
-  const robloxIconUrls = robloxUniverseIds[game.id]
-    ? await getRobloxIconCache(gamepasses.map((g) => g.id))
-    : new Map<string, string>();
+  const productArtwork = await getProductArtworkMap(
+    gamepasses.map((g) => g.id),
+    { includeRoblox: Boolean(robloxUniverseIds[game.id]) },
+  );
+  const productArtworkUrls = getProductArtworkUrlMap(productArtwork);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-6 sm:py-14">
@@ -175,7 +171,7 @@ export default async function GameDetailPage({ params }: Props) {
           gameName={game.name}
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
-          robloxIconUrls={robloxIconUrls}
+          robloxIconUrls={productArtworkUrls}
         />
       )}
     </div>
