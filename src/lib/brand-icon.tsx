@@ -4,8 +4,7 @@ import { ImageResponse } from "next/og";
 
 // Shared by every generated icon (favicon sizes, apple-touch-icon, PWA
 // manifest icons) — all built from the same official banner asset,
-// contained (never cropped/stretched) on a background matched to its own
-// dark backdrop so nothing needs to assume transparency support.
+// contained (never cropped/stretched) while preserving the PNG transparency.
 const dataUri = (() => {
   const file = readFileSync(
     join(process.cwd(), "public/icons/NOBGbanner.png"),
@@ -24,7 +23,7 @@ export function renderBrandIcon(size: number, fillRatio = 0.82) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0b0614",
+          background: "transparent",
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
