@@ -7,7 +7,8 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "db:backfill-icons": "node --env-file=.env.local scripts/backfill-game-icons.mjs"
+    "db:backfill-icons": "node --env-file=.env.local scripts/backfill-game-icons.mjs",
+    "sync:roblox-gamepasses": "node --env-file=.env.local scripts/sync-roblox-gamepasses.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

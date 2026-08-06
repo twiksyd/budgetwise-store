@@ -103,3 +103,41 @@ export async function getGamepassesByGameId(
   if (error) throw error;
   return data;
 }
+
+// Official Roblox Game Pass artwork, pre-resolved and cached by
+// scripts/sync-roblox-gamepasses.mjs — never fetched from Roblox at
+// request time. Only returns entries with status "matched"; "no_match" and
+// "ambiguous" rows exist in the cache table (so the sync script knows not
+// to re-attempt them) but have no icon_url to show, so callers never see
+// them here — they fall through to the existing placeholder treatment.
+//
+// Fail-safe by design: this is a nice-to-have visual enhancement, not
+// load-bearing catalog data. If the cache table has an issue (or Roblox
+// itself is what caused a "matched" row to go stale), the product page
+// must still render normally with placeholders — never break the page.
+export async function getRobloxIconCache(
+  gamepassIds: string[],
+): Promise<Map<string, string>> {
+  if (gamepassIds.length === 0) return new Map();
+
+  try {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("roblox_gamepass_icon_cache")
+      .select("gamepass_id, icon_url")
+      .in("gamepass_id", gamepassIds)
+      .eq("status", "matched");
+
+    if (error) throw error;
+
+    return new Map(
+      (data ?? [])
+        .filter((row): row is { gamepass_id: string; icon_url: string } =>
+          Boolean(row.icon_url),
+        )
+        .map((row) => [row.gamepass_id, row.icon_url]),
+    );
+  } catch {
+    return new Map();
+  }
+}

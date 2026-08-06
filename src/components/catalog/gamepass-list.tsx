@@ -42,6 +42,7 @@ export function GamepassList({
   gameName,
   gameIconUrl = null,
   orderingDisabled = false,
+  robloxIconUrls,
 }: {
   gamepasses: StoreGamepass[];
   gameId: string;
@@ -49,6 +50,11 @@ export function GamepassList({
   gameName: string;
   gameIconUrl?: string | null;
   orderingDisabled?: boolean;
+  // Pilot-only, per-product official Roblox Game Pass artwork, keyed by our
+  // gamepass id — see config/roblox-universe-ids.ts. Empty for every game
+  // not in the pilot; GamepassCard falls back to the normal placeholder
+  // whenever a given gamepass has no entry here.
+  robloxIconUrls?: Map<string, string>;
 }) {
   // Best Value is only meaningful among items you can actually buy right
   // now — crowning an out-of-stock or coming-soon item would put the gold
@@ -136,6 +142,7 @@ export function GamepassList({
                       badge={badge}
                       featured={isBestValue}
                       orderingDisabled={orderingDisabled}
+                      robloxIconUrl={robloxIconUrls?.get(gamepass.id)}
                     />
                   </motion.div>
                 );

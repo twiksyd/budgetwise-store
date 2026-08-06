@@ -12,9 +12,14 @@ import {
   PackageSearch,
   ShieldCheck,
 } from "lucide-react";
-import { getGameBySlug, getGamepassesByGameId } from "@/lib/queries/catalog";
+import {
+  getGameBySlug,
+  getGamepassesByGameId,
+  getRobloxIconCache,
+} from "@/lib/queries/catalog";
 import { GamepassList } from "@/components/catalog/gamepass-list";
 import { EmptyState } from "@/components/shared/empty-state";
+import { robloxUniverseIds } from "@/config/roblox-universe-ids";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
 
 export const revalidate = 60;
@@ -68,6 +73,19 @@ export default async function GameDetailPage({ params }: Props) {
     getGamepassesByGameId(game.id),
     resolveStoreStatusSafe(),
   ]);
+
+  // Product artwork priority chain: (1) manual override — not implemented
+  // yet; when it is, resolve and merge it into this same map here, ahead of
+  // the Roblox cache, since GamepassCard just renders whatever the map
+  // gives it — (2) cached Roblox Game Pass artwork, below — (3) default
+  // placeholder, which is simply what GamepassCard already renders when a
+  // gamepass has no entry in this map at all.
+  //
+  // Pilot only (see config/roblox-universe-ids.ts) — every other game skips
+  // this query entirely rather than looking up an always-empty cache.
+  const robloxIconUrls = robloxUniverseIds[game.id]
+    ? await getRobloxIconCache(gamepasses.map((g) => g.id))
+    : new Map<string, string>();
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16 sm:py-20">
@@ -156,6 +174,7 @@ export default async function GameDetailPage({ params }: Props) {
           gameName={game.name}
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
+          robloxIconUrls={robloxIconUrls}
         />
       )}
     </div>

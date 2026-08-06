@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { formatPrice } from "@/lib/pricing";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ export function GamepassCard({
   badge,
   featured = false,
   orderingDisabled = false,
+  robloxIconUrl,
 }: {
   gamepass: StoreGamepass;
   gameId: string;
@@ -26,6 +28,13 @@ export function GamepassCard({
   badge?: ProductBadgeValue | null;
   featured?: boolean;
   orderingDisabled?: boolean;
+  // Resolved product artwork, highest-priority source first. Today the
+  // caller (the game detail page) only ever supplies cached Roblox Game
+  // Pass artwork here, or nothing. A future manual-override source would
+  // slot in ahead of it at the call site (page component) — this prop
+  // itself, and the render below, don't need to change: whatever the
+  // caller resolves as "the" icon just flows through.
+  robloxIconUrl?: string;
 }) {
   const isOutOfStock = gamepass.availability_status === "out_of_stock";
   const isComingSoon = gamepass.availability_status === "coming_soon";
@@ -73,22 +82,37 @@ export function GamepassCard({
         </div>
       )}
 
-      <div>
-        <p
-          className={cn(
-            "font-heading leading-snug text-balance",
-            isCurrency
-              ? "text-lg font-bold [font-variant-numeric:tabular-nums]"
-              : "text-[15px] font-semibold",
-          )}
-        >
-          {gamepass.name}
-        </p>
-        {!isCurrency && (
-          <Badge variant="secondary" className="mt-1.5">
-            {gamepass.robux_amount.toLocaleString()} Robux
-          </Badge>
+      <div
+        className={cn(!isCurrency && robloxIconUrl && "flex items-start gap-3")}
+      >
+        {!isCurrency && robloxIconUrl && (
+          <div className="bg-muted relative size-11 shrink-0 overflow-hidden rounded-xl">
+            <Image
+              src={robloxIconUrl}
+              alt=""
+              fill
+              sizes="44px"
+              className="object-cover"
+            />
+          </div>
         )}
+        <div className="min-w-0">
+          <p
+            className={cn(
+              "font-heading leading-snug text-balance",
+              isCurrency
+                ? "text-lg font-bold [font-variant-numeric:tabular-nums]"
+                : "text-[15px] font-semibold",
+            )}
+          >
+            {gamepass.name}
+          </p>
+          {!isCurrency && (
+            <Badge variant="secondary" className="mt-1.5">
+              {gamepass.robux_amount.toLocaleString()} Robux
+            </Badge>
+          )}
+        </div>
       </div>
 
       <div

@@ -26,7 +26,37 @@ import type {
 
 export type Database = {
   public: {
-    Tables: Record<never, never>;
+    Tables: {
+      // Store-owned cache table (see
+      // supabase/migrations/0006_roblox_gamepass_icon_cache.sql) — a real
+      // table, not a view, so it's listed here rather than under Views.
+      roblox_gamepass_icon_cache: {
+        Row: {
+          gamepass_id: string;
+          roblox_universe_id: number;
+          status: "matched" | "no_match" | "ambiguous";
+          roblox_gamepass_id: number | null;
+          icon_url: string | null;
+          matched_name: string | null;
+          candidate_count: number;
+          synced_at: string;
+        };
+        Insert: {
+          gamepass_id: string;
+          roblox_universe_id: number;
+          status: "matched" | "no_match" | "ambiguous";
+          roblox_gamepass_id?: number | null;
+          icon_url?: string | null;
+          matched_name?: string | null;
+          candidate_count?: number;
+          synced_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["roblox_gamepass_icon_cache"]["Insert"]
+        >;
+        Relationships: [];
+      };
+    };
     Views: {
       store_games: {
         Row: {
