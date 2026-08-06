@@ -7,6 +7,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { CartPanelContent } from "@/components/cart/cart-panel-content";
+import { useCartStore, selectCartCount } from "@/stores/cart-store";
 
 export function MobileCartDrawer({
   open,
@@ -15,6 +16,8 @@ export function MobileCartDrawer({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const count = useCartStore(selectCartCount);
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       {/* `dvh` (not `vh`) so the sheet's height is measured against the
@@ -28,7 +31,14 @@ export function MobileCartDrawer({
           behavior and still supports swipe-down-to-dismiss / tap-outside. */}
       <DrawerContent className="data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-[85dvh] rounded-t-3xl">
         <DrawerHeader className="border-border/60 shrink-0 border-b pb-4">
-          <DrawerTitle className="text-base">Your cart</DrawerTitle>
+          <DrawerTitle className="text-base">
+            Your cart
+            {count > 0 && (
+              <span className="text-muted-foreground ml-1.5 font-normal">
+                · {count} item{count === 1 ? "" : "s"}
+              </span>
+            )}
+          </DrawerTitle>
         </DrawerHeader>
 
         <CartPanelContent onClose={() => onOpenChange(false)} />

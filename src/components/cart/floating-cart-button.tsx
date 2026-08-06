@@ -14,7 +14,10 @@ export function FloatingCartButton() {
   const openCart = useUIStore((state) => state.openCart);
 
   return (
-    <div className="fixed right-4 bottom-32 z-40 sm:hidden">
+    <div
+      className="fixed right-4 z-40 sm:hidden"
+      style={{ bottom: "calc(8rem + env(safe-area-inset-bottom))" }}
+    >
       <AnimatePresence>
         {count > 0 && (
           <motion.button

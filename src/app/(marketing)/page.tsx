@@ -25,10 +25,13 @@ export default async function LandingPage() {
     <div>
       <AnimatedHero />
       <TrustPoints />
-      <CustomerReviews />
-      <HowItWorksPreview />
+      {/* Shopping content surfaces right after the quick trust points —
+          Reviews/How-It-Works are worthwhile reinforcement, but shouldn't
+          sit between a first-time visitor and the actual product grid. */}
       <PopularGames games={continuePlayingGames} />
       <FeaturedProducts products={featuredProducts} />
+      <CustomerReviews />
+      <HowItWorksPreview />
       <FaqPreview />
     </div>
   );
