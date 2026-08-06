@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Gamepad2 } from "lucide-react";
-import { formatPrice } from "@/lib/pricing";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
+import { Price } from "@/components/shared/price";
 import { Badge } from "@/components/ui/badge";
 import {
   ProductBadge,
@@ -82,9 +82,7 @@ export function GamepassCard({
         )}
 
         <div className="mt-3 flex items-end justify-between gap-3">
-          <p className="font-heading text-primary text-2xl leading-none font-bold [font-variant-numeric:tabular-nums]">
-            {formatPrice(gamepass.price)}
-          </p>
+          <Price amount={gamepass.price} />
           <div className="w-[9.25rem] max-w-[58%] shrink-0">
             <AddToCartButton
               gamepass={gamepass}
@@ -155,9 +153,7 @@ export function GamepassCard({
       </div>
 
       <div className="mt-3 flex items-end justify-between gap-3">
-        <p className="font-heading text-primary text-2xl leading-none font-bold [font-variant-numeric:tabular-nums]">
-          {formatPrice(gamepass.price)}
-        </p>
+        <Price amount={gamepass.price} />
         <div className="w-[9.25rem] max-w-[58%] shrink-0">
           <AddToCartButton
             gamepass={gamepass}

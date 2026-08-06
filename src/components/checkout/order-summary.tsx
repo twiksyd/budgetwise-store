@@ -1,5 +1,5 @@
 import { Separator } from "@/components/ui/separator";
-import { formatPrice } from "@/lib/pricing";
+import { Price } from "@/components/shared/price";
 import type { CartItem } from "@/types/domain";
 
 export function OrderSummary({
@@ -21,18 +21,18 @@ export function OrderSummary({
                 {item.gameName} · Qty {item.quantity}
               </p>
             </div>
-            <p className="shrink-0 font-medium">
-              {formatPrice(item.price * item.quantity)}
-            </p>
+            <Price
+              amount={item.price * item.quantity}
+              variant="line"
+              className="shrink-0 text-foreground"
+            />
           </div>
         ))}
       </div>
       <Separator className="my-5" />
       <div className="flex justify-between text-sm">
         <span className="text-muted-foreground">Total</span>
-        <span className="font-heading text-base font-semibold">
-          {formatPrice(subtotal)}
-        </span>
+        <Price amount={subtotal} variant="cart" className="text-foreground" />
       </div>
     </div>
   );

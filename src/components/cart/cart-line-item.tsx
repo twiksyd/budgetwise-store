@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Gamepad2, Minus, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatPrice } from "@/lib/pricing";
+import { Price } from "@/components/shared/price";
 import { useCartStore } from "@/stores/cart-store";
 import type { CartItem } from "@/types/domain";
 
@@ -70,9 +70,11 @@ export function CartLineItem({ item }: { item: CartItem }) {
               <Plus className="size-3" />
             </Button>
           </div>
-          <p className="font-heading text-primary text-[15px] font-bold [font-variant-numeric:tabular-nums]">
-            {formatPrice(item.price * item.quantity)}
-          </p>
+          <Price
+            amount={item.price * item.quantity}
+            variant="cart"
+            className="mr-0.5 mb-0.5 self-end"
+          />
         </div>
       </div>
     </div>

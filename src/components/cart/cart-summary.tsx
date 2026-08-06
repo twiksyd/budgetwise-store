@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStoreStatus } from "@/components/shared/store-status-provider";
-import { formatPrice } from "@/lib/pricing";
 import { getGeneralMessengerLink } from "@/lib/messenger";
+import { Price } from "@/components/shared/price";
 import { useCartStore, selectCartCount } from "@/stores/cart-store";
 import { useUIStore } from "@/stores/ui-store";
 
@@ -31,9 +31,7 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
         <span className="text-muted-foreground text-sm">
           {count} item{count === 1 ? "" : "s"}
         </span>
-        <span className="font-heading text-lg font-semibold [font-variant-numeric:tabular-nums]">
-          {formatPrice(subtotal)}
-        </span>
+        <Price amount={subtotal} variant="cart" />
       </div>
 
       {status === "open" ? (

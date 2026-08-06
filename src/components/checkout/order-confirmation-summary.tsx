@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { formatPrice } from "@/lib/pricing";
+import { Price } from "@/components/shared/price";
 import type { OrderConfirmation } from "@/lib/queries/orders";
 
 const INITIAL_VISIBLE_ITEMS = 3;
@@ -36,9 +36,7 @@ export function OrderConfirmationSummary({
         </div>
         <div className="shrink-0 text-right">
           <p className="text-muted-foreground text-xs font-medium">Total</p>
-          <p className="font-heading text-primary text-xl leading-none font-bold [font-variant-numeric:tabular-nums]">
-            {formatPrice(order.total)}
-          </p>
+          <Price amount={order.total} variant="summary" />
         </div>
       </div>
 
@@ -59,9 +57,11 @@ export function OrderConfirmationSummary({
                 {line.gameName} · {line.robuxAmount.toLocaleString()} Robux
               </p>
             </div>
-            <p className="shrink-0 font-medium [font-variant-numeric:tabular-nums]">
-              {formatPrice(line.sellingPrice)}
-            </p>
+            <Price
+              amount={line.sellingPrice}
+              variant="line"
+              className="shrink-0 text-foreground"
+            />
           </div>
         ))}
       </div>

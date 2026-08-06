@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Gamepad2 } from "lucide-react";
-import { formatPrice } from "@/lib/pricing";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { ProductBadge } from "@/components/catalog/product-badge";
+import { Price } from "@/components/shared/price";
 import type { FeaturedGamepass } from "@/lib/queries/catalog";
 
 export function FeaturedProductCard({
@@ -46,9 +46,7 @@ export function FeaturedProductCard({
       </p>
 
       <div className="mt-5 flex items-center justify-between gap-3">
-        <p className="font-heading text-primary text-xl font-bold [font-variant-numeric:tabular-nums]">
-          {formatPrice(gamepass.price)}
-        </p>
+        <Price amount={gamepass.price} variant="productCompact" />
         <AddToCartButton
           gamepass={gamepass}
           gameId={game.id}
