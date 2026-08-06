@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ShoppingBag } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useCartStore, selectCartCount } from "@/stores/cart-store";
 import { useUIStore } from "@/stores/ui-store";
 
@@ -12,6 +13,14 @@ import { useUIStore } from "@/stores/ui-store";
 export function FloatingCartButton() {
   const count = useCartStore(selectCartCount);
   const openCart = useUIStore((state) => state.openCart);
+  const pathname = usePathname();
+
+  // Product pages already have a persistent header cart. Hiding the floating
+  // shortcut there prevents it from covering price or Add to Cart controls
+  // inside compact in-app browser viewports.
+  const isProductBrowsingPage = pathname?.startsWith("/games/");
+
+  if (isProductBrowsingPage) return null;
 
   return (
     <div

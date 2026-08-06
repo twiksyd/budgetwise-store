@@ -88,7 +88,7 @@ export default async function GameDetailPage({ params }: Props) {
     : new Map<string, string>();
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16 sm:py-20">
+    <div className="mx-auto max-w-5xl px-6 py-10 sm:py-16">
       <nav className="text-muted-foreground flex items-center gap-1.5 text-sm">
         <Link href="/games" className="hover:text-foreground transition-colors">
           Games
@@ -97,9 +97,9 @@ export default async function GameDetailPage({ params }: Props) {
         <span className="text-foreground">{game.name}</span>
       </nav>
 
-      <div className="mt-6 flex items-center gap-4">
+      <section className="mt-6 grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-7">
         <div
-          className="surface-premium relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl"
+          className="surface-premium relative flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-3xl sm:size-32"
           style={game.color ? { backgroundColor: `${game.color}1a` } : undefined}
         >
           {game.icon_url ? (
@@ -107,33 +107,42 @@ export default async function GameDetailPage({ params }: Props) {
               src={game.icon_url}
               alt={game.name}
               fill
-              sizes="64px"
+              sizes="(min-width: 640px) 128px, 96px"
               className="object-cover"
             />
           ) : (
-            <Gamepad2 className="text-muted-foreground size-7" />
+            <Gamepad2 className="text-muted-foreground size-10" />
           )}
         </div>
-        <div>
-          {game.category && (
-            <p className="text-muted-foreground text-sm">{game.category}</p>
-          )}
-          <h1 className="font-heading mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">
+        <div className="min-w-0">
+          <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs font-medium">
+            {game.category && <span>{game.category}</span>}
+            {game.category && <span className="text-muted-foreground/40">/</span>}
+            <span>
+              {gamepasses.length} product{gamepasses.length === 1 ? "" : "s"} available
+            </span>
+          </div>
+          <h1 className="font-heading mt-2 text-3xl font-semibold tracking-tight text-balance sm:text-5xl">
             {game.name}
           </h1>
+          <p className="text-muted-foreground mt-3 max-w-2xl text-[15px] leading-relaxed sm:text-base">
+            Choose discounted gamepasses and currency with a checkout built for
+            clarity: no Roblox password, no payment details on the site, and a
+            real Messenger confirmation before fulfillment.
+          </p>
         </div>
-      </div>
+      </section>
 
-      <div className="text-muted-foreground mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
-        <span className="inline-flex items-center gap-1.5">
+      <div className="mt-6 grid gap-2 sm:grid-cols-3">
+        <span className="surface-premium inline-flex items-center gap-2 rounded-2xl px-3.5 py-3 text-xs font-medium">
           <ShieldCheck className="size-3.5" />
           No payment on this website
         </span>
-        <span className="inline-flex items-center gap-1.5">
+        <span className="surface-premium inline-flex items-center gap-2 rounded-2xl px-3.5 py-3 text-xs font-medium">
           <MessageCircle className="size-3.5" />
           Messenger confirmation required
         </span>
-        <span className="inline-flex items-center gap-1.5">
+        <span className="surface-premium inline-flex items-center gap-2 rounded-2xl px-3.5 py-3 text-xs font-medium">
           <PackageCheck className="size-3.5" />
           Delivered to your Roblox username
         </span>

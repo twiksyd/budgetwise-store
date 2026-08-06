@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -50,7 +50,8 @@ export function AddToCartButton({
       <Button
         size={fullWidth ? "default" : "sm"}
         className={cn(
-          fullWidth && "h-11 w-full",
+          fullWidth &&
+            "h-12 w-full rounded-xl text-[15px] font-semibold shadow-[0_12px_28px_-14px_color-mix(in_oklch,var(--primary)_65%,transparent)] sm:h-10",
           // Local, in-place confirmation exactly where the customer
           // tapped — the toast still fires, but this doesn't ask them to
           // glance somewhere else to know it worked.
@@ -108,7 +109,9 @@ export function AddToCartButton({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.15 }}
+              className="inline-flex items-center gap-1.5"
             >
+              {!disabled && !label && <ShoppingBag className="size-4" />}
               {label ?? "Add to cart"}
             </motion.span>
           )}

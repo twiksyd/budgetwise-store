@@ -36,7 +36,7 @@ export default async function RobuxViaLinkPage() {
   const orderingDisabled = storeStatus !== "open";
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16 sm:py-20">
+    <div className="mx-auto max-w-5xl px-6 py-10 sm:py-16">
       <nav className="text-muted-foreground flex items-center gap-1.5 text-sm">
         <Link href="/games" className="hover:text-foreground transition-colors">
           Games
@@ -45,37 +45,43 @@ export default async function RobuxViaLinkPage() {
         <span className="text-foreground">{robuxViaLinkTile.name}</span>
       </nav>
 
-      <div className="mt-6 flex items-center gap-4">
+      <div className="mt-6 flex items-center gap-5">
         <div
-          className="surface-premium relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl"
+          className="surface-premium relative flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-3xl sm:size-32"
           style={{ backgroundColor: `${robuxViaLinkTile.color}1a` }}
         >
           <Image
             src={robuxViaLinkTile.iconUrl}
             alt={robuxViaLinkTile.name}
             fill
-            sizes="64px"
+            sizes="(min-width: 640px) 128px, 96px"
             className="object-cover"
           />
         </div>
-        <div>
-          <p className="text-muted-foreground text-sm">Direct Sale</p>
-          <h1 className="font-heading mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">
+        <div className="min-w-0">
+          <p className="text-muted-foreground text-xs font-medium">
+            Direct Sale / {coveredTax.length + notCoveredTax.length} products available
+          </p>
+          <h1 className="font-heading mt-2 text-3xl font-semibold tracking-tight text-balance sm:text-5xl">
             {robuxViaLinkTile.name}
           </h1>
+          <p className="text-muted-foreground mt-3 max-w-2xl text-[15px] leading-relaxed sm:text-base">
+            Choose a Robux amount, then confirm the order with a real
+            BudgetWise representative on Messenger before payment.
+          </p>
         </div>
       </div>
 
-      <div className="text-muted-foreground mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
-        <span className="inline-flex items-center gap-1.5">
+      <div className="mt-6 grid gap-2 sm:grid-cols-3">
+        <span className="surface-premium inline-flex items-center gap-2 rounded-2xl px-3.5 py-3 text-xs font-medium">
           <ShieldCheck className="size-3.5" />
           No payment on this website
         </span>
-        <span className="inline-flex items-center gap-1.5">
+        <span className="surface-premium inline-flex items-center gap-2 rounded-2xl px-3.5 py-3 text-xs font-medium">
           <MessageCircle className="size-3.5" />
           Messenger confirmation required
         </span>
-        <span className="inline-flex items-center gap-1.5">
+        <span className="surface-premium inline-flex items-center gap-2 rounded-2xl px-3.5 py-3 text-xs font-medium">
           <PackageCheck className="size-3.5" />
           Delivered to your Roblox username
         </span>
@@ -109,26 +115,31 @@ export default async function RobuxViaLinkPage() {
         </div>
       </div>
 
-      <div className="mt-12 flex flex-col gap-12">
+      <div className="mt-10 flex flex-col gap-10 sm:mt-12 sm:gap-14">
         <section>
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-xl">
-              <ShieldCheck className="text-primary size-5" />
-            </div>
-            <div className="flex items-center gap-2">
-              <div>
-                <h2 className="font-heading text-lg font-semibold tracking-tight sm:text-xl">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-2xl">
+                <ShieldCheck className="text-primary size-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
                   Tax Covered
                 </h2>
-                <p className="text-muted-foreground text-xs">
-                  {coveredTax.length} option{coveredTax.length === 1 ? "" : "s"}
+                <Badge variant="secondary" className="mt-1.5">
+                  Recommended
+                </Badge>
+                <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+                  Choose an amount where the listed Robux is what you receive.
                 </p>
               </div>
-              <Badge variant="secondary">Recommended</Badge>
             </div>
+            <p className="bg-muted text-muted-foreground shrink-0 rounded-full px-3 py-1 text-xs font-medium">
+              {coveredTax.length} option{coveredTax.length === 1 ? "" : "s"}
+            </p>
           </div>
 
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
             {coveredTax.map((gamepass) => (
               <GamepassCard
                 key={gamepass.id}
@@ -144,22 +155,27 @@ export default async function RobuxViaLinkPage() {
           </div>
         </section>
 
-        <section className="border-border/60 border-t pt-12">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-xl">
-              <ShieldQuestion className="text-primary size-5" />
+        <section className="border-border/60 border-t pt-10">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-2xl">
+                <ShieldQuestion className="text-primary size-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+                  Tax Not Covered
+                </h2>
+                <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+                  Choose a lower-price amount where Roblox deducts its tax.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-heading text-lg font-semibold tracking-tight sm:text-xl">
-                Tax Not Covered
-              </h2>
-              <p className="text-muted-foreground text-xs">
-                {notCoveredTax.length} option{notCoveredTax.length === 1 ? "" : "s"}
-              </p>
-            </div>
+            <p className="bg-muted text-muted-foreground shrink-0 rounded-full px-3 py-1 text-xs font-medium">
+              {notCoveredTax.length} option{notCoveredTax.length === 1 ? "" : "s"}
+            </p>
           </div>
 
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
             {notCoveredTax.map((gamepass) => (
               <GamepassCard
                 key={gamepass.id}

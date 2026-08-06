@@ -13,12 +13,6 @@ import {
 import { cn } from "@/lib/utils";
 import type { StoreGamepass } from "@/types/database";
 
-// The design system deliberately runs on a single accent hue — a per-category
-// color taxonomy (one hue per category) was tried and reverted: it read as
-// decorative rather than functional and worked against that restraint.
-// Limited is the one justified exception, reusing the same amber this app
-// already uses site-wide for "pay attention, time-sensitive" (maintenance
-// banners, etc.) — an urgency cue, not a taxonomy color.
 function sectionChipClassName(category: ProductCategory): string {
   return category === "limited"
     ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
@@ -33,6 +27,14 @@ const container: Variants = {
 const item: Variants = {
   hidden: { opacity: 0, y: 10 },
   show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+};
+
+const sectionDescriptions: Record<ProductCategory, string> = {
+  currency: "Choose an in-game cash amount.",
+  gamepasses: "Permanent upgrades and special access.",
+  vip: "Premium access products with clear pricing.",
+  bundle: "Grouped perks and multi-item offers.",
+  limited: "Time-sensitive products and rotating offers.",
 };
 
 export function GamepassList({
@@ -50,18 +52,8 @@ export function GamepassList({
   gameName: string;
   gameIconUrl?: string | null;
   orderingDisabled?: boolean;
-  // Pilot-only, per-product official Roblox Game Pass artwork, keyed by our
-  // gamepass id — see config/roblox-universe-ids.ts. Empty for every game
-  // not in the pilot; GamepassCard falls back to the normal placeholder
-  // whenever a given gamepass has no entry here.
   robloxIconUrls?: Map<string, string>;
 }) {
-  // Best Value is only meaningful among items you can actually buy right
-  // now — crowning an out-of-stock or coming-soon item would put the gold
-  // "you should buy this" treatment on a disabled card. Excluding rather
-  // than requiring an exact "available" match keeps this correct even if
-  // availability_status is ever missing (e.g. before the Store Operations
-  // migration has been applied).
   const bestValueId = getBestValueId(
     gamepasses.filter(
       (g) =>
@@ -72,38 +64,37 @@ export function GamepassList({
   const sections = groupByCategory(gamepasses);
 
   return (
-    // Section-to-section spacing is deliberately just the border+padding on
-    // each divided section (~56/64px) — an earlier version also put a large
-    // gap on this container, which stacked with that padding into ~110px+
-    // of dead scroll between categories instead of the intended amount.
-    <div className="mt-10 flex flex-col gap-4 sm:gap-5">
+    <div className="mt-10 flex flex-col gap-10 sm:mt-12 sm:gap-14">
       {sections.map(({ category, items }, index) => {
         const SectionIcon = PRODUCT_CATEGORY_ICONS[category];
 
         return (
           <section
             key={category}
-            className={cn(
-              index > 0 && "border-border/60 border-t pt-14 sm:pt-16",
-            )}
+            className={cn(index > 0 && "border-border/60 border-t pt-10")}
           >
-            <div className="flex items-center gap-3">
-              <div
-                className={cn(
-                  "flex size-10 shrink-0 items-center justify-center rounded-xl",
-                  sectionChipClassName(category),
-                )}
-              >
-                <SectionIcon className="size-5" />
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <div
+                  className={cn(
+                    "flex size-10 shrink-0 items-center justify-center rounded-2xl",
+                    sectionChipClassName(category),
+                  )}
+                >
+                  <SectionIcon className="size-5" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+                    {PRODUCT_CATEGORY_LABELS[category]}
+                  </h2>
+                  <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+                    {sectionDescriptions[category]}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="font-heading text-lg font-semibold tracking-tight sm:text-xl">
-                  {PRODUCT_CATEGORY_LABELS[category]}
-                </h2>
-                <p className="text-muted-foreground text-xs">
-                  {items.length} option{items.length === 1 ? "" : "s"}
-                </p>
-              </div>
+              <p className="bg-muted text-muted-foreground shrink-0 rounded-full px-3 py-1 text-xs font-medium">
+                {items.length} option{items.length === 1 ? "" : "s"}
+              </p>
             </div>
 
             <motion.div
@@ -111,16 +102,10 @@ export function GamepassList({
               initial="hidden"
               animate="show"
               className={cn(
-                "mt-5 grid grid-cols-1 gap-4",
-                // Currency tiles carry far less content than a full product
-                // card (no name, no Robux line), so they read better in a
-                // denser grid — more like picking a top-up amount — once
-                // there's room to spare at tablet/desktop widths. Mobile
-                // stays single-column with everything else so long amount
-                // strings (e.g. "Rp. 10,000,000,000") never get cramped.
+                "mt-5 grid grid-cols-1 gap-3.5 sm:gap-5",
                 category === "currency"
-                  ? "sm:grid-cols-3 lg:grid-cols-4"
-                  : "sm:grid-cols-2 lg:grid-cols-3",
+                  ? "sm:grid-cols-2 lg:grid-cols-3"
+                  : "sm:grid-cols-2 xl:grid-cols-3",
               )}
             >
               {items.map((gamepass) => {

@@ -1,8 +1,12 @@
 import Image from "next/image";
+import { Gamepad2, ShieldCheck } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
-import { ProductBadge, type ProductBadgeValue } from "@/components/catalog/product-badge";
+import {
+  ProductBadge,
+  type ProductBadgeValue,
+} from "@/components/catalog/product-badge";
 import type { ProductCategory } from "@/lib/product-category";
 import { cn } from "@/lib/utils";
 import type { StoreGamepass } from "@/types/database";
@@ -28,21 +32,13 @@ export function GamepassCard({
   badge?: ProductBadgeValue | null;
   featured?: boolean;
   orderingDisabled?: boolean;
-  // Resolved product artwork, highest-priority source first. Today the
-  // caller (the game detail page) only ever supplies cached Roblox Game
-  // Pass artwork here, or nothing. A future manual-override source would
-  // slot in ahead of it at the call site (page component) — this prop
-  // itself, and the render below, don't need to change: whatever the
-  // caller resolves as "the" icon just flows through.
   robloxIconUrl?: string;
 }) {
   const isOutOfStock = gamepass.availability_status === "out_of_stock";
   const isComingSoon = gamepass.availability_status === "coming_soon";
   const isUnavailable = isOutOfStock || isComingSoon;
+  const isCurrency = category === "currency";
 
-  // Purchasability trumps promotional badges — a Best Value item that's
-  // out of stock should say so, not keep advertising a price you can't
-  // actually check out with.
   const displayBadge: ProductBadgeValue | null = isOutOfStock
     ? "out-of-stock"
     : isComingSoon
@@ -57,83 +53,133 @@ export function GamepassCard({
         ? "Unavailable"
         : undefined;
 
-  // Currency packs don't really have a "name" — the amount itself is the
-  // product, so it reads as a headline (tabular-nums, larger) instead of
-  // a title, and the underlying Robux cost (a backend/comparison detail,
-  // not something the customer is buying) is left off rather than
-  // stacking a third near-duplicate number under it. The whole card leans
-  // compact and centered, closer to a top-up "denomination tile" than a
-  // full product card, since there's genuinely less to say about it.
-  const isCurrency = category === "currency";
+  if (isCurrency) {
+    return (
+      <div
+        className={cn(
+          "surface-premium surface-premium-hover flex h-full flex-col rounded-2xl p-4",
+          featured &&
+            "border-gold/50 bg-gold/5 border-2 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_42px_-18px_color-mix(in_oklch,var(--gold)_38%,transparent)]",
+          isUnavailable && "opacity-70",
+        )}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-heading text-xl leading-tight font-semibold text-balance [font-variant-numeric:tabular-nums]">
+              {gamepass.name}
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs font-medium">
+              Currency Pack
+            </p>
+          </div>
+          {displayBadge && <ProductBadge kind={displayBadge} />}
+        </div>
+
+        {featured && !isUnavailable && (
+          <p className="text-gold-foreground mt-3 text-xs font-medium">
+            Most value for the price
+          </p>
+        )}
+
+        <div className="mt-4 flex items-end justify-between gap-4">
+          <p className="font-heading text-primary text-3xl leading-none font-bold [font-variant-numeric:tabular-nums]">
+            {formatPrice(gamepass.price)}
+          </p>
+          <div className="min-w-32 flex-1">
+            <AddToCartButton
+              gamepass={gamepass}
+              gameId={gameId}
+              gameSlug={gameSlug}
+              gameName={gameName}
+              gameIconUrl={gameIconUrl}
+              fullWidth
+              disabled={isUnavailable || orderingDisabled}
+              label={ctaLabel}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
       className={cn(
-        "surface-premium surface-premium-hover flex h-full flex-col gap-3 rounded-2xl p-5",
-        isCurrency && "items-center gap-2.5 p-4 text-center",
+        "surface-premium surface-premium-hover flex h-full flex-col rounded-2xl p-4",
         featured &&
-          "border-gold/40 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_48px_-14px_color-mix(in_oklch,var(--gold)_30%,transparent)] border-2 p-6",
+          "border-gold/50 bg-gold/5 border-2 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_42px_-18px_color-mix(in_oklch,var(--gold)_38%,transparent)]",
         isUnavailable && "opacity-70",
       )}
     >
-      {displayBadge && (
-        <div className={cn("flex", isCurrency ? "justify-center" : "justify-end")}>
-          <ProductBadge kind={displayBadge} />
-        </div>
-      )}
-
-      <div
-        className={cn(!isCurrency && robloxIconUrl && "flex items-start gap-3")}
-      >
-        {!isCurrency && robloxIconUrl && (
-          <div className="bg-muted relative size-11 shrink-0 overflow-hidden rounded-xl">
+      <div className="grid grid-cols-[5.5rem_1fr] gap-4">
+        <div className="bg-muted relative aspect-square overflow-hidden rounded-2xl">
+          {robloxIconUrl ? (
             <Image
               src={robloxIconUrl}
               alt=""
               fill
-              sizes="44px"
-              className="object-cover"
+              sizes="88px"
+              className="object-contain"
             />
-          </div>
-        )}
-        <div className="min-w-0">
-          <p
-            className={cn(
-              "font-heading leading-snug text-balance",
-              isCurrency
-                ? "text-lg font-bold [font-variant-numeric:tabular-nums]"
-                : "text-[15px] font-semibold",
-            )}
-          >
-            {gamepass.name}
-          </p>
-          {!isCurrency && (
-            <Badge variant="secondary" className="mt-1.5">
+          ) : gameIconUrl ? (
+            <Image
+              src={gameIconUrl}
+              alt=""
+              fill
+              sizes="88px"
+              className="object-cover opacity-75"
+            />
+          ) : (
+            <Gamepad2 className="text-muted-foreground absolute inset-0 m-auto size-8 opacity-70" />
+          )}
+        </div>
+
+        <div className="flex min-w-0 flex-col">
+          <div className="flex min-h-6 items-start justify-between gap-2">
+            <Badge variant="secondary" className="h-6 px-2 text-[11px]">
               {gamepass.robux_amount.toLocaleString()} Robux
             </Badge>
+            {displayBadge && <ProductBadge kind={displayBadge} />}
+          </div>
+
+          <h3 className="font-heading mt-2 text-[15px] leading-snug font-semibold text-balance">
+            {gamepass.name}
+          </h3>
+
+          {featured && !isUnavailable && (
+            <p className="text-gold-foreground mt-1.5 text-xs font-medium">
+              Most customers choose this
+            </p>
           )}
         </div>
       </div>
 
-      <div
-        className={cn(
-          "mt-auto flex flex-col gap-3",
-          isCurrency && "w-full items-center",
+      <div className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium">
+        {robloxIconUrl && (
+          <span className="inline-flex items-center gap-1">
+            <ShieldCheck className="size-3" />
+            Official Gamepass
+          </span>
         )}
-      >
-        <p className="font-heading text-primary text-2xl font-bold [font-variant-numeric:tabular-nums]">
+        <span>No Login Needed</span>
+      </div>
+
+      <div className="mt-4 flex items-end justify-between gap-4">
+        <p className="font-heading text-primary text-3xl leading-none font-bold [font-variant-numeric:tabular-nums]">
           {formatPrice(gamepass.price)}
         </p>
-        <AddToCartButton
-          gamepass={gamepass}
-          gameId={gameId}
-          gameSlug={gameSlug}
-          gameName={gameName}
-          gameIconUrl={gameIconUrl}
-          fullWidth
-          disabled={isUnavailable || orderingDisabled}
-          label={ctaLabel}
-        />
+        <div className="min-w-32 flex-1">
+          <AddToCartButton
+            gamepass={gamepass}
+            gameId={gameId}
+            gameSlug={gameSlug}
+            gameName={gameName}
+            gameIconUrl={gameIconUrl}
+            fullWidth
+            disabled={isUnavailable || orderingDisabled}
+            label={ctaLabel}
+          />
+        </div>
       </div>
     </div>
   );
