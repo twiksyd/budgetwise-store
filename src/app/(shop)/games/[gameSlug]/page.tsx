@@ -19,9 +19,11 @@ import {
   getProductArtworkUrlMap,
 } from "@/lib/queries/product-artwork";
 import { GamepassList } from "@/components/catalog/gamepass-list";
+import { BloxFruitsProductList } from "@/components/catalog/blox-fruits-product-list";
 import { EmptyState } from "@/components/shared/empty-state";
 import { OrderingProgress } from "@/components/ordering/ordering-progress";
 import { robloxUniverseIds } from "@/config/roblox-universe-ids";
+import { BLOX_FRUITS_GAME_ID } from "@/config/blox-fruits";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
 
 export const revalidate = 60;
@@ -170,6 +172,16 @@ export default async function GameDetailPage({ params }: Props) {
             action={{ label: "Browse other games", href: "/games" }}
           />
         </div>
+      ) : game.id === BLOX_FRUITS_GAME_ID ? (
+        <BloxFruitsProductList
+          gamepasses={gamepasses}
+          gameId={game.id}
+          gameSlug={game.slug}
+          gameName={game.name}
+          gameIconUrl={game.icon_url}
+          orderingDisabled={storeStatus !== "open"}
+          robloxIconUrls={productArtworkUrls}
+        />
       ) : (
         <GamepassList
           gamepasses={gamepasses}
