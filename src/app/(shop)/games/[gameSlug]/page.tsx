@@ -20,10 +20,12 @@ import {
 } from "@/lib/queries/product-artwork";
 import { GamepassList } from "@/components/catalog/gamepass-list";
 import { BloxFruitsProductList } from "@/components/catalog/blox-fruits-product-list";
+import { GrowAGarden2ProductList } from "@/components/catalog/grow-a-garden-2-product-list";
 import { EmptyState } from "@/components/shared/empty-state";
 import { OrderingProgress } from "@/components/ordering/ordering-progress";
 import { robloxUniverseIds } from "@/config/roblox-universe-ids";
 import { BLOX_FRUITS_GAME_ID } from "@/config/blox-fruits";
+import { GROW_A_GARDEN_2_GAME_ID } from "@/config/grow-a-garden-2";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
 
 export const revalidate = 60;
@@ -174,6 +176,16 @@ export default async function GameDetailPage({ params }: Props) {
         </div>
       ) : game.id === BLOX_FRUITS_GAME_ID ? (
         <BloxFruitsProductList
+          gamepasses={gamepasses}
+          gameId={game.id}
+          gameSlug={game.slug}
+          gameName={game.name}
+          gameIconUrl={game.icon_url}
+          orderingDisabled={storeStatus !== "open"}
+          robloxIconUrls={productArtworkUrls}
+        />
+      ) : game.id === GROW_A_GARDEN_2_GAME_ID ? (
+        <GrowAGarden2ProductList
           gamepasses={gamepasses}
           gameId={game.id}
           gameSlug={game.slug}
