@@ -24,6 +24,7 @@ export const siteConfig = {
   footerNav: {
     Company: [
       { label: "How ordering works", href: "/how-ordering-works" },
+      { label: "Gamepass setup guide", href: "/gamepass-tutorial" },
       { label: "FAQ", href: "/faq" },
       { label: "Contact us", href: "/contact" },
     ],

@@ -7,6 +7,8 @@ import {
   Clock,
   PackageCheck,
   Info,
+  Gamepad2,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Taglish } from "@/components/shared/taglish";
@@ -224,6 +226,24 @@ export default function HowOrderingWorksPage() {
           magbayad.
         </Taglish>
       </div>
+
+      <Link
+        href="/gamepass-tutorial"
+        className="surface-premium surface-premium-hover mt-8 flex items-center gap-3.5 rounded-2xl p-5 transition-transform active:scale-[0.99] sm:p-6"
+      >
+        <div className="bg-primary/10 flex size-11 shrink-0 items-center justify-center rounded-xl">
+          <Gamepad2 className="text-primary size-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-heading text-sm font-semibold">
+            Need to set up a Roblox gamepass?
+          </p>
+          <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+            Follow our step-by-step gamepass setup guide before messaging us.
+          </p>
+        </div>
+        <ChevronRight className="text-muted-foreground size-4 shrink-0" />
+      </Link>
 
       <div className="surface-premium mt-8 rounded-2xl p-6 text-center sm:p-7">
         <p className="font-heading text-base font-semibold">
