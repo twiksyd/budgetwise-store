@@ -8,13 +8,11 @@
 // game's seasonal item.
 export const GROW_A_GARDEN_2_GAME_ID = "ec7b0020-d616-485b-a151-f5fc2d541c9b";
 
-const FALL_EGG_NAMES = new Set([
-  "1 roll FALL EGG",
-  "3 roll FALL EGG",
-  "10 roll FALL EGG",
-  "50 roll FALL EGG",
-]);
+// Case-insensitive so a catalog re-casing (e.g. "1 roll FALL EGG" ->
+// "1 Roll Fall Egg") doesn't silently drop these back into the generic
+// bucket — matches on structure (count + "roll" + "fall egg"), not exact case.
+const FALL_EGG_PATTERN = /^\d+\s*roll\s*fall\s*egg$/i;
 
 export function isFallEggProduct(name: string): boolean {
-  return FALL_EGG_NAMES.has(name.trim());
+  return FALL_EGG_PATTERN.test(name.trim());
 }
