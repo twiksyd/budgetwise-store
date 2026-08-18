@@ -54,6 +54,31 @@ type StoreSettingsRow = {
   updated_at: string;
 };
 
+type StoreGamePresentationRow = {
+  game_id: string;
+  sort_order: number;
+  is_featured: boolean;
+  featured_order: number | null;
+  updated_at: string;
+  updated_by: string | null;
+};
+
+type StorefrontPresentationSettingsRow = {
+  id: boolean;
+  featured_game_limit: number;
+  updated_at: string;
+  updated_by: string | null;
+};
+
+type StorefrontPresentationAuditLogRow = {
+  id: string;
+  action: "update_game_order" | "update_featured_games" | "reset_game_order";
+  admin_user_id: string | null;
+  admin_email: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
+};
+
 export type StoreSettingsUpdate = {
   store_status?: StoreStatus;
   notice_message?: string | null;
@@ -236,6 +261,24 @@ export type AdminDatabase = {
         Update: StoreSettingsUpdate;
         Relationships: [];
       };
+      store_game_presentation: {
+        Row: StoreGamePresentationRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      storefront_presentation_settings: {
+        Row: StorefrontPresentationSettingsRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      storefront_presentation_audit_log: {
+        Row: StorefrontPresentationAuditLogRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       admin_users: {
         Row: AdminUserRow;
         Insert: never;
@@ -313,6 +356,30 @@ export type AdminDatabase = {
           previous_icon_url: string | null;
           previous_storage_path: string | null;
         }[];
+      };
+      apply_store_game_order: {
+        Args: {
+          p_game_ids: string[];
+          p_admin_user_id: string;
+          p_admin_email: string | null;
+        };
+        Returns: void;
+      };
+      apply_featured_games: {
+        Args: {
+          p_featured_game_ids: string[];
+          p_featured_game_limit: number;
+          p_admin_user_id: string;
+          p_admin_email: string | null;
+        };
+        Returns: void;
+      };
+      reset_store_game_order: {
+        Args: {
+          p_admin_user_id: string;
+          p_admin_email: string | null;
+        };
+        Returns: void;
       };
     };
     Enums: Record<string, never>;

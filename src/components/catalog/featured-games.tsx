@@ -15,10 +15,30 @@ const item: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
 };
 
-// Mobile: horizontal snap-scroll carousel, each card ~85% of the viewport
-// so the next card peeks at the edge. Desktop: 2-column grid; when there's
-// an odd one out, the last card spans both columns as a wide hero card
-// instead of leaving an awkward gap.
+function gridClassName(count: number) {
+  if (count === 1) {
+    return "mx-auto max-w-md grid-cols-1";
+  }
+
+  if (count === 2) {
+    return "grid-cols-2 sm:grid-cols-2";
+  }
+
+  if (count === 3) {
+    return "grid-cols-2 sm:grid-cols-3";
+  }
+
+  if (count === 4) {
+    return "grid-cols-2 sm:grid-cols-4";
+  }
+
+  if (count <= 6) {
+    return "grid-cols-2 sm:grid-cols-3";
+  }
+
+  return "grid-cols-2 sm:grid-cols-4";
+}
+
 export function FeaturedGames({
   games,
   productCounts,
@@ -38,28 +58,16 @@ export function FeaturedGames({
         variants={container}
         initial="hidden"
         animate="show"
-        className="-mx-6 mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden"
+        className={cn("mt-4 grid gap-3 sm:gap-4", gridClassName(games.length))}
       >
-        {games.map((game, i) => {
-          const isWideLast =
-            i === games.length - 1 && games.length % 2 === 1 && games.length > 1;
-          return (
-            <motion.div
-              key={game.id}
-              variants={item}
-              className={cn(
-                "w-[85%] shrink-0 snap-center sm:w-auto",
-                isWideLast && "sm:col-span-2",
-              )}
-            >
-              <FeaturedGameCard
-                game={game}
-                productCount={productCounts[game.id] ?? 0}
-                wide={isWideLast}
-              />
-            </motion.div>
-          );
-        })}
+        {games.map((game) => (
+          <motion.div key={game.id} variants={item}>
+            <FeaturedGameCard
+              game={game}
+              productCount={productCounts[game.id] ?? 0}
+            />
+          </motion.div>
+        ))}
       </motion.div>
     </section>
   );

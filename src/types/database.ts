@@ -68,6 +68,30 @@ export type Database = {
         >;
         Relationships: [];
       };
+      store_game_presentation: {
+        Row: {
+          game_id: string;
+          sort_order: number;
+          is_featured: boolean;
+          featured_order: number | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      storefront_presentation_settings: {
+        Row: {
+          id: boolean;
+          featured_game_limit: number;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       store_games: {

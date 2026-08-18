@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Activity, RefreshCw } from "lucide-react";
+import { Activity, LayoutGrid, RefreshCw } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/admin";
 import { SignOutButton } from "@/components/admin/sign-out-button";
 
@@ -38,6 +38,13 @@ export default async function AdminProtectedLayout({
                 className="hover:bg-muted rounded-lg px-2.5 py-1.5"
               >
                 Product Assets
+              </Link>
+              <Link
+                href="/admin/catalog-layout"
+                className="hover:bg-muted inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
+              >
+                <LayoutGrid className="size-3.5" />
+                Catalog Layout
               </Link>
               <Link
                 href="/admin/roblox-sync"

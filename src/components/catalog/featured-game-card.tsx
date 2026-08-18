@@ -34,7 +34,7 @@ export function FeaturedGameCard({
           src={game.icon_url}
           alt={game.name}
           fill
-          sizes="(min-width: 640px) 50vw, 85vw"
+          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
           className={cn(
             "object-cover transition-transform duration-500 ease-out",
             isUnavailable
@@ -52,7 +52,7 @@ export function FeaturedGameCard({
       {!isUnavailable && (
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent" />
       )}
-      <Badge className="absolute top-3 left-3 gap-1">
+      <Badge className="absolute top-2.5 left-2.5 gap-1 sm:top-3 sm:left-3">
         <Sparkles className="size-3" />
         Featured
       </Badge>
@@ -67,18 +67,18 @@ export function FeaturedGameCard({
   );
 
   const details = (
-    <div className="flex items-center justify-between gap-3 p-5">
+    <div className="flex items-center justify-between gap-2 p-3 sm:gap-3 sm:p-5">
       <div className="min-w-0">
-        <h3 className="font-heading truncate text-lg font-semibold">
+        <h3 className="font-heading truncate text-[13.5px] font-semibold sm:text-lg">
           {game.name}
         </h3>
-        <p className="text-muted-foreground mt-0.5 text-sm">
+        <p className="text-muted-foreground mt-0.5 text-[11px] sm:text-sm">
           {productCount} product{productCount === 1 ? "" : "s"} available
         </p>
       </div>
       {!isUnavailable && (
-        <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:translate-x-1">
-          <ArrowRight className="size-4" />
+        <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:translate-x-1 sm:size-10">
+          <ArrowRight className="size-3.5 sm:size-4" />
         </span>
       )}
     </div>

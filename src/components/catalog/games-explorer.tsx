@@ -8,7 +8,6 @@ import { GameGrid } from "@/components/catalog/game-grid";
 import { FeaturedGames } from "@/components/catalog/featured-games";
 import { CatalogStats } from "@/components/catalog/catalog-stats";
 import { EmptyState } from "@/components/shared/empty-state";
-import { featuredGameIds } from "@/config/featured-games";
 import { robuxGameIds } from "@/config/robux-products";
 import { robuxViaLinkGameIds, robuxViaLinkTile } from "@/config/robux-via-link";
 import type { StoreGame } from "@/types/database";
@@ -30,20 +29,15 @@ const robuxViaLinkGame: StoreGame = {
 
 export function GamesExplorer({
   games,
+  featuredGames,
   productCounts,
 }: {
   games: StoreGame[];
+  featuredGames: StoreGame[];
   productCounts: Record<string, number>;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
-
-  const featuredGames = useMemo(() => {
-    const byId = new Map(games.map((g) => [g.id, g]));
-    return featuredGameIds
-      .map((id) => byId.get(id))
-      .filter((g): g is StoreGame => g !== undefined);
-  }, [games]);
 
   // Robux top-ups aren't "a game" the way everything else in the catalog
   // is — pulled into their own section (always shown, unaffected by
@@ -87,12 +81,22 @@ export function GamesExplorer({
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return catalogGames.filter((game) => {
+    const matches = catalogGames.filter((game) => {
       const matchesQuery =
         normalizedQuery.length === 0 ||
         game.name.toLowerCase().includes(normalizedQuery);
       const matchesCategory = !category || game.category === category;
       return matchesQuery && matchesCategory;
+    });
+
+    if (!normalizedQuery) return matches;
+
+    return [...matches].sort((a, b) => {
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+      const aScore = aName === normalizedQuery ? 0 : aName.startsWith(normalizedQuery) ? 1 : 2;
+      const bScore = bName === normalizedQuery ? 0 : bName.startsWith(normalizedQuery) ? 1 : 2;
+      return aScore - bScore;
     });
   }, [catalogGames, query, category]);
 
