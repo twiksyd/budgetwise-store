@@ -5,14 +5,14 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface CatalogLayoutActionResult {
   success: boolean;
   error?: string;
 }
 
-function validateGameIds(gameIds: string[]) {
+async function validateGameIds(gameIds: string[]) {
   if (!Array.isArray(gameIds) || gameIds.length === 0) {
     return "At least one game is required.";
   }
@@ -25,8 +25,25 @@ function validateGameIds(gameIds: string[]) {
     return "Duplicate games are not allowed.";
   }
 
-  if (gameIds.some((id) => !UUID_RE.test(id))) {
-    return "Invalid game ID.";
+  const invalidId = gameIds.find(
+    (id) => typeof id !== "string" || !UUID_RE.test(id),
+  );
+  if (invalidId) {
+    return `Invalid game ID: ${String(invalidId)}`;
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("games")
+    .select("id")
+    .in("id", gameIds);
+
+  if (error) return error.message;
+
+  const existingIds = new Set((data ?? []).map((game) => game.id));
+  const missingId = gameIds.find((id) => !existingIds.has(id));
+  if (missingId) {
+    return `Game is no longer in the catalog: ${missingId}`;
   }
 
   return null;
@@ -41,7 +58,7 @@ export async function saveGameOrderAction(
   gameIds: string[],
 ): Promise<CatalogLayoutActionResult> {
   const admin = await requireAdmin();
-  const validationError = validateGameIds(gameIds);
+  const validationError = await validateGameIds(gameIds);
   if (validationError) return { success: false, error: validationError };
 
   const supabase = createAdminClient();
@@ -64,7 +81,7 @@ export async function saveFeaturedGamesAction(input: {
   const admin = await requireAdmin();
   const validationError =
     input.featuredGameIds.length > 0
-      ? validateGameIds(input.featuredGameIds)
+      ? await validateGameIds(input.featuredGameIds)
       : null;
   if (validationError) return { success: false, error: validationError };
 
