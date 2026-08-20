@@ -12,6 +12,21 @@ export interface CatalogLayoutActionResult {
   error?: string;
 }
 
+export interface ProductLayoutSectionInput {
+  id: string;
+  name: string;
+  sortOrder: number;
+}
+
+export interface ProductLayoutProductInput {
+  gamepassId: string;
+  sectionId: string | null;
+  sortOrder: number;
+}
+
+const MAX_PRODUCT_SECTIONS = 100;
+const MAX_PRODUCTS_PER_LAYOUT = 1000;
+
 async function validateGameIds(gameIds: string[]) {
   if (!Array.isArray(gameIds) || gameIds.length === 0) {
     return "At least one game is required.";
@@ -52,6 +67,92 @@ async function validateGameIds(gameIds: string[]) {
 function revalidateCatalogLayout() {
   revalidatePath("/", "layout");
   revalidatePath("/admin/catalog-layout");
+}
+
+async function validateGameId(gameId: string) {
+  if (typeof gameId !== "string" || !UUID_RE.test(gameId)) {
+    return "Invalid game ID.";
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("games")
+    .select("id")
+    .eq("id", gameId)
+    .maybeSingle();
+
+  if (error) return error.message;
+  if (!data) return "Game is no longer in the catalog.";
+  return null;
+}
+
+async function validateProductLayoutInput(input: {
+  gameId: string;
+  sections: ProductLayoutSectionInput[];
+  products: ProductLayoutProductInput[];
+}) {
+  const gameError = await validateGameId(input.gameId);
+  if (gameError) return gameError;
+
+  if (!Array.isArray(input.sections) || !Array.isArray(input.products)) {
+    return "Invalid product layout payload.";
+  }
+
+  if (input.sections.length > MAX_PRODUCT_SECTIONS) {
+    return "Too many categories supplied.";
+  }
+
+  if (input.products.length > MAX_PRODUCTS_PER_LAYOUT) {
+    return "Too many products supplied.";
+  }
+
+  const sectionIds = new Set<string>();
+  for (const section of input.sections) {
+    if (!UUID_RE.test(section.id)) return "Invalid category ID.";
+    const name = section.name.trim();
+    if (!name) return "Category names cannot be empty.";
+    if (name.length > 48) return "Category names must be 48 characters or less.";
+    if (!Number.isInteger(section.sortOrder) || section.sortOrder < 0) {
+      return "Category order is invalid.";
+    }
+    if (sectionIds.has(section.id)) return "Duplicate categories are not allowed.";
+    sectionIds.add(section.id);
+  }
+
+  const productIds = new Set<string>();
+  for (const product of input.products) {
+    if (!UUID_RE.test(product.gamepassId)) return "Invalid product ID.";
+    if (
+      product.sectionId !== null &&
+      (!UUID_RE.test(product.sectionId) || !sectionIds.has(product.sectionId))
+    ) {
+      return "Product category is invalid.";
+    }
+    if (!Number.isInteger(product.sortOrder) || product.sortOrder < 0) {
+      return "Product order is invalid.";
+    }
+    if (productIds.has(product.gamepassId)) {
+      return "Duplicate products are not allowed.";
+    }
+    productIds.add(product.gamepassId);
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("gamepasses")
+    .select("id")
+    .eq("game_id", input.gameId)
+    .in("id", [...productIds]);
+
+  if (error) return error.message;
+
+  const existingProductIds = new Set((data ?? []).map((product) => product.id));
+  const missingProductId = [...productIds].find((id) => !existingProductIds.has(id));
+  if (missingProductId) {
+    return `Product is no longer in this game: ${missingProductId}`;
+  }
+
+  return null;
 }
 
 export async function saveGameOrderAction(
@@ -114,6 +215,58 @@ export async function resetGameOrderAction(): Promise<CatalogLayoutActionResult>
   const admin = await requireAdmin();
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("reset_store_game_order", {
+    p_admin_user_id: admin.id,
+    p_admin_email: admin.email,
+  });
+
+  if (error) return { success: false, error: error.message };
+
+  revalidateCatalogLayout();
+  return { success: true };
+}
+
+export async function saveProductLayoutAction(input: {
+  gameId: string;
+  sections: ProductLayoutSectionInput[];
+  products: ProductLayoutProductInput[];
+}): Promise<CatalogLayoutActionResult> {
+  const admin = await requireAdmin();
+  const validationError = await validateProductLayoutInput(input);
+  if (validationError) return { success: false, error: validationError };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.rpc("apply_store_product_layout", {
+    p_game_id: input.gameId,
+    p_sections: input.sections.map((section, index) => ({
+      id: section.id,
+      name: section.name.trim(),
+      sort_order: index,
+    })),
+    p_products: input.products.map((product) => ({
+      gamepass_id: product.gamepassId,
+      section_id: product.sectionId,
+      sort_order: product.sortOrder,
+    })),
+    p_admin_user_id: admin.id,
+    p_admin_email: admin.email,
+  });
+
+  if (error) return { success: false, error: error.message };
+
+  revalidateCatalogLayout();
+  return { success: true };
+}
+
+export async function resetProductLayoutAction(
+  gameId: string,
+): Promise<CatalogLayoutActionResult> {
+  const admin = await requireAdmin();
+  const validationError = await validateGameId(gameId);
+  if (validationError) return { success: false, error: validationError };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.rpc("reset_store_product_layout", {
+    p_game_id: gameId,
     p_admin_user_id: admin.id,
     p_admin_email: admin.email,
   });

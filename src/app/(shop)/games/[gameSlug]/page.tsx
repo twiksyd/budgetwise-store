@@ -21,12 +21,14 @@ import {
 import { GamepassList } from "@/components/catalog/gamepass-list";
 import { BloxFruitsProductList } from "@/components/catalog/blox-fruits-product-list";
 import { GrowAGarden2ProductList } from "@/components/catalog/grow-a-garden-2-product-list";
+import { ConfiguredProductList } from "@/components/catalog/configured-product-list";
 import { EmptyState } from "@/components/shared/empty-state";
 import { OrderingProgress } from "@/components/ordering/ordering-progress";
 import { robloxUniverseIds } from "@/config/roblox-universe-ids";
 import { BLOX_FRUITS_GAME_ID } from "@/config/blox-fruits";
 import { GROW_A_GARDEN_2_GAME_ID } from "@/config/grow-a-garden-2";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
+import { getProductLayoutForGame } from "@/lib/queries/product-layout";
 
 export const revalidate = 60;
 
@@ -85,6 +87,7 @@ export default async function GameDetailPage({ params }: Props) {
     includeRoblox: Boolean(robloxUniverseIds[game.id]),
   });
   const productArtworkUrls = getProductArtworkUrlMap(productArtwork);
+  const productLayout = await getProductLayoutForGame(game.id, gamepasses);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-6 sm:py-14">
@@ -173,6 +176,16 @@ export default async function GameDetailPage({ params }: Props) {
             action={{ label: "Browse other games", href: "/games" }}
           />
         </div>
+      ) : productLayout ? (
+        <ConfiguredProductList
+          sections={productLayout.sections}
+          gameId={game.id}
+          gameSlug={game.slug}
+          gameName={game.name}
+          gameIconUrl={game.icon_url}
+          orderingDisabled={storeStatus !== "open"}
+          robloxIconUrls={productArtworkUrls}
+        />
       ) : game.id === BLOX_FRUITS_GAME_ID ? (
         <BloxFruitsProductList
           gamepasses={gamepasses}

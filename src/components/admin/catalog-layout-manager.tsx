@@ -22,8 +22,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import type { CatalogLayoutGame } from "@/lib/queries/catalog-layout";
+import type {
+  CatalogLayoutGame,
+  CatalogProductLayoutData,
+} from "@/lib/queries/catalog-layout";
 import { GAME_AVAILABILITY_LABELS } from "@/types/store-operations";
+import { ProductLayoutManager } from "@/components/admin/product-layout-manager";
 
 const FEATURED_LIMITS = [1, 2, 3, 4, 6, 8, 10, 12];
 
@@ -164,9 +168,11 @@ function GameRow({
 export function CatalogLayoutManager({
   games,
   featuredGameLimit,
+  productLayout,
 }: {
   games: CatalogLayoutGame[];
   featuredGameLimit: number;
+  productLayout: CatalogProductLayoutData;
 }) {
   const [gameOrder, setGameOrder] = useState(games);
   const [savedGameOrder, setSavedGameOrder] = useState(games);
@@ -478,6 +484,8 @@ export function CatalogLayoutManager({
           )}
         </div>
       </section>
+
+      <ProductLayoutManager games={games} productLayout={productLayout} />
     </div>
   );
 }

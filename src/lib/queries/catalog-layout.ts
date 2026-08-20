@@ -1,7 +1,13 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  getProductArtworkMap,
+  getProductArtworkUrlMap,
+} from "@/lib/queries/product-artwork";
+import { robloxUniverseIds } from "@/config/roblox-universe-ids";
 import type { GameAvailabilityStatus } from "@/types/store-operations";
+import type { ProductAvailabilityStatus } from "@/types/store-operations";
 
 export interface CatalogLayoutGame {
   id: string;
@@ -18,6 +24,37 @@ export interface CatalogLayoutGame {
 export interface CatalogLayoutData {
   games: CatalogLayoutGame[];
   featuredGameLimit: number;
+  productLayout: CatalogProductLayoutData;
+}
+
+export interface CatalogProductLayoutSection {
+  id: string;
+  gameId: string;
+  name: string;
+  sortOrder: number;
+}
+
+export interface CatalogProductLayoutProduct {
+  id: string;
+  gameId: string;
+  name: string;
+  robuxAmount: number;
+  price: number;
+  availabilityStatus: ProductAvailabilityStatus;
+  sectionId: string | null;
+  sortOrder: number;
+  artworkUrl: string | null;
+}
+
+export interface CatalogProductLayoutGame {
+  gameId: string;
+  sections: CatalogProductLayoutSection[];
+  products: CatalogProductLayoutProduct[];
+  hasCustomLayout: boolean;
+}
+
+export interface CatalogProductLayoutData {
+  games: CatalogProductLayoutGame[];
 }
 
 type PresentationRow = {
@@ -31,6 +68,18 @@ const DEFAULT_FEATURED_GAME_LIMIT = 6;
 
 function availabilityBucket(status: GameAvailabilityStatus) {
   return status === "available" ? 0 : 1;
+}
+
+function isMissingProductLayoutTableError(error: {
+  code?: string;
+  message?: string;
+}) {
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    error.message?.includes("store_product_sections") === true ||
+    error.message?.includes("store_product_presentation") === true
+  );
 }
 
 export async function getCatalogLayoutData(): Promise<CatalogLayoutData> {
@@ -95,9 +144,122 @@ export async function getCatalogLayoutData(): Promise<CatalogLayoutData> {
     return a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);
   });
 
+  const productLayout = await getCatalogProductLayoutData(
+    games.map((game) => game.id),
+  );
+
   return {
     games,
     featuredGameLimit:
       settingsResult.data?.featured_game_limit ?? DEFAULT_FEATURED_GAME_LIMIT,
+    productLayout,
+  };
+}
+
+async function getCatalogProductLayoutData(
+  gameIds: string[],
+): Promise<CatalogProductLayoutData> {
+  if (gameIds.length === 0) return { games: [] };
+
+  const supabase = createAdminClient();
+  const [productsResult, sectionsResult, presentationResult] = await Promise.all([
+    supabase
+      .from("store_gamepasses")
+      .select("id, game_id, name, robux_amount, price, availability_status")
+      .in("game_id", gameIds)
+      .order("robux_amount", { ascending: true }),
+    supabase
+      .from("store_product_sections")
+      .select("id, game_id, name, sort_order")
+      .in("game_id", gameIds)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("store_product_presentation")
+      .select("gamepass_id, game_id, section_id, sort_order")
+      .in("game_id", gameIds),
+  ]);
+
+  if (productsResult.error) throw productsResult.error;
+  if (sectionsResult.error || presentationResult.error) {
+    const error = sectionsResult.error ?? presentationResult.error;
+    if (!error || !isMissingProductLayoutTableError(error)) {
+      throw error;
+    }
+  }
+
+  const productRows = productsResult.data ?? [];
+  const artworkUrls = getProductArtworkUrlMap(
+    await getProductArtworkMap(productRows, {
+      includeRoblox: productRows.some((product) =>
+        Boolean(robloxUniverseIds[product.game_id]),
+      ),
+    }),
+  );
+
+  const sectionsByGameId = new Map<string, CatalogProductLayoutSection[]>();
+  for (const section of sectionsResult.error ? [] : (sectionsResult.data ?? [])) {
+    const list = sectionsByGameId.get(section.game_id) ?? [];
+    list.push({
+      id: section.id,
+      gameId: section.game_id,
+      name: section.name,
+      sortOrder: section.sort_order,
+    });
+    sectionsByGameId.set(section.game_id, list);
+  }
+
+  const presentationByProductId = new Map(
+    (presentationResult.error ? [] : (presentationResult.data ?? [])).map((row) => [
+      row.gamepass_id,
+      row,
+    ]),
+  );
+
+  const maxSortOrderByGameId = new Map<string, number>();
+  for (const row of presentationResult.error ? [] : (presentationResult.data ?? [])) {
+    maxSortOrderByGameId.set(
+      row.game_id,
+      Math.max(maxSortOrderByGameId.get(row.game_id) ?? -1, row.sort_order),
+    );
+  }
+
+  const productsByGameId = new Map<string, CatalogProductLayoutProduct[]>();
+  for (const [fallbackIndex, product] of productRows.entries()) {
+    const presentation = presentationByProductId.get(product.id);
+    const list = productsByGameId.get(product.game_id) ?? [];
+    list.push({
+      id: product.id,
+      gameId: product.game_id,
+      name: product.name,
+      robuxAmount: product.robux_amount,
+      price: product.price,
+      availabilityStatus: product.availability_status,
+      sectionId: presentation?.section_id ?? null,
+      sortOrder:
+        presentation?.sort_order ??
+        (maxSortOrderByGameId.get(product.game_id) ?? -1) + fallbackIndex + 1,
+      artworkUrl: artworkUrls.get(product.id) ?? null,
+    });
+    productsByGameId.set(product.game_id, list);
+  }
+
+  return {
+    games: gameIds.map((gameId) => {
+      const sections = sectionsByGameId.get(gameId) ?? [];
+      const products = productsByGameId.get(gameId) ?? [];
+      return {
+        gameId,
+        sections: sections.sort((a, b) => a.sortOrder - b.sortOrder),
+        products: products.sort(
+          (a, b) =>
+            a.sortOrder - b.sortOrder ||
+            a.robuxAmount - b.robuxAmount ||
+            a.name.localeCompare(b.name),
+        ),
+        hasCustomLayout:
+          sections.length > 0 ||
+          products.some((product) => presentationByProductId.has(product.id)),
+      };
+    }),
   };
 }

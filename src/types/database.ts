@@ -92,6 +92,33 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      store_product_sections: {
+        Row: {
+          id: string;
+          game_id: string;
+          name: string;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      store_product_presentation: {
+        Row: {
+          gamepass_id: string;
+          game_id: string;
+          section_id: string | null;
+          sort_order: number;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       store_games: {

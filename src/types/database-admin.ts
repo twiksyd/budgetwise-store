@@ -72,11 +72,35 @@ type StorefrontPresentationSettingsRow = {
 
 type StorefrontPresentationAuditLogRow = {
   id: string;
-  action: "update_game_order" | "update_featured_games" | "reset_game_order";
+  action:
+    | "update_game_order"
+    | "update_featured_games"
+    | "reset_game_order"
+    | "update_product_layout"
+    | "reset_product_layout";
   admin_user_id: string | null;
   admin_email: string | null;
   details: Record<string, unknown>;
   created_at: string;
+};
+
+type StoreProductSectionRow = {
+  id: string;
+  game_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  updated_by: string | null;
+};
+
+type StoreProductPresentationRow = {
+  gamepass_id: string;
+  game_id: string;
+  section_id: string | null;
+  sort_order: number;
+  updated_at: string;
+  updated_by: string | null;
 };
 
 export type StoreSettingsUpdate = {
@@ -287,6 +311,18 @@ export type AdminDatabase = {
         Update: never;
         Relationships: [];
       };
+      store_product_sections: {
+        Row: StoreProductSectionRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      store_product_presentation: {
+        Row: StoreProductPresentationRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       admin_users: {
         Row: AdminUserRow;
         Insert: never;
@@ -400,6 +436,32 @@ export type AdminDatabase = {
       };
       reset_store_game_order: {
         Args: {
+          p_admin_user_id: string;
+          p_admin_email: string | null;
+        };
+        Returns: void;
+      };
+      apply_store_product_layout: {
+        Args: {
+          p_game_id: string;
+          p_sections: Array<{
+            id: string;
+            name: string;
+            sort_order: number;
+          }>;
+          p_products: Array<{
+            gamepass_id: string;
+            section_id: string | null;
+            sort_order: number;
+          }>;
+          p_admin_user_id: string;
+          p_admin_email: string | null;
+        };
+        Returns: void;
+      };
+      reset_store_product_layout: {
+        Args: {
+          p_game_id: string;
           p_admin_user_id: string;
           p_admin_email: string | null;
         };

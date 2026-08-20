@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CatalogLayoutPage() {
-  const { games, featuredGameLimit } = await getCatalogLayoutData();
+  const { games, featuredGameLimit, productLayout } = await getCatalogLayoutData();
 
   return (
     <div className="flex flex-col gap-8">
@@ -25,6 +25,7 @@ export default async function CatalogLayoutPage() {
       <CatalogLayoutManager
         games={games}
         featuredGameLimit={featuredGameLimit}
+        productLayout={productLayout}
       />
     </div>
   );
