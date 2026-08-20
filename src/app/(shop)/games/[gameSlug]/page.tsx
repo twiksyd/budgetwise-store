@@ -81,10 +81,9 @@ export default async function GameDetailPage({ params }: Props) {
     storeStatusPromise,
   ]);
 
-  const productArtwork = await getProductArtworkMap(
-    gamepasses.map((g) => g.id),
-    { includeRoblox: Boolean(robloxUniverseIds[game.id]) },
-  );
+  const productArtwork = await getProductArtworkMap(gamepasses, {
+    includeRoblox: Boolean(robloxUniverseIds[game.id]),
+  });
   const productArtworkUrls = getProductArtworkUrlMap(productArtwork);
 
   return (

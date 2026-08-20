@@ -145,6 +145,11 @@ type ProductArtworkOverrideRow = {
   created_at: string;
   updated_at: string;
   updated_by: string | null;
+  // Snapshotted at write time so an override orphaned by an upstream
+  // gamepass_id change (see migration 0011) can be name-matched back to its
+  // replacement instead of becoming unrecoverable.
+  product_name: string | null;
+  game_id: string | null;
 };
 
 type ProductArtworkOverrideInsert = {
@@ -159,6 +164,8 @@ type ProductArtworkOverrideInsert = {
   created_at?: string;
   updated_at?: string;
   updated_by?: string | null;
+  product_name?: string | null;
+  game_id?: string | null;
 };
 
 type ProductArtworkOverrideUpdate = Partial<
@@ -172,7 +179,8 @@ type ProductArtworkAuditLogRow = {
     | "manual_upload"
     | "manual_url"
     | "restore_roblox"
-    | "restore_placeholder";
+    | "restore_placeholder"
+    | "relink";
   previous_source: string | null;
   next_source: string | null;
   previous_icon_url: string | null;
@@ -350,11 +358,27 @@ export type AdminDatabase = {
           p_admin_user_id?: string | null;
           p_admin_email?: string | null;
           p_details?: Record<string, unknown>;
+          p_product_name?: string | null;
+          p_game_id?: string | null;
         };
         Returns: {
           previous_source: string | null;
           previous_icon_url: string | null;
           previous_storage_path: string | null;
+        }[];
+      };
+      relink_product_artwork_override: {
+        Args: {
+          p_old_gamepass_id: string;
+          p_new_gamepass_id: string;
+          p_product_name?: string | null;
+          p_game_id?: string | null;
+          p_admin_user_id?: string | null;
+          p_admin_email?: string | null;
+        };
+        Returns: {
+          relinked_source: string | null;
+          relinked_icon_url: string | null;
         }[];
       };
       apply_store_game_order: {

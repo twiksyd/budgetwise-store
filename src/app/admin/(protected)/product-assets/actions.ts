@@ -250,6 +250,20 @@ async function removeStoragePath(storagePath: string | null | undefined) {
   return error?.message ?? null;
 }
 
+// Snapshotted onto every override so a future upstream re-import (XOB
+// replacing gamepasses rows with new ids — see migration 0011) leaves
+// something to name-match an orphaned override against, instead of an
+// unrecoverable dangling UUID.
+async function lookupGamepassSnapshot(gamepassId: string) {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("gamepasses")
+    .select("name, game_id")
+    .eq("id", gamepassId)
+    .maybeSingle();
+  return { productName: data?.name ?? null, gameId: data?.game_id ?? null };
+}
+
 async function applyArtworkChange(input: {
   gamepassId: string;
   action:
@@ -266,6 +280,8 @@ async function applyArtworkChange(input: {
   adminUserId: string;
   adminEmail: string | null;
   details?: Record<string, unknown>;
+  productName?: string | null;
+  gameId?: string | null;
 }) {
   const supabase = createAdminClient();
   const { data, error } = await supabase.rpc("apply_product_artwork_override", {
@@ -280,6 +296,8 @@ async function applyArtworkChange(input: {
     p_admin_user_id: input.adminUserId,
     p_admin_email: input.adminEmail,
     p_details: input.details ?? {},
+    p_product_name: input.productName ?? null,
+    p_game_id: input.gameId ?? null,
   });
 
   if (error) throw error;
@@ -318,6 +336,8 @@ async function saveManualArtwork(input: {
     data: { publicUrl },
   } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
 
+  const { productName, gameId } = await lookupGamepassSnapshot(input.gamepassId);
+
   let previousStoragePath: string | null = null;
 
   try {
@@ -333,6 +353,8 @@ async function saveManualArtwork(input: {
       adminUserId: input.adminUserId,
       adminEmail: input.adminEmail,
       details: input.details,
+      productName,
+      gameId,
     });
     previousStoragePath = previous.previous_storage_path;
   } catch (error) {
@@ -481,12 +503,15 @@ export async function restorePlaceholderArtworkAction(
   }
 
   try {
+    const { productName, gameId } = await lookupGamepassSnapshot(gamepassId);
     const previous = await applyArtworkChange({
       gamepassId,
       action: "restore_placeholder",
       source: "placeholder",
       adminUserId: admin.id,
       adminEmail: admin.email,
+      productName,
+      gameId,
     });
     const cleanupError = await removeStoragePath(previous.previous_storage_path);
 
@@ -506,4 +531,39 @@ export async function restorePlaceholderArtworkAction(
           : "Could not restore placeholder.",
     };
   }
+}
+
+// Re-points an orphaned override (its gamepass_id no longer exists in
+// gamepasses, typically because XOB re-imported and minted a new id for the
+// same product) at the replacement row, without re-uploading the image.
+// See migration 0011 and src/lib/queries/artwork-reconciliation.ts.
+export async function relinkProductArtworkOverrideAction(
+  oldGamepassId: string,
+  newGamepassId: string,
+): Promise<ProductArtworkActionResult> {
+  const admin = await requireAdmin();
+  if (!UUID_RE.test(oldGamepassId) || !UUID_RE.test(newGamepassId)) {
+    return { success: false, error: "Invalid product." };
+  }
+
+  const supabase = createAdminClient();
+  const { productName, gameId } = await lookupGamepassSnapshot(newGamepassId);
+  if (!productName) {
+    return { success: false, error: "Target product not found." };
+  }
+
+  const { error } = await supabase.rpc("relink_product_artwork_override", {
+    p_old_gamepass_id: oldGamepassId,
+    p_new_gamepass_id: newGamepassId,
+    p_product_name: productName,
+    p_game_id: gameId,
+    p_admin_user_id: admin.id,
+    p_admin_email: admin.email,
+  });
+
+  if (error) return { success: false, error: error.message };
+
+  revalidateArtworkPages();
+  revalidatePath("/admin/artwork-recovery");
+  return { success: true };
 }

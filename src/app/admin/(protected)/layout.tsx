@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Activity, LayoutGrid, RefreshCw } from "lucide-react";
+import { Activity, LayoutGrid, RefreshCw, Wrench } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/admin";
 import { SignOutButton } from "@/components/admin/sign-out-button";
 
@@ -59,6 +59,13 @@ export default async function AdminProtectedLayout({
               >
                 <Activity className="size-3.5" />
                 Catalog Health
+              </Link>
+              <Link
+                href="/admin/artwork-recovery"
+                className="hover:bg-muted inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
+              >
+                <Wrench className="size-3.5" />
+                Artwork Recovery
               </Link>
             </nav>
             <SignOutButton />
