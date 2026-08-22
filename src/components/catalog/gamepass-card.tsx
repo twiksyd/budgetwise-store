@@ -56,23 +56,29 @@ function DecorativeIconAccent({
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        referrerPolicy="no-referrer"
-        className="absolute top-1/2 right-0 rounded-[2rem] object-cover [mask-image:radial-gradient(circle_at_58%_50%,black_0%,black_52%,rgba(0,0,0,0.72)_66%,transparent_86%)]"
-        style={{
-          height: `${sizePx}px`,
-          width: `${sizePx}px`,
-          opacity: settings.opacityPercent / 100,
-          filter: `blur(${settings.blurPx}px) saturate(1.25)`,
-          transform: `translate(${settings.offsetXPercent}%, calc(-50% + ${settings.offsetYPx}px))`,
-        }}
-      />
-      <div className="absolute inset-y-0 right-0 w-2/3 bg-gradient-to-r from-background/82 via-background/28 to-transparent dark:from-background/86 dark:via-background/34" />
+      <div className="absolute inset-y-0 right-0 w-[68%] [mask-image:linear-gradient(90deg,transparent_0%,rgba(0,0,0,0.16)_28%,rgba(0,0,0,0.72)_58%,black_100%)]">
+        <div
+          className="absolute top-1/2 right-0 [mask-image:linear-gradient(90deg,transparent_0%,rgba(0,0,0,0.12)_26%,rgba(0,0,0,0.78)_58%,black_100%)]"
+          style={{
+            height: `${sizePx}px`,
+            width: `${sizePx}px`,
+            opacity: settings.opacityPercent / 100,
+            filter: `blur(${settings.blurPx}px) saturate(1.25)`,
+            transform: `translate(${settings.offsetXPercent}%, calc(-50% + ${settings.offsetYPx}px))`,
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            className="absolute inset-0 h-full w-full rounded-[2rem] object-cover [mask-image:radial-gradient(circle_at_58%_50%,black_0%,black_58%,rgba(0,0,0,0.62)_74%,transparent_96%)] dark:mix-blend-screen dark:brightness-125 dark:saturate-150"
+          />
+        </div>
+      </div>
+      <div className="absolute inset-y-0 right-0 w-2/3 bg-gradient-to-r from-background/78 via-background/18 to-transparent dark:hidden" />
     </div>
   );
 }
