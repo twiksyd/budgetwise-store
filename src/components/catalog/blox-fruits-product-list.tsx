@@ -43,6 +43,7 @@ export function BloxFruitsProductList({
   gameIconUrl = null,
   orderingDisabled = false,
   robloxIconUrls,
+  cardBackgroundUrls,
 }: {
   gamepasses: StoreGamepass[];
   gameId: string;
@@ -51,6 +52,7 @@ export function BloxFruitsProductList({
   gameIconUrl?: string | null;
   orderingDisabled?: boolean;
   robloxIconUrls?: Map<string, string>;
+  cardBackgroundUrls?: Map<string, string>;
 }) {
   const sections = groupBloxFruitsProducts(gamepasses);
 
@@ -119,6 +121,7 @@ export function BloxFruitsProductList({
                       featured={isBestValue}
                       orderingDisabled={orderingDisabled}
                       robloxIconUrl={robloxIconUrls?.get(gamepass.id)}
+                      cardBackgroundUrl={cardBackgroundUrls?.get(gamepass.id)}
                     />
                   </motion.div>
                 );

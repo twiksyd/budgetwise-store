@@ -18,6 +18,7 @@ import {
   getProductArtworkMap,
   getProductArtworkUrlMap,
 } from "@/lib/queries/product-artwork";
+import { getProductCardBackgroundUrlMap } from "@/lib/queries/product-card-backgrounds";
 import { GamepassList } from "@/components/catalog/gamepass-list";
 import { BloxFruitsProductList } from "@/components/catalog/blox-fruits-product-list";
 import { GrowAGarden2ProductList } from "@/components/catalog/grow-a-garden-2-product-list";
@@ -97,6 +98,9 @@ export default async function GameDetailPage({ params }: Props) {
     includeRoblox: Boolean(robloxUniverseIds[game.id]),
   });
   const productArtworkUrls = getProductArtworkUrlMap(productArtwork);
+  const productCardBackgroundUrls = await getProductCardBackgroundUrlMap(
+    gamepasses.map((gamepass) => gamepass.id),
+  );
   const productLayout = await getProductLayoutForGame(game.id, gamepasses);
 
   return (
@@ -206,6 +210,7 @@ export default async function GameDetailPage({ params }: Props) {
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
           robloxIconUrls={productArtworkUrls}
+          cardBackgroundUrls={productCardBackgroundUrls}
         />
       ) : game.id === BLOX_FRUITS_GAME_ID ? (
         <BloxFruitsProductList
@@ -216,6 +221,7 @@ export default async function GameDetailPage({ params }: Props) {
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
           robloxIconUrls={productArtworkUrls}
+          cardBackgroundUrls={productCardBackgroundUrls}
         />
       ) : game.id === GROW_A_GARDEN_2_GAME_ID ? (
         <GrowAGarden2ProductList
@@ -226,6 +232,7 @@ export default async function GameDetailPage({ params }: Props) {
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
           robloxIconUrls={productArtworkUrls}
+          cardBackgroundUrls={productCardBackgroundUrls}
         />
       ) : (
         <GamepassList
@@ -236,6 +243,7 @@ export default async function GameDetailPage({ params }: Props) {
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
           robloxIconUrls={productArtworkUrls}
+          cardBackgroundUrls={productCardBackgroundUrls}
         />
       )}
     </div>

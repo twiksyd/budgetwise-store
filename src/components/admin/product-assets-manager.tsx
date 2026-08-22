@@ -4,9 +4,11 @@ import { useMemo, useState, useTransition } from "react";
 import { Gamepad2, RotateCcw, Upload } from "lucide-react";
 import { toast } from "sonner";
 import {
+  removeProductCardBackgroundAction,
   restorePlaceholderArtworkAction,
   restoreRobloxArtworkAction,
   saveProductArtworkUrlAction,
+  uploadProductCardBackgroundAction,
   uploadProductArtworkAction,
 } from "@/app/admin/(protected)/product-assets/actions";
 import { Badge } from "@/components/ui/badge";
@@ -142,6 +144,33 @@ function ProductAssetRow({ asset }: { asset: AdminProductAsset }) {
     });
   }
 
+  function handleBackgroundUpload(formData: FormData) {
+    formData.set("gamepassId", asset.id);
+    startTransition(async () => {
+      const result = await uploadProductCardBackgroundAction(formData);
+      if (result.success) {
+        if (result.warning) toast.warning(result.warning);
+        else toast.success("Card background saved.");
+      }
+      else toast.error(result.error ?? "Background upload failed.");
+    });
+  }
+
+  function handleBackgroundRemove() {
+    if (!asset.cardBackgroundUrl) return;
+    if (!window.confirm("Remove the card background for this product?")) {
+      return;
+    }
+    startTransition(async () => {
+      const result = await removeProductCardBackgroundAction(asset.id);
+      if (result.success) {
+        if (result.warning) toast.warning(result.warning);
+        else toast.success("Card background removed.");
+      }
+      else toast.error(result.error ?? "Could not remove card background.");
+    });
+  }
+
   return (
     <div className="grid gap-3 border-b p-3 last:border-b-0 md:grid-cols-[minmax(18rem,1fr)_minmax(15rem,0.9fr)_minmax(18rem,1.1fr)] md:items-center">
       <div className="flex min-w-0 gap-3">
@@ -256,6 +285,62 @@ function ProductAssetRow({ asset }: { asset: AdminProductAsset }) {
             onClick={handleRestorePlaceholder}
           >
             Restore Placeholder
+          </Button>
+        </div>
+
+        <div className="border-border/70 mt-1 rounded-xl border p-2.5">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-semibold">Bundle Card Background</p>
+              <p className="text-muted-foreground mt-0.5 text-[11px] leading-snug">
+                Optional full-card background. Thumbnail stays unchanged.
+              </p>
+            </div>
+            <Badge variant="outline" className="h-6 shrink-0">
+              {asset.cardBackgroundUrl ? "Set" : "None"}
+            </Badge>
+          </div>
+
+          <div className="mb-2 h-16 overflow-hidden rounded-lg bg-muted">
+            {asset.cardBackgroundUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={asset.cardBackgroundUrl}
+                alt={`${asset.name} card background`}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="text-muted-foreground flex h-full items-center justify-center text-[11px]">
+                No background
+              </div>
+            )}
+          </div>
+
+          <form action={handleBackgroundUpload} className="flex gap-2">
+            <Input
+              name="file"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              disabled={pending}
+              className="h-9 text-xs file:mr-2"
+            />
+            <Button type="submit" variant="outline" size="sm" disabled={pending}>
+              <Upload className="size-3.5" />
+              {asset.cardBackgroundUrl ? "Replace" : "Upload"}
+            </Button>
+          </form>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={pending || !asset.cardBackgroundUrl}
+            onClick={handleBackgroundRemove}
+            className="mt-2 text-muted-foreground"
+          >
+            Remove Background
           </Button>
         </div>
       </div>

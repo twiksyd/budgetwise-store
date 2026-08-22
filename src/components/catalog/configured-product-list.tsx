@@ -27,6 +27,7 @@ export function ConfiguredProductList({
   gameIconUrl = null,
   orderingDisabled = false,
   robloxIconUrls,
+  cardBackgroundUrls,
 }: {
   sections: ConfiguredProductSection[];
   gameId: string;
@@ -35,6 +36,7 @@ export function ConfiguredProductList({
   gameIconUrl?: string | null;
   orderingDisabled?: boolean;
   robloxIconUrls?: Map<string, string>;
+  cardBackgroundUrls?: Map<string, string>;
 }) {
   return (
     <div className="mt-7 flex flex-col gap-8 sm:mt-12 sm:gap-14">
@@ -95,6 +97,7 @@ export function ConfiguredProductList({
                       featured={isBestValue}
                       orderingDisabled={orderingDisabled}
                       robloxIconUrl={robloxIconUrls?.get(gamepass.id)}
+                      cardBackgroundUrl={cardBackgroundUrls?.get(gamepass.id)}
                     />
                   </motion.div>
                 );

@@ -280,6 +280,36 @@ type StoreOrderViaPlusDetailsInsert = {
   created_at?: string;
 };
 
+type StoreProductCardBackgroundRow = {
+  gamepass_id: string;
+  image_url: string;
+  storage_path: string;
+  content_type: string;
+  file_size_bytes: number;
+  product_name: string | null;
+  game_id: string | null;
+  created_at: string;
+  updated_at: string;
+  updated_by: string | null;
+};
+
+type StoreProductCardBackgroundInsert = {
+  gamepass_id: string;
+  image_url: string;
+  storage_path: string;
+  content_type: string;
+  file_size_bytes: number;
+  product_name?: string | null;
+  game_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  updated_by?: string | null;
+};
+
+type StoreProductCardBackgroundUpdate = Partial<
+  Omit<StoreProductCardBackgroundInsert, "gamepass_id">
+>;
+
 type StoreGameViewRow = {
   id: string;
   name: string;
@@ -375,6 +405,12 @@ export type AdminDatabase = {
         Row: StoreOrderViaPlusDetailsRow;
         Insert: StoreOrderViaPlusDetailsInsert;
         Update: never;
+        Relationships: [];
+      };
+      store_product_card_backgrounds: {
+        Row: StoreProductCardBackgroundRow;
+        Insert: StoreProductCardBackgroundInsert;
+        Update: StoreProductCardBackgroundUpdate;
         Relationships: [];
       };
       roblox_gamepass_icon_cache: {

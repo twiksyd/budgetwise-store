@@ -100,6 +100,15 @@ export async function createOrder(
     );
   }
 
+  if (hasRobuxViaPlus) {
+    const { error: viaPlusMetadataError } = await supabase
+      .from("store_order_via_plus_details")
+      .select("order_number")
+      .limit(0);
+
+    if (viaPlusMetadataError) throw viaPlusMetadataError;
+  }
+
   const orderNumber = generateOrderNumber();
 
   const rows = input.items.map((item) => {

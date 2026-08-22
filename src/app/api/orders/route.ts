@@ -123,8 +123,19 @@ function validationMessage(
 function logUnexpectedOrderError(requestId: string, error: unknown) {
   const details =
     error instanceof Error
-      ? { name: error.name, message: error.message }
-      : { message: String(error) };
+      ? {
+          name: error.name,
+          message: error.message,
+          cause: error.cause,
+        }
+      : error && typeof error === "object"
+        ? {
+            ...("code" in error ? { code: error.code } : {}),
+            ...("message" in error ? { message: error.message } : {}),
+            ...("details" in error ? { details: error.details } : {}),
+            ...("hint" in error ? { hint: error.hint } : {}),
+          }
+        : { message: String(error) };
 
   console.error("Failed to create order", { requestId, error: details });
 }

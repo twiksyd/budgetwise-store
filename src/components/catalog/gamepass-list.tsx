@@ -45,6 +45,7 @@ export function GamepassList({
   gameIconUrl = null,
   orderingDisabled = false,
   robloxIconUrls,
+  cardBackgroundUrls,
 }: {
   gamepasses: StoreGamepass[];
   gameId: string;
@@ -53,6 +54,7 @@ export function GamepassList({
   gameIconUrl?: string | null;
   orderingDisabled?: boolean;
   robloxIconUrls?: Map<string, string>;
+  cardBackgroundUrls?: Map<string, string>;
 }) {
   const bestValueId = getBestValueId(
     gamepasses.filter(
@@ -133,6 +135,7 @@ export function GamepassList({
                       featured={isBestValue}
                       orderingDisabled={orderingDisabled}
                       robloxIconUrl={robloxIconUrls?.get(gamepass.id)}
+                      cardBackgroundUrl={cardBackgroundUrls?.get(gamepass.id)}
                     />
                   </motion.div>
                 );

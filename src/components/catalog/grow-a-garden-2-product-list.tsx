@@ -34,6 +34,7 @@ function ProductGrid({
   category,
   orderingDisabled,
   robloxIconUrls,
+  cardBackgroundUrls,
 }: {
   items: StoreGamepass[];
   gameId: string;
@@ -43,6 +44,7 @@ function ProductGrid({
   category: ProductCategory;
   orderingDisabled: boolean;
   robloxIconUrls?: Map<string, string>;
+  cardBackgroundUrls?: Map<string, string>;
 }) {
   const bestValueId = getBestValueId(
     items.filter(
@@ -81,6 +83,7 @@ function ProductGrid({
               featured={isBestValue}
               orderingDisabled={orderingDisabled}
               robloxIconUrl={robloxIconUrls?.get(gamepass.id)}
+              cardBackgroundUrl={cardBackgroundUrls?.get(gamepass.id)}
             />
           </motion.div>
         );
@@ -97,6 +100,7 @@ export function GrowAGarden2ProductList({
   gameIconUrl = null,
   orderingDisabled = false,
   robloxIconUrls,
+  cardBackgroundUrls,
 }: {
   gamepasses: StoreGamepass[];
   gameId: string;
@@ -105,6 +109,7 @@ export function GrowAGarden2ProductList({
   gameIconUrl?: string | null;
   orderingDisabled?: boolean;
   robloxIconUrls?: Map<string, string>;
+  cardBackgroundUrls?: Map<string, string>;
 }) {
   const fallEggItems = gamepasses.filter((g) => isFallEggProduct(g.name));
   const rest = gamepasses.filter((g) => !isFallEggProduct(g.name));
@@ -144,6 +149,7 @@ export function GrowAGarden2ProductList({
               category={category}
               orderingDisabled={orderingDisabled}
               robloxIconUrls={robloxIconUrls}
+              cardBackgroundUrls={cardBackgroundUrls}
             />
           </section>
         );
@@ -181,6 +187,7 @@ export function GrowAGarden2ProductList({
             category="gamepasses"
             orderingDisabled={orderingDisabled}
             robloxIconUrls={robloxIconUrls}
+            cardBackgroundUrls={cardBackgroundUrls}
           />
         </section>
       )}

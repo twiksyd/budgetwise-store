@@ -15,6 +15,7 @@ import {
   getProductArtworkMap,
   getProductArtworkUrlMap,
 } from "@/lib/queries/product-artwork";
+import { getProductCardBackgroundUrlMap } from "@/lib/queries/product-card-backgrounds";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
 
 export const revalidate = 60;
@@ -42,6 +43,9 @@ export default async function RobuxViaLinkPage() {
       [...coveredTax, ...notCoveredTax].map((gamepass) => gamepass.id),
       { includeRoblox: false },
     ),
+  );
+  const productCardBackgroundUrls = await getProductCardBackgroundUrlMap(
+    [...coveredTax, ...notCoveredTax].map((gamepass) => gamepass.id),
   );
 
   return (
@@ -160,6 +164,7 @@ export default async function RobuxViaLinkPage() {
                 category="currency"
                 orderingDisabled={orderingDisabled}
                 robloxIconUrl={productArtworkUrls.get(gamepass.id)}
+                cardBackgroundUrl={productCardBackgroundUrls.get(gamepass.id)}
               />
             ))}
           </div>
@@ -197,6 +202,7 @@ export default async function RobuxViaLinkPage() {
                 category="currency"
                 orderingDisabled={orderingDisabled}
                 robloxIconUrl={productArtworkUrls.get(gamepass.id)}
+                cardBackgroundUrl={productCardBackgroundUrls.get(gamepass.id)}
               />
             ))}
           </div>

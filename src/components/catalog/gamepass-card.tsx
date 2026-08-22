@@ -13,6 +13,26 @@ import type { ProductCategory } from "@/lib/product-category";
 import { cn } from "@/lib/utils";
 import type { StoreGamepass } from "@/types/database";
 
+function CardBackgroundLayer({ src }: { src?: string | null }) {
+  if (!src) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-xl saturate-125 motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out motion-safe:group-hover:scale-[1.14] dark:opacity-30"
+      />
+      <div className="absolute inset-0 bg-background/86 dark:bg-background/88" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background/74 to-background/92 dark:from-primary/12 dark:via-background/78 dark:to-background/94" />
+    </div>
+  );
+}
+
 export function GamepassCard({
   gamepass,
   gameId,
@@ -24,6 +44,7 @@ export function GamepassCard({
   featured = false,
   orderingDisabled = false,
   robloxIconUrl,
+  cardBackgroundUrl,
 }: {
   gamepass: StoreGamepass;
   gameId: string;
@@ -35,6 +56,7 @@ export function GamepassCard({
   featured?: boolean;
   orderingDisabled?: boolean;
   robloxIconUrl?: string;
+  cardBackgroundUrl?: string;
 }) {
   const isOutOfStock = gamepass.availability_status === "out_of_stock";
   const isComingSoon = gamepass.availability_status === "coming_soon";
@@ -60,13 +82,15 @@ export function GamepassCard({
     return (
       <div
         className={cn(
-          "surface-premium surface-premium-hover flex h-full flex-col rounded-2xl p-3.5",
+          "surface-premium surface-premium-hover group relative flex h-full flex-col overflow-hidden rounded-2xl p-3.5",
           featured &&
             "border-gold/50 bg-gold/5 border-2 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_42px_-18px_color-mix(in_oklch,var(--gold)_38%,transparent)]",
           isUnavailable && "opacity-70",
         )}
       >
-        <div className="flex items-start justify-between gap-3">
+        <CardBackgroundLayer src={cardBackgroundUrl} />
+
+        <div className="relative z-10 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="font-heading text-lg leading-tight font-semibold text-balance [font-variant-numeric:tabular-nums]">
               {productName}
@@ -79,12 +103,12 @@ export function GamepassCard({
         </div>
 
         {featured && !isUnavailable && (
-          <p className="text-gold-foreground dark:text-gold mt-1.5 text-xs font-medium">
+          <p className="text-gold-foreground dark:text-gold relative z-10 mt-1.5 text-xs font-medium">
             Most value for the price
           </p>
         )}
 
-        <div className="mt-3 flex items-end justify-between gap-3">
+        <div className="relative z-10 mt-3 flex items-end justify-between gap-3">
           <Price amount={gamepass.price} />
           <div className="w-[9.25rem] max-w-[58%] shrink-0">
             <AddToCartButton
@@ -106,13 +130,15 @@ export function GamepassCard({
   return (
     <div
       className={cn(
-        "surface-premium surface-premium-hover flex h-full flex-col rounded-2xl p-3.5",
+        "surface-premium surface-premium-hover group relative flex h-full flex-col overflow-hidden rounded-2xl p-3.5",
         featured &&
           "border-gold/50 bg-gold/5 border-2 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_42px_-18px_color-mix(in_oklch,var(--gold)_38%,transparent)]",
         isUnavailable && "opacity-70",
       )}
     >
-      <div className="grid grid-cols-[4.75rem_1fr] gap-3">
+      <CardBackgroundLayer src={cardBackgroundUrl} />
+
+      <div className="relative z-10 grid grid-cols-[4.75rem_1fr] gap-3">
         <div className="bg-muted relative aspect-square overflow-hidden rounded-2xl">
           {robloxIconUrl ? (
             <ProductArtworkImage src={robloxIconUrl} />
@@ -149,7 +175,7 @@ export function GamepassCard({
         </div>
       </div>
 
-      <div className="mt-3 flex items-end justify-between gap-3">
+      <div className="relative z-10 mt-3 flex items-end justify-between gap-3">
         <Price amount={gamepass.price} />
         <div className="w-[9.25rem] max-w-[58%] shrink-0">
           <AddToCartButton

@@ -30,6 +30,9 @@ export interface AdminProductAsset {
   robloxStatus: "matched" | "no_match" | "ambiguous" | null;
   robloxMatchedName: string | null;
   robloxCandidateCount: number | null;
+  cardBackgroundUrl: string | null;
+  cardBackgroundStoragePath: string | null;
+  cardBackgroundUpdatedAt: string | null;
   updatedAt: string | null;
 }
 
@@ -45,6 +48,17 @@ function isMissingDisplayNameTableError(error: { code?: string; message?: string
     error.code === "42P01" ||
     error.code === "PGRST205" ||
     error.message?.includes("store_product_display_names") === true
+  );
+}
+
+function isMissingCardBackgroundTableError(error: {
+  code?: string;
+  message?: string;
+}) {
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    error.message?.includes("store_product_card_backgrounds") === true
   );
 }
 
@@ -66,7 +80,13 @@ export async function getProductAssetsForAdmin(): Promise<AdminProductAsset[]> {
 
   const gamepassIds = (gamepasses ?? []).map((gamepass) => gamepass.id);
 
-  const [gamesResult, overridesResult, robloxResult, displayNamesResult] =
+  const [
+    gamesResult,
+    overridesResult,
+    robloxResult,
+    displayNamesResult,
+    cardBackgroundsResult,
+  ] =
     await Promise.all([
       gameIds.length > 0
         ? supabase
@@ -96,6 +116,12 @@ export async function getProductAssetsForAdmin(): Promise<AdminProductAsset[]> {
             .select("gamepass_id, display_name")
             .in("gamepass_id", gamepassIds)
         : Promise.resolve({ data: [], error: null }),
+      gamepassIds.length > 0
+        ? supabase
+            .from("store_product_card_backgrounds")
+            .select("gamepass_id, image_url, storage_path, updated_at")
+            .in("gamepass_id", gamepassIds)
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
   if (gamesResult.error) throw gamesResult.error;
@@ -111,6 +137,12 @@ export async function getProductAssetsForAdmin(): Promise<AdminProductAsset[]> {
     !isMissingDisplayNameTableError(displayNamesResult.error)
   ) {
     throw displayNamesResult.error;
+  }
+  if (
+    cardBackgroundsResult.error &&
+    !isMissingCardBackgroundTableError(cardBackgroundsResult.error)
+  ) {
+    throw cardBackgroundsResult.error;
   }
 
   const gameById = new Map(
@@ -129,6 +161,11 @@ export async function getProductAssetsForAdmin(): Promise<AdminProductAsset[]> {
       (row) => [row.gamepass_id, row.display_name],
     ),
   );
+  const cardBackgroundByProductId = new Map(
+    (
+      cardBackgroundsResult.error ? [] : (cardBackgroundsResult.data ?? [])
+    ).map((row) => [row.gamepass_id, row]),
+  );
 
   return (gamepasses ?? [])
     .map((gamepass) => {
@@ -136,6 +173,7 @@ export async function getProductAssetsForAdmin(): Promise<AdminProductAsset[]> {
       const override = overrideByProductId.get(gamepass.id);
       const roblox = robloxByProductId.get(gamepass.id);
       const displayName = displayNameByProductId.get(gamepass.id) ?? null;
+      const cardBackground = cardBackgroundByProductId.get(gamepass.id);
 
       let artworkSource: AdminArtworkSource = "placeholder";
       let artworkUrl: string | null = null;
@@ -175,6 +213,9 @@ export async function getProductAssetsForAdmin(): Promise<AdminProductAsset[]> {
         robloxStatus: roblox?.status ?? null,
         robloxMatchedName: roblox?.matched_name ?? null,
         robloxCandidateCount: roblox?.candidate_count ?? null,
+        cardBackgroundUrl: cardBackground?.image_url ?? null,
+        cardBackgroundStoragePath: cardBackground?.storage_path ?? null,
+        cardBackgroundUpdatedAt: cardBackground?.updated_at ?? null,
         updatedAt: override?.updated_at ?? roblox?.last_verified_at ?? null,
       };
     })

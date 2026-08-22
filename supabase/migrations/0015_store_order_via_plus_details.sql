@@ -22,3 +22,5 @@ create table public.store_order_via_plus_details (
 alter table public.store_order_via_plus_details enable row level security;
 
 revoke all on public.store_order_via_plus_details from anon, authenticated;
+
+notify pgrst, 'reload schema';

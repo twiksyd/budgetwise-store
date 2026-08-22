@@ -533,6 +533,147 @@ export async function restorePlaceholderArtworkAction(
   }
 }
 
+async function getCurrentCardBackgroundStoragePath(gamepassId: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("store_product_card_backgrounds")
+    .select("storage_path")
+    .eq("gamepass_id", gamepassId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.storage_path ?? null;
+}
+
+export async function uploadProductCardBackgroundAction(
+  formData: FormData,
+): Promise<ProductArtworkActionResult> {
+  const admin = await requireAdmin();
+  const gamepassId = validateGamepassId(formData.get("gamepassId"));
+  const file = formData.get("file");
+
+  if (!gamepassId) return { success: false, error: "Invalid product." };
+  if (!(file instanceof File) || file.size === 0) {
+    return { success: false, error: "Choose a background image to upload." };
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return { success: false, error: "Image must be 4 MB or smaller." };
+  }
+
+  const contentType = normalizeContentType(file.type);
+  if (!contentType || !ALLOWED_MIME_TYPES.has(contentType)) {
+    return { success: false, error: "Use PNG, JPG, JPEG, or WebP only." };
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (!isValidImageBuffer(buffer, contentType)) {
+    return { success: false, error: "The uploaded file is not a valid image." };
+  }
+
+  const supabase = createAdminClient();
+  const extension = EXTENSION_BY_TYPE[contentType];
+  const storagePath = `${gamepassId}/backgrounds/${randomUUID()}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(storagePath, buffer, {
+      contentType,
+      upsert: false,
+    });
+
+  if (uploadError) return { success: false, error: uploadError.message };
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+
+  const { productName, gameId } = await lookupGamepassSnapshot(gamepassId);
+  let previousStoragePath: string | null = null;
+
+  try {
+    previousStoragePath = await getCurrentCardBackgroundStoragePath(gamepassId);
+    const { error } = await supabase
+      .from("store_product_card_backgrounds")
+      .upsert(
+        {
+          gamepass_id: gamepassId,
+          image_url: publicUrl,
+          storage_path: storagePath,
+          content_type: contentType,
+          file_size_bytes: buffer.byteLength,
+          product_name: productName,
+          game_id: gameId,
+          updated_by: admin.id,
+        },
+        { onConflict: "gamepass_id" },
+      );
+
+    if (error) throw error;
+  } catch (error) {
+    const cleanupError = await removeStoragePath(storagePath);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Background was not saved to the database.",
+      warning: cleanupError
+        ? `The new background could not be cleaned up: ${cleanupError}`
+        : undefined,
+    };
+  }
+
+  const cleanupError = await removeStoragePath(previousStoragePath);
+
+  revalidateArtworkPages();
+  return {
+    success: true,
+    warning: cleanupError
+      ? `Background saved, but the old image could not be cleaned up: ${cleanupError}`
+      : undefined,
+  };
+}
+
+export async function removeProductCardBackgroundAction(
+  gamepassId: string,
+): Promise<ProductArtworkActionResult> {
+  await requireAdmin();
+
+  if (!UUID_RE.test(gamepassId)) {
+    return { success: false, error: "Invalid product." };
+  }
+
+  const supabase = createAdminClient();
+
+  try {
+    const previousStoragePath = await getCurrentCardBackgroundStoragePath(gamepassId);
+    const { error } = await supabase
+      .from("store_product_card_backgrounds")
+      .delete()
+      .eq("gamepass_id", gamepassId);
+
+    if (error) throw error;
+
+    const cleanupError = await removeStoragePath(previousStoragePath);
+
+    revalidateArtworkPages();
+    return {
+      success: true,
+      warning: cleanupError
+        ? `Background removed, but the old image could not be cleaned up: ${cleanupError}`
+        : undefined,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Could not remove the background.",
+    };
+  }
+}
+
 // Re-points an orphaned override (its gamepass_id no longer exists in
 // gamepasses, typically because XOB re-imported and minted a new id for the
 // same product) at the replacement row, without re-uploading the image.
