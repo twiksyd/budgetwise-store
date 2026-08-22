@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { FloatingCartButton } from "@/components/cart/floating-cart-button";
+import { RouteTransitionShell } from "@/components/layout/route-transition-shell";
 import { StoreStatusBanner } from "@/components/shared/store-status-banner";
 import type { StoreStatus } from "@/types/store-operations";
 
@@ -38,7 +39,7 @@ export function StorefrontChrome({
         <StoreStatusBanner status={status} noticeMessage={noticeMessage} />
       )}
       <SiteHeader />
-      <main className="flex-1">{children}</main>
+      <RouteTransitionShell>{children}</RouteTransitionShell>
       <SiteFooter />
       <CartDrawer />
       {showFloatingCartButton && <FloatingCartButton />}
