@@ -25,7 +25,7 @@ type RobuxOption = {
 
 function RobuxOptionCard({ option }: { option: RobuxOption }) {
   const content = (
-    <div className="surface-premium surface-premium-hover group grid min-h-[132px] grid-cols-[72px_1fr] gap-3 overflow-hidden rounded-2xl p-3 transition-transform active:scale-[0.98] sm:min-h-[150px] sm:grid-cols-[96px_1fr] sm:p-4">
+    <div className="surface-premium surface-premium-hover group grid min-h-[132px] grid-cols-[72px_1fr] gap-3 overflow-hidden rounded-2xl p-3 transition-transform active:scale-[0.98] sm:h-full sm:min-h-[190px] sm:grid-cols-[96px_1fr] sm:p-4">
       <div
         className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl"
         style={option.color ? { backgroundColor: `${option.color}1a` } : undefined}
@@ -43,11 +43,11 @@ function RobuxOptionCard({ option }: { option: RobuxOption }) {
         )}
       </div>
 
-      <div className="flex min-w-0 flex-col justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-3">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex min-h-9 flex-wrap items-start gap-1.5">
             {option.isPreorder ? (
-              <div className="inline-flex flex-col rounded-xl border border-red-300/50 bg-red-700/90 px-2.5 py-1.5 text-white shadow-sm shadow-red-900/20">
+              <div className="via-plus-preorder-badge inline-flex flex-col rounded-xl border border-[rgba(239,68,68,0.35)] bg-[rgba(248,113,113,0.20)] px-2.5 py-1 text-red-900 shadow-[0_8px_22px_-16px_rgba(239,68,68,0.80)] transition-shadow duration-300 ease-out">
                 <span className="text-[10px] font-black tracking-[0.16em]">
                   {option.badge}
                 </span>
@@ -59,7 +59,7 @@ function RobuxOptionCard({ option }: { option: RobuxOption }) {
               <Badge variant="secondary">{option.badge}</Badge>
             ) : null}
             {!option.isPreorder && (
-              <span className="text-muted-foreground text-xs font-medium">
+              <span className="text-muted-foreground pt-1 text-xs font-medium">
                 {option.productCount} price{option.productCount === 1 ? "" : "s"}
               </span>
             )}
@@ -71,14 +71,14 @@ function RobuxOptionCard({ option }: { option: RobuxOption }) {
             {option.description}
           </p>
           {option.isPreorder && (
-            <p className="mt-2 text-xs font-bold text-red-700 uppercase dark:text-red-300">
+            <p className="mt-2 rounded-lg border border-red-500/20 bg-red-500/8 px-2.5 py-1.5 text-[11px] font-bold leading-snug text-red-800 uppercase dark:text-red-200">
               NOT INSTANT - refund if not delivered within 8 hours after
               confirmed payment.
             </p>
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="mt-auto flex items-center justify-between gap-2 pt-1">
           <span className="text-muted-foreground inline-flex min-w-0 items-center gap-1.5 text-xs font-medium">
             {option.isPreorder ? (
               <Clock className="size-3.5 shrink-0" />
@@ -98,13 +98,17 @@ function RobuxOptionCard({ option }: { option: RobuxOption }) {
 
   if (option.isPreorder) {
     return (
-      <RobuxPlusAcknowledgementLink href={option.href}>
+      <RobuxPlusAcknowledgementLink href={option.href} className="block sm:h-full">
         {content}
       </RobuxPlusAcknowledgementLink>
     );
   }
 
-  return <Link href={option.href}>{content}</Link>;
+  return (
+    <Link href={option.href} className="block sm:h-full">
+      {content}
+    </Link>
+  );
 }
 
 export function RobuxSection({
@@ -181,7 +185,7 @@ export function RobuxSection({
         </Link>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
+      <div className="mt-4 grid items-start gap-3 sm:grid-cols-2 sm:items-stretch sm:gap-4">
         {options.map((option) => (
           <RobuxOptionCard key={option.id} option={option} />
         ))}

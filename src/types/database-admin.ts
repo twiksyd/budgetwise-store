@@ -262,6 +262,24 @@ type OrderInsert = {
   status: string;
 };
 
+type StoreOrderViaPlusDetailsRow = {
+  order_number: string;
+  roblox_display_name: string;
+  age_16_confirmed: boolean;
+  verified_account_confirmed: boolean;
+  via_plus_robux_amount: number;
+  created_at: string;
+};
+
+type StoreOrderViaPlusDetailsInsert = {
+  order_number: string;
+  roblox_display_name: string;
+  age_16_confirmed: boolean;
+  verified_account_confirmed: boolean;
+  via_plus_robux_amount: number;
+  created_at?: string;
+};
+
 type StoreGameViewRow = {
   id: string;
   name: string;
@@ -350,6 +368,12 @@ export type AdminDatabase = {
       orders: {
         Row: OrderRow;
         Insert: OrderInsert;
+        Update: never;
+        Relationships: [];
+      };
+      store_order_via_plus_details: {
+        Row: StoreOrderViaPlusDetailsRow;
+        Insert: StoreOrderViaPlusDetailsInsert;
         Update: never;
         Relationships: [];
       };

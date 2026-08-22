@@ -105,6 +105,10 @@ function validationMessage(
     return "Enter the Facebook name you will use to message us.";
   }
 
+  if (firstPath.startsWith("viaPlus")) {
+    return firstIssue.message;
+  }
+
   if (firstPath.startsWith("items")) {
     if (firstIssue?.code === "invalid_type") {
       return "Please review your cart and try again.";
@@ -178,6 +182,16 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     if (error instanceof OrderCreationError) {
+      if (error.reason === "invalid_order") {
+        return orderError(
+          "INVALID_ORDER",
+          error.message,
+          400,
+          requestId,
+          { reason: error.reason },
+        );
+      }
+
       return orderError(
         error.reason === "store_unavailable"
           ? "STORE_UNAVAILABLE"

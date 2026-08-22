@@ -55,7 +55,7 @@ function RobuxPlusNotice({
         onPointerDownOutside={onCancel}
       >
         <motion.div
-          className="bg-background fixed top-1/2 left-1/2 z-50 max-h-[calc(100svh-2rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border border-primary/15 p-4 shadow-[0_24px_80px_-30px_rgba(109,40,217,0.45)] outline-none sm:p-6"
+          className="bg-background fixed top-1/2 left-1/2 z-50 max-h-[calc(100svh-2rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-primary/15 p-3.5 shadow-[0_24px_80px_-30px_rgba(109,40,217,0.45)] outline-none sm:p-5"
           initial={reduceMotion ? false : { opacity: 0, y: 12, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{
@@ -78,10 +78,9 @@ function RobuxPlusNotice({
           >
             <motion.div
               variants={sectionVariants}
-              className="relative overflow-hidden rounded-3xl border border-primary/15 bg-primary/6 p-3.5 text-center sm:p-4"
+              className="relative overflow-hidden rounded-2xl border border-primary/15 bg-primary/6 p-3 text-center sm:p-4"
             >
-              <div className="pointer-events-none absolute inset-x-8 -top-16 h-32 rounded-full bg-primary/15 blur-3xl" />
-              <p className="relative mx-auto inline-flex rounded-full border border-primary/20 bg-background/80 px-3 py-1 text-[11px] font-black tracking-[0.18em] text-primary uppercase shadow-sm">
+              <p className="relative mx-auto inline-flex rounded-full border border-red-500/25 bg-red-500/10 px-3 py-1 text-[11px] font-black tracking-[0.18em] text-red-700 uppercase shadow-sm dark:text-red-300">
                 {robuxPlusPresentation.badge}
               </p>
               <DialogPrimitive.Title className="font-heading relative mt-2 text-2xl font-black tracking-tight sm:text-3xl">
@@ -92,13 +91,13 @@ function RobuxPlusNotice({
                 confirmed payment.
               </DialogPrimitive.Description>
               <motion.div
-                className="relative mt-3 overflow-hidden rounded-2xl border border-red-500/25 bg-gradient-to-br from-red-500/12 via-red-500/7 to-primary/8 px-4 py-3 text-red-950 shadow-[0_18px_36px_-28px_rgba(185,28,28,0.80)] dark:text-red-50 sm:px-5"
+                className="relative mt-3 overflow-hidden rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-2.5 text-red-950 shadow-[0_12px_28px_-24px_rgba(239,68,68,0.75)] dark:text-red-50 sm:px-5"
                 initial={
                   reduceMotion
                     ? false
                     : {
                         scale: 0.985,
-                        boxShadow: "0 18px 36px -28px rgba(185,28,28,0.58)",
+                        boxShadow: "0 12px 28px -24px rgba(239,68,68,0.58)",
                       }
                 }
                 animate={
@@ -107,9 +106,9 @@ function RobuxPlusNotice({
                     : {
                         scale: [0.985, 1.012, 1],
                         boxShadow: [
-                          "0 18px 36px -28px rgba(185,28,28,0.58)",
-                          "0 18px 44px -22px rgba(185,28,28,0.88)",
-                          "0 18px 36px -28px rgba(185,28,28,0.58)",
+                          "0 12px 28px -24px rgba(239,68,68,0.58)",
+                          "0 16px 36px -24px rgba(239,68,68,0.88)",
+                          "0 12px 28px -24px rgba(239,68,68,0.58)",
                         ],
                       }
                 }
@@ -134,7 +133,7 @@ function RobuxPlusNotice({
                     Processing Time
                   </p>
                 </div>
-                <p className="font-heading relative mt-1 text-4xl font-black tracking-tight sm:text-5xl">
+                <p className="font-heading relative mt-1 text-3xl font-black tracking-tight sm:text-4xl">
                   1-8 HOURS
                 </p>
                 <p className="relative mt-1 text-xs font-semibold text-red-800 dark:text-red-200">
@@ -143,10 +142,10 @@ function RobuxPlusNotice({
               </motion.div>
             </motion.div>
 
-            <div className="mt-4 grid gap-3 text-sm">
+            <div className="mt-3 grid gap-2.5 text-sm">
               <motion.div
                 variants={sectionVariants}
-                className="rounded-2xl border border-red-500/20 bg-red-500/8 p-3.5"
+                className="rounded-xl border border-red-500/20 bg-red-500/8 p-3"
               >
                 <div className="flex items-start gap-2.5">
                   <Clock className="mt-0.5 size-4 shrink-0 text-red-700 dark:text-red-300" />
@@ -164,7 +163,7 @@ function RobuxPlusNotice({
 
               <motion.div
                 variants={sectionVariants}
-                className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3.5"
+                className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-3"
               >
                 <div className="flex items-start gap-2.5">
                   <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
@@ -184,7 +183,7 @@ function RobuxPlusNotice({
 
             <motion.label
               variants={sectionVariants}
-              className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-3 text-sm leading-relaxed transition-colors has-checked:border-primary/40 has-checked:bg-primary/10"
+              className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm leading-relaxed transition-colors has-checked:border-primary/40 has-checked:bg-primary/10"
             >
               <input
                 type="checkbox"
@@ -201,7 +200,7 @@ function RobuxPlusNotice({
 
             <motion.div
               variants={sectionVariants}
-              className="mt-5 grid gap-2 sm:grid-cols-2"
+              className="mt-4 grid gap-2 sm:grid-cols-2"
             >
               <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel

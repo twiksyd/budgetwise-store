@@ -16,6 +16,10 @@ function isRobuxViaPlusLine(line) {
   return gameName === "robux via plus" || gameName === "robux plus";
 }
 
+function formatRobuxAmount(amount) {
+  return `${amount.toLocaleString()} Robux`;
+}
+
 export function normalizePlainTextMessage(message) {
   return message.replace(/\r\n?/g, "\n");
 }
@@ -27,6 +31,10 @@ export function normalizeOrderMessageForMessenger(message) {
 export function buildOrderMessage(order) {
   const groups = new Map();
   const hasRobuxViaPlus = order.lines.some(isRobuxViaPlusLine);
+  const viaPlusRobuxAmount = order.lines.reduce(
+    (sum, line) => (isRobuxViaPlusLine(line) ? sum + line.robuxAmount : sum),
+    0,
+  );
 
   for (const line of order.lines) {
     const existing = groups.get(line.gameName) ?? [];
@@ -52,7 +60,7 @@ export function buildOrderMessage(order) {
     for (const line of gameLines) {
       const quantitySuffix = line.quantity > 1 ? ` ×${line.quantity}` : "";
       lines.push(
-        `• ${line.gamepassName}${quantitySuffix} — ${line.robuxAmount.toLocaleString()} Robux — ${formatPrice(line.sellingPrice)}`,
+        `• ${line.gamepassName}${quantitySuffix} — ${formatRobuxAmount(line.robuxAmount)} — ${formatPrice(line.sellingPrice)}`,
       );
     }
   }
@@ -63,6 +71,21 @@ export function buildOrderMessage(order) {
   );
 
   if (hasRobuxViaPlus) {
+    if (order.viaPlusAccount) {
+      lines.push(
+        "",
+        "🟣 VIA PLUS PRE-ORDER",
+        "",
+        "Account Requirements:",
+        "✓ Age 16+",
+        "✓ Verified Account",
+        "",
+        `Order Amount: ${formatRobuxAmount(viaPlusRobuxAmount)}`,
+        `Username: ${order.buyerRobloxUsername}`,
+        `Display Name: ${order.viaPlusAccount.robloxDisplayName}`,
+      );
+    }
+
     lines.push(
       "",
       "⚠️ VIA PLUS PRE-ORDER ACKNOWLEDGEMENT",

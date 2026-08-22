@@ -60,7 +60,7 @@ export function GameCard({
         <Badge className="absolute top-2.5 right-2.5">Sale</Badge>
       )}
       {isRobuxPlus && !isUnavailable && (
-        <div className="absolute top-2.5 left-2.5 rounded-xl border border-red-300/50 bg-red-700/90 px-2.5 py-1.5 text-white shadow-lg shadow-red-900/25">
+        <div className="absolute top-2.5 left-2.5 rounded-xl border border-[rgba(239,68,68,0.35)] bg-[rgba(248,113,113,0.20)] px-2.5 py-1.5 text-red-900 shadow-[0_8px_22px_-16px_rgba(239,68,68,0.80)] backdrop-blur-sm">
           <p className="text-[10px] leading-none font-black tracking-[0.16em]">
             {robuxPlusPresentation.badge}
           </p>

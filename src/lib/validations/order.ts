@@ -67,12 +67,48 @@ const contactSchema = z
   })
   .strict();
 
+const viaPlusSchema = z
+  .object({
+    robloxDisplayName: z.string().trim().superRefine((value, context) => {
+      if (value.length === 0) {
+        context.addIssue({
+          code: "custom",
+          message: "Enter your Roblox Display Name.",
+        });
+        return;
+      }
+
+      if (value.length > 80) {
+        context.addIssue({
+          code: "custom",
+          message: "Roblox Display Name must be 80 characters or fewer.",
+        });
+        return;
+      }
+
+      if (CONTROL_CHARACTER_RE.test(value)) {
+        context.addIssue({
+          code: "custom",
+          message: "Roblox Display Name contains unsupported characters.",
+        });
+      }
+    }),
+    age16Confirmed: z.literal(true, {
+      error: "Confirm that your Roblox account is age 16+.",
+    }),
+    verifiedAccountConfirmed: z.literal(true, {
+      error: "Confirm that your Roblox account is verified.",
+    }),
+  })
+  .strict();
+
 export const createOrderSchema = z.object({
   items: z
     .array(orderItemSchema)
     .min(1)
     .max(MAX_DISTINCT_ORDER_ITEMS),
   contact: contactSchema,
+  viaPlus: viaPlusSchema.optional(),
 })
   .strict()
   .superRefine((value, context) => {
@@ -125,6 +161,7 @@ export const createOrderSchema = z.object({
 
     return {
       contact: value.contact,
+      viaPlus: value.viaPlus,
       items: [...quantityByGamepassId.entries()].map(
         ([gamepassId, quantity]) => ({
           gamepassId,

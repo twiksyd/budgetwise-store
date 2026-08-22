@@ -57,7 +57,7 @@ export function FeaturedGameCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent" />
       )}
       {isRobuxPlus ? (
-        <div className="absolute top-2.5 left-2.5 rounded-xl border border-red-300/50 bg-red-700/90 px-2.5 py-1.5 text-white shadow-lg shadow-red-900/25 sm:top-3 sm:left-3">
+        <div className="absolute top-2.5 left-2.5 rounded-xl border border-[rgba(239,68,68,0.35)] bg-[rgba(248,113,113,0.20)] px-2.5 py-1.5 text-red-900 shadow-[0_8px_22px_-16px_rgba(239,68,68,0.80)] backdrop-blur-sm sm:top-3 sm:left-3">
           <p className="text-[10px] leading-none font-black tracking-[0.16em]">
             {robuxPlusPresentation.badge}
           </p>

@@ -6,15 +6,37 @@ import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { isRobuxPlusGame } from "@/config/robux-products";
 import { useCartStore } from "@/stores/cart-store";
+
+const CONTROL_CHARACTER_RE = /[\x00-\x1f\x7f]/;
+
+type ViaPlusErrors = {
+  robloxDisplayName?: string;
+  age16Confirmed?: string;
+  verifiedAccountConfirmed?: string;
+};
 
 export function CheckoutForm() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const hasViaPlus = items.some((item) => isRobuxPlusGame(item.gameId));
+  const viaPlusRobuxAmount = items.reduce(
+    (sum, item) =>
+      isRobuxPlusGame(item.gameId)
+        ? sum + item.robuxAmount * item.quantity
+        : sum,
+    0,
+  );
 
   const [name, setName] = useState("");
   const [robloxUsername, setRobloxUsername] = useState("");
+  const [robloxDisplayName, setRobloxDisplayName] = useState("");
+  const [age16Confirmed, setAge16Confirmed] = useState(false);
+  const [verifiedAccountConfirmed, setVerifiedAccountConfirmed] =
+    useState(false);
+  const [viaPlusErrors, setViaPlusErrors] = useState<ViaPlusErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +51,39 @@ export function CheckoutForm() {
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+    setViaPlusErrors({});
+
+    if (hasViaPlus) {
+      const nextViaPlusErrors: ViaPlusErrors = {};
+      const trimmedDisplayName = robloxDisplayName.trim();
+
+      if (!trimmedDisplayName) {
+        nextViaPlusErrors.robloxDisplayName =
+          "Enter your Roblox Display Name for Via Plus.";
+      } else if (trimmedDisplayName.length > 80) {
+        nextViaPlusErrors.robloxDisplayName =
+          "Roblox Display Name must be 80 characters or fewer.";
+      } else if (CONTROL_CHARACTER_RE.test(trimmedDisplayName)) {
+        nextViaPlusErrors.robloxDisplayName =
+          "Roblox Display Name contains unsupported characters.";
+      }
+
+      if (!age16Confirmed) {
+        nextViaPlusErrors.age16Confirmed =
+          "Confirm that your Roblox account is age 16+.";
+      }
+
+      if (!verifiedAccountConfirmed) {
+        nextViaPlusErrors.verifiedAccountConfirmed =
+          "Confirm that your Roblox account is verified.";
+      }
+
+      if (Object.keys(nextViaPlusErrors).length > 0) {
+        setViaPlusErrors(nextViaPlusErrors);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -41,6 +96,13 @@ export function CheckoutForm() {
             quantity: item.quantity,
           })),
           contact: { name, robloxUsername },
+          viaPlus: hasViaPlus
+            ? {
+                robloxDisplayName,
+                age16Confirmed,
+                verifiedAccountConfirmed,
+              }
+            : undefined,
         }),
       });
 
@@ -104,6 +166,104 @@ export function CheckoutForm() {
           Ilagay ang exact Roblox username ninyo. Huwag po ang Display Name.
         </p>
       </div>
+
+      {hasViaPlus && (
+        <section className="border-primary/20 bg-primary/5 rounded-2xl border p-4">
+          <div>
+            <p className="text-primary text-xs font-semibold tracking-wide uppercase">
+              Via Plus Pre-Order
+            </p>
+            <h3 className="font-heading mt-1 text-base font-semibold">
+              Via Plus Account Requirements
+            </h3>
+            <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+              These apply only to the Via Plus portion of your order.
+            </p>
+          </div>
+
+          <div className="bg-background/70 border-border mt-4 rounded-xl border p-3">
+            <p className="text-muted-foreground text-xs font-medium">
+              Order Amount
+            </p>
+            <p className="font-heading mt-1 text-xl font-semibold tracking-tight">
+              {viaPlusRobuxAmount.toLocaleString()} Robux
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+              Automatically calculated from your Via Plus items.
+            </p>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2">
+            <Label htmlFor="robloxDisplayName">Roblox Display Name</Label>
+            <Input
+              id="robloxDisplayName"
+              className="h-11"
+              value={robloxDisplayName}
+              onChange={(e) => setRobloxDisplayName(e.target.value)}
+              placeholder="Exact Roblox Display Name"
+              required={hasViaPlus}
+              maxLength={80}
+              aria-invalid={Boolean(viaPlusErrors.robloxDisplayName)}
+              aria-describedby={
+                viaPlusErrors.robloxDisplayName
+                  ? "robloxDisplayName-error"
+                  : "robloxDisplayName-help"
+              }
+            />
+            {viaPlusErrors.robloxDisplayName ? (
+              <p
+                id="robloxDisplayName-error"
+                className="text-destructive text-xs leading-relaxed"
+              >
+                {viaPlusErrors.robloxDisplayName}
+              </p>
+            ) : (
+              <p
+                id="robloxDisplayName-help"
+                className="text-muted-foreground text-xs leading-relaxed"
+              >
+                Your Roblox display name, not your username.
+              </p>
+            )}
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <label className="flex gap-3 text-sm leading-relaxed">
+              <input
+                type="checkbox"
+                checked={age16Confirmed}
+                onChange={(event) =>
+                  setAge16Confirmed(event.currentTarget.checked)
+                }
+                className="mt-1 size-4 shrink-0 accent-primary"
+              />
+              <span>My Roblox account is age 16+</span>
+            </label>
+            {viaPlusErrors.age16Confirmed && (
+              <p className="text-destructive -mt-1 pl-7 text-xs leading-relaxed">
+                {viaPlusErrors.age16Confirmed}
+              </p>
+            )}
+
+            <label className="flex gap-3 text-sm leading-relaxed">
+              <input
+                type="checkbox"
+                checked={verifiedAccountConfirmed}
+                onChange={(event) =>
+                  setVerifiedAccountConfirmed(event.currentTarget.checked)
+                }
+                className="mt-1 size-4 shrink-0 accent-primary"
+              />
+              <span>My Roblox account is verified</span>
+            </label>
+            {viaPlusErrors.verifiedAccountConfirmed && (
+              <p className="text-destructive -mt-1 pl-7 text-xs leading-relaxed">
+                {viaPlusErrors.verifiedAccountConfirmed}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
       {error && <p className="text-destructive text-sm">{error}</p>}
 

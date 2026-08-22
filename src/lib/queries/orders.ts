@@ -11,7 +11,7 @@ import type { CreateOrderInput } from "@/lib/validations/order";
 export class OrderCreationError extends Error {
   constructor(
     message: string,
-    public reason: "store_unavailable" | "unavailable_items",
+    public reason: "store_unavailable" | "unavailable_items" | "invalid_order",
     public unavailableGamepassIds: string[] = [],
   ) {
     super(message);
@@ -83,6 +83,23 @@ export async function createOrder(
     );
   }
 
+  const hasRobuxViaPlus = input.items.some((item) => {
+    const gamepass = gamepassById.get(item.gamepassId);
+    return gamepass ? isRobuxPlusGame(gamepass.game_id) : false;
+  });
+  const viaPlusRobuxAmount = input.items.reduce((sum, item) => {
+    const gamepass = gamepassById.get(item.gamepassId);
+    if (!gamepass || !isRobuxPlusGame(gamepass.game_id)) return sum;
+    return sum + gamepass.robux_amount * item.quantity;
+  }, 0);
+
+  if (hasRobuxViaPlus && !input.viaPlus) {
+    throw new OrderCreationError(
+      "Complete the Via Plus requirements before creating this order.",
+      "invalid_order",
+    );
+  }
+
   const orderNumber = generateOrderNumber();
 
   const rows = input.items.map((item) => {
@@ -107,6 +124,23 @@ export async function createOrder(
   const { error: insertError } = await supabase.from("orders").insert(rows);
   if (insertError) throw insertError;
 
+  if (hasRobuxViaPlus && input.viaPlus) {
+    const { error: viaPlusInsertError } = await supabase
+      .from("store_order_via_plus_details")
+      .insert({
+        order_number: orderNumber,
+        roblox_display_name: input.viaPlus.robloxDisplayName,
+        age_16_confirmed: input.viaPlus.age16Confirmed,
+        verified_account_confirmed: input.viaPlus.verifiedAccountConfirmed,
+        via_plus_robux_amount: viaPlusRobuxAmount,
+      });
+
+    if (viaPlusInsertError) {
+      await supabase.from("orders").delete().eq("order_number", orderNumber);
+      throw viaPlusInsertError;
+    }
+  }
+
   return { orderNumber };
 }
 
@@ -123,17 +157,26 @@ export interface OrderConfirmation {
   orderNumber: string;
   buyerName: string;
   buyerRobloxUsername: string;
+  viaPlusAccount: {
+    robloxDisplayName: string;
+    age16Confirmed: boolean;
+    verifiedAccountConfirmed: boolean;
+    viaPlusRobuxAmount: number;
+  } | null;
   status: string;
   createdAt: string;
   total: number;
   lines: OrderConfirmationLine[];
 }
 
-function isMissingDisplayNameTableError(error: { code?: string; message?: string }) {
+function isMissingStoreMetadataTableError(
+  error: { code?: string; message?: string },
+  tableName: string,
+) {
   return (
     error.code === "42P01" ||
     error.code === "PGRST205" ||
-    error.message?.includes("store_product_display_names") === true
+    error.message?.includes(tableName) === true
   );
 }
 
@@ -166,7 +209,13 @@ export async function getOrderConfirmation(
     .select("gamepass_id, display_name")
     .in("gamepass_id", gamepassIds);
 
-  if (displayNameError && !isMissingDisplayNameTableError(displayNameError)) {
+  if (
+    displayNameError &&
+    !isMissingStoreMetadataTableError(
+      displayNameError,
+      "store_product_display_names",
+    )
+  ) {
     throw displayNameError;
   }
 
@@ -185,12 +234,38 @@ export async function getOrderConfirmation(
 
   if (gamesError) throw gamesError;
 
+  const { data: viaPlusDetails, error: viaPlusDetailsError } = await supabase
+    .from("store_order_via_plus_details")
+    .select(
+      "roblox_display_name, age_16_confirmed, verified_account_confirmed, via_plus_robux_amount",
+    )
+    .eq("order_number", orderNumber)
+    .maybeSingle();
+
+  if (
+    viaPlusDetailsError &&
+    !isMissingStoreMetadataTableError(
+      viaPlusDetailsError,
+      "store_order_via_plus_details",
+    )
+  ) {
+    throw viaPlusDetailsError;
+  }
+
   const gameNameById = new Map((games ?? []).map((g) => [g.id, g.name]));
 
   return {
     orderNumber,
     buyerName: orders[0].buyer_name,
     buyerRobloxUsername: orders[0].buyer_roblox_username,
+    viaPlusAccount: viaPlusDetails
+      ? {
+          robloxDisplayName: viaPlusDetails.roblox_display_name,
+          age16Confirmed: viaPlusDetails.age_16_confirmed,
+          verifiedAccountConfirmed: viaPlusDetails.verified_account_confirmed,
+          viaPlusRobuxAmount: viaPlusDetails.via_plus_robux_amount,
+        }
+      : null,
     status: orders[0].status,
     createdAt: orders[0].created_at,
     total: orders.reduce((sum, o) => sum + o.selling_price, 0),

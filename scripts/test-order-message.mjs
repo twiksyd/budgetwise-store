@@ -177,6 +177,12 @@ test("Robux Via Plus adds one pre-order acknowledgement", () => {
   const message = buildOrderMessage(
     order({
       total: 500,
+      viaPlusAccount: {
+        robloxDisplayName: "ExampleDisplay",
+        age16Confirmed: true,
+        verifiedAccountConfirmed: true,
+        viaPlusRobuxAmount: 1000,
+      },
       lines: [
         {
           gamepassId: "plus-1",
@@ -194,6 +200,11 @@ test("Robux Via Plus adds one pre-order acknowledgement", () => {
     (message.match(/VIA PLUS PRE-ORDER ACKNOWLEDGEMENT/g) ?? []).length,
     1,
   );
+  assert.equal((message.match(/🟣 VIA PLUS PRE-ORDER/g) ?? []).length, 1);
+  assert.match(
+    message,
+    /🟣 VIA PLUS PRE-ORDER\n\nAccount Requirements:\n✓ Age 16\+\n✓ Verified Account\n\nOrder Amount: 1,000 Robux\nUsername: grdqtt\nDisplay Name: ExampleDisplay/,
+  );
   assert.match(
     message,
     /I acknowledge that Robux Via Plus is a pre-order and may take 1–8 hours to receive after my payment has been confirmed\./,
@@ -209,6 +220,12 @@ test("mixed cart with multiple Robux Via Plus items adds acknowledgement once", 
   const message = buildOrderMessage(
     order({
       total: 850,
+      viaPlusAccount: {
+        robloxDisplayName: "PlusBuyer",
+        age16Confirmed: true,
+        verifiedAccountConfirmed: true,
+        viaPlusRobuxAmount: 3000,
+      },
       lines: [
         {
           gamepassId: "normal",
@@ -242,6 +259,9 @@ test("mixed cart with multiple Robux Via Plus items adds acknowledgement once", 
     (message.match(/VIA PLUS PRE-ORDER ACKNOWLEDGEMENT/g) ?? []).length,
     1,
   );
+  assert.equal((message.match(/🟣 VIA PLUS PRE-ORDER/g) ?? []).length, 1);
+  assert.match(message, /Order Amount: 3,000 Robux/);
+  assert.match(message, /Username: grdqtt\nDisplay Name: PlusBuyer/);
   assert.match(message, /\n\nBlox Fruits\n• 2x Mastery/);
   assert.match(message, /\n\nRobux Via Plus\n• 1,000 Robux/);
   assert.match(message, /\n\nROBUX PLUS\n• 2,000 Robux/);
@@ -266,6 +286,7 @@ test("Robux Via Link alone does not add Via Plus acknowledgement", () => {
   );
 
   assert.equal(message.includes("VIA PLUS PRE-ORDER ACKNOWLEDGEMENT"), false);
+  assert.equal(message.includes("🟣 VIA PLUS PRE-ORDER"), false);
   assertPlainTextOnly(message);
 });
 
@@ -273,6 +294,36 @@ test("normal gamepasses do not add Via Plus acknowledgement", () => {
   const message = buildOrderMessage(order());
 
   assert.equal(message.includes("VIA PLUS PRE-ORDER ACKNOWLEDGEMENT"), false);
+  assert.equal(message.includes("🟣 VIA PLUS PRE-ORDER"), false);
+  assertPlainTextOnly(message);
+});
+
+test("Via Plus wording never uses instant order language", () => {
+  const message = buildOrderMessage(
+    order({
+      total: 500,
+      viaPlusAccount: {
+        robloxDisplayName: "ExampleDisplay",
+        age16Confirmed: true,
+        verifiedAccountConfirmed: true,
+        viaPlusRobuxAmount: 1000,
+      },
+      lines: [
+        {
+          gamepassId: "plus-1",
+          gameName: "Robux Via Plus",
+          gamepassName: "1,000 Robux",
+          robuxAmount: 1000,
+          sellingPrice: 500,
+          quantity: 1,
+        },
+      ],
+    }),
+  );
+
+  assert.equal(message.includes("PLUS(INSTANT) ORDER"), false);
+  assert.equal(message.includes("Instant"), false);
+  assert.equal(message.includes("INSTANT"), false);
   assertPlainTextOnly(message);
 });
 
