@@ -119,6 +119,19 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      store_product_display_names: {
+        Row: {
+          gamepass_id: string;
+          game_id: string;
+          display_name: string;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       store_games: {
@@ -140,6 +153,7 @@ export type Database = {
           id: string;
           game_id: string;
           name: string;
+          display_name?: string | null;
           robux_amount: number;
           price: number;
           availability_status: ProductAvailabilityStatus;

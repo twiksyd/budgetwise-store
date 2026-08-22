@@ -3,7 +3,9 @@ import Image from "next/image";
 import { Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { GameArtworkFallback } from "@/components/catalog/game-artwork-fallback";
+import { RobuxPlusAcknowledgementLink } from "@/components/catalog/robux-plus-acknowledgement";
 import { UnavailableRibbon } from "@/components/catalog/unavailable-ribbon";
+import { isRobuxPlusGame, robuxPlusPresentation } from "@/config/robux-products";
 import { cn } from "@/lib/utils";
 import type { StoreGame } from "@/types/database";
 
@@ -16,6 +18,8 @@ export function GameCard({
 }) {
   const isComingSoon = game.availability_status === "coming_soon";
   const isUnavailable = game.availability_status === "temporarily_unavailable";
+  const isRobuxPlus = isRobuxPlusGame(game.id);
+  const displayName = isRobuxPlus ? robuxPlusPresentation.displayName : game.name;
 
   const artwork = (
     <div
@@ -25,7 +29,7 @@ export function GameCard({
       {game.icon_url ? (
         <Image
           src={game.icon_url}
-          alt={game.name}
+          alt={displayName}
           fill
           sizes="(min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"
           className={cn(
@@ -55,10 +59,15 @@ export function GameCard({
       {!isComingSoon && !isUnavailable && game.is_discounted && (
         <Badge className="absolute top-2.5 right-2.5">Sale</Badge>
       )}
-      {game.name === "ROBUX PLUS" && (
-        <Badge className="absolute top-2.5 left-2.5 h-auto bg-red-600 px-2.5 py-1 text-sm font-bold text-white [a]:hover:bg-red-600">
-          PLUS
-        </Badge>
+      {isRobuxPlus && !isUnavailable && (
+        <div className="absolute top-2.5 left-2.5 rounded-xl border border-red-300/50 bg-red-700/90 px-2.5 py-1.5 text-white shadow-lg shadow-red-900/25">
+          <p className="text-[10px] leading-none font-black tracking-[0.16em]">
+            {robuxPlusPresentation.badge}
+          </p>
+          <p className="mt-1 text-[11px] leading-none font-black">
+            1-8 HOURS
+          </p>
+        </div>
       )}
     </div>
   );
@@ -66,11 +75,15 @@ export function GameCard({
   const details = (
     <div className="px-4 pt-3.5 pb-4">
       <h3 className="font-heading truncate text-[13.5px] font-semibold">
-        {game.name}
+        {displayName}
       </h3>
       <div className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
-        {game.category && <span className="truncate">{game.category}</span>}
-        {game.category && productCount !== undefined && <span>·</span>}
+        {isRobuxPlus ? (
+          <span className="truncate">Processing 1-8 hrs</span>
+        ) : (
+          game.category && <span className="truncate">{game.category}</span>
+        )}
+        {(isRobuxPlus || game.category) && productCount !== undefined && <span>·</span>}
         {productCount !== undefined && (
           <span className="shrink-0">
             {productCount} product{productCount === 1 ? "" : "s"}
@@ -92,14 +105,25 @@ export function GameCard({
     );
   }
 
+  const className = cn(
+    "surface-premium surface-premium-hover group block overflow-hidden rounded-2xl transition-transform active:scale-[0.97]",
+    isComingSoon && "opacity-80",
+  );
+
+  if (isRobuxPlus) {
+    return (
+      <RobuxPlusAcknowledgementLink
+        href={`/games/${game.slug}`}
+        className={className}
+      >
+        {artwork}
+        {details}
+      </RobuxPlusAcknowledgementLink>
+    );
+  }
+
   return (
-    <Link
-      href={`/games/${game.slug}`}
-      className={cn(
-        "surface-premium surface-premium-hover group block overflow-hidden rounded-2xl transition-transform active:scale-[0.97]",
-        isComingSoon && "opacity-80",
-      )}
-    >
+    <Link href={`/games/${game.slug}`} className={className}>
       {artwork}
       {details}
     </Link>

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "caveman": {
+      "source": "JuliusBrussee/skills",
+      "sourceType": "github",
+      "skillPath": "skills/caveman/SKILL.md",
+      "computedHash": "b0e7741886c0c32270cedc1a2fc21c2879d90964d3ce00f24952de7064613404"
+    },
+    "context-canary": {
+      "source": "JuliusBrussee/skills",
+      "sourceType": "github",
+      "skillPath": "skills/context-canary/SKILL.md",
+      "computedHash": "c09fb85a6554668da8bcc909c277b110d5c84339b09a09c23875b666df95682e"
+    },
+    "last-20-percent": {
+      "source": "JuliusBrussee/skills",
+      "sourceType": "github",
+      "skillPath": "skills/last-20-percent/SKILL.md",
+      "computedHash": "bfaee3869d5d401bef345651003d0b062bae1ea97e9c1ebd5f5026566fdd4c34"
+    }
+  }
+}

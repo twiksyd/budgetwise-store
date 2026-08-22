@@ -12,6 +12,8 @@ export type AdminArtworkSource =
 export interface AdminProductAsset {
   id: string;
   name: string;
+  canonicalName: string;
+  displayName: string | null;
   gameId: string;
   gameName: string;
   gameCategory: string | null;
@@ -38,6 +40,14 @@ function isMissingArtworkTableError(error: { code?: string; message?: string }) 
   );
 }
 
+function isMissingDisplayNameTableError(error: { code?: string; message?: string }) {
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    error.message?.includes("store_product_display_names") === true
+  );
+}
+
 export async function getProductAssetsForAdmin(): Promise<AdminProductAsset[]> {
   const supabase = createAdminClient();
 
@@ -56,30 +66,37 @@ export async function getProductAssetsForAdmin(): Promise<AdminProductAsset[]> {
 
   const gamepassIds = (gamepasses ?? []).map((gamepass) => gamepass.id);
 
-  const [gamesResult, overridesResult, robloxResult] = await Promise.all([
-    gameIds.length > 0
-      ? supabase
-          .from("games")
-          .select("id, name, category, sort_order, availability_status")
-          .in("id", gameIds)
-      : Promise.resolve({ data: [], error: null }),
-    gamepassIds.length > 0
-      ? supabase
-          .from("product_artwork_overrides")
-          .select(
-            "gamepass_id, source, manual_kind, icon_url, storage_path, original_url, updated_at",
-          )
-          .in("gamepass_id", gamepassIds)
-      : Promise.resolve({ data: [], error: null }),
-    gamepassIds.length > 0
-      ? supabase
-          .from("roblox_gamepass_icon_cache")
-          .select(
-            "gamepass_id, status, icon_url, matched_name, candidate_count, last_verified_at",
-          )
-          .in("gamepass_id", gamepassIds)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
+  const [gamesResult, overridesResult, robloxResult, displayNamesResult] =
+    await Promise.all([
+      gameIds.length > 0
+        ? supabase
+            .from("games")
+            .select("id, name, category, sort_order, availability_status")
+            .in("id", gameIds)
+        : Promise.resolve({ data: [], error: null }),
+      gamepassIds.length > 0
+        ? supabase
+            .from("product_artwork_overrides")
+            .select(
+              "gamepass_id, source, manual_kind, icon_url, storage_path, original_url, updated_at",
+            )
+            .in("gamepass_id", gamepassIds)
+        : Promise.resolve({ data: [], error: null }),
+      gamepassIds.length > 0
+        ? supabase
+            .from("roblox_gamepass_icon_cache")
+            .select(
+              "gamepass_id, status, icon_url, matched_name, candidate_count, last_verified_at",
+            )
+            .in("gamepass_id", gamepassIds)
+        : Promise.resolve({ data: [], error: null }),
+      gamepassIds.length > 0
+        ? supabase
+            .from("store_product_display_names")
+            .select("gamepass_id, display_name")
+            .in("gamepass_id", gamepassIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
   if (gamesResult.error) throw gamesResult.error;
   if (
@@ -89,6 +106,12 @@ export async function getProductAssetsForAdmin(): Promise<AdminProductAsset[]> {
     throw overridesResult.error;
   }
   if (robloxResult.error) throw robloxResult.error;
+  if (
+    displayNamesResult.error &&
+    !isMissingDisplayNameTableError(displayNamesResult.error)
+  ) {
+    throw displayNamesResult.error;
+  }
 
   const gameById = new Map(
     (gamesResult.data ?? []).map((game) => [game.id, game]),
@@ -101,12 +124,18 @@ export async function getProductAssetsForAdmin(): Promise<AdminProductAsset[]> {
   const robloxByProductId = new Map(
     (robloxResult.data ?? []).map((row) => [row.gamepass_id, row]),
   );
+  const displayNameByProductId = new Map(
+    (displayNamesResult.error ? [] : (displayNamesResult.data ?? [])).map(
+      (row) => [row.gamepass_id, row.display_name],
+    ),
+  );
 
   return (gamepasses ?? [])
     .map((gamepass) => {
       const game = gameById.get(gamepass.game_id);
       const override = overrideByProductId.get(gamepass.id);
       const roblox = robloxByProductId.get(gamepass.id);
+      const displayName = displayNameByProductId.get(gamepass.id) ?? null;
 
       let artworkSource: AdminArtworkSource = "placeholder";
       let artworkUrl: string | null = null;
@@ -127,7 +156,9 @@ export async function getProductAssetsForAdmin(): Promise<AdminProductAsset[]> {
 
       return {
         id: gamepass.id,
-        name: gamepass.name,
+        name: displayName ?? gamepass.name,
+        canonicalName: gamepass.name,
+        displayName,
         gameId: gamepass.game_id,
         gameName: game?.name ?? "Unknown game",
         gameCategory: game?.category ?? null,

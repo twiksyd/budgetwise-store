@@ -16,8 +16,18 @@ export interface AdminGamepass {
   id: string;
   gameId: string;
   name: string;
+  canonicalName: string;
+  displayName: string | null;
   isActive: boolean;
   availabilityStatus: ProductAvailabilityStatus;
+}
+
+function isMissingDisplayNameTableError(error: { code?: string; message?: string }) {
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    error.message?.includes("store_product_display_names") === true
+  );
 }
 
 // Unlike the customer-facing store_games / store_gamepasses views, these
@@ -50,11 +60,35 @@ export async function getAllGamepassesForAdmin(): Promise<AdminGamepass[]> {
 
   if (error) throw error;
 
-  return (data ?? []).map((gamepass) => ({
-    id: gamepass.id,
-    gameId: gamepass.game_id,
-    name: gamepass.name,
-    isActive: gamepass.is_active,
-    availabilityStatus: gamepass.availability_status,
-  }));
+  const gamepassIds = (data ?? []).map((gamepass) => gamepass.id);
+  const { data: displayNames, error: displayNameError } = gamepassIds.length
+    ? await supabase
+        .from("store_product_display_names")
+        .select("gamepass_id, display_name")
+        .in("gamepass_id", gamepassIds)
+    : { data: [], error: null };
+
+  if (displayNameError && !isMissingDisplayNameTableError(displayNameError)) {
+    throw displayNameError;
+  }
+
+  const displayNameByProductId = new Map(
+    (displayNameError ? [] : (displayNames ?? [])).map((row) => [
+      row.gamepass_id,
+      row.display_name,
+    ]),
+  );
+
+  return (data ?? []).map((gamepass) => {
+    const displayName = displayNameByProductId.get(gamepass.id) ?? null;
+    return {
+      id: gamepass.id,
+      gameId: gamepass.game_id,
+      name: displayName ?? gamepass.name,
+      canonicalName: gamepass.name,
+      displayName,
+      isActive: gamepass.is_active,
+      availabilityStatus: gamepass.availability_status,
+    };
+  });
 }

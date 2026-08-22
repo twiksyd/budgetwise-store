@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { GameGrid } from "@/components/catalog/game-grid";
 import { FeaturedGames } from "@/components/catalog/featured-games";
+import { RobuxSection } from "@/components/catalog/robux-section";
 import { CatalogStats } from "@/components/catalog/catalog-stats";
 import { EmptyState } from "@/components/shared/empty-state";
 import { robuxGameIds } from "@/config/robux-products";
@@ -107,6 +108,14 @@ export function GamesExplorer({
         productCount={Object.values(productCounts).reduce((a, b) => a + b, 0)}
       />
 
+      {robuxGames.length > 0 && (
+        <RobuxSection
+          games={robuxGames}
+          productCounts={robuxProductCounts}
+          className="mt-8 sm:mt-10"
+        />
+      )}
+
       {featuredGames.length > 0 && (
         <div className="mt-8 sm:mt-10">
           <FeaturedGames games={featuredGames} productCounts={productCounts} />
@@ -165,15 +174,6 @@ export function GamesExplorer({
         </div>
       ) : (
         <GameGrid games={filtered} productCounts={productCounts} />
-      )}
-
-      {robuxGames.length > 0 && (
-        <div className="mt-10 sm:mt-14">
-          <h2 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
-            💰 Robux
-          </h2>
-          <GameGrid games={robuxGames} productCounts={robuxProductCounts} />
-        </div>
       )}
     </div>
   );

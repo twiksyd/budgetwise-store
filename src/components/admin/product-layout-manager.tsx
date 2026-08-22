@@ -6,6 +6,7 @@ import {
   ArrowUp,
   Gamepad2,
   GripVertical,
+  Pencil,
   Plus,
   RotateCcw,
   Save,
@@ -15,6 +16,7 @@ import {
 import { toast } from "sonner";
 import {
   resetProductLayoutAction,
+  saveProductDisplayNameAction,
   saveProductLayoutAction,
 } from "@/app/admin/(protected)/catalog-layout/actions";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +34,7 @@ import { PRODUCT_AVAILABILITY_LABELS } from "@/types/store-operations";
 
 const UNCATEGORIZED_ID = "__uncategorized";
 const MAX_SECTION_NAME_LENGTH = 48;
+const MAX_DISPLAY_NAME_LENGTH = 80;
 
 type EditableSection = CatalogProductLayoutSection;
 type EditableProduct = CatalogProductLayoutProduct;
@@ -128,6 +131,7 @@ function ProductRow({
   orderDisabled,
   onMove,
   onMoveSection,
+  onDisplayNameChange,
   onDragStart,
   onDrop,
 }: {
@@ -139,9 +143,38 @@ function ProductRow({
   orderDisabled: boolean;
   onMove: (fromIndex: number, toIndex: number) => void;
   onMoveSection: (productId: string, sectionId: string | null) => void;
+  onDisplayNameChange: (productId: string, displayName: string | null) => void;
   onDragStart: (index: number) => void;
   onDrop: (index: number) => void;
 }) {
+  const [editingName, setEditingName] = useState(false);
+  const [draftName, setDraftName] = useState(product.displayName ?? "");
+  const [namePending, startNameTransition] = useTransition();
+  const customerName = product.displayName?.trim() || product.name;
+
+  function saveDisplayName(displayName: string | null) {
+    startNameTransition(async () => {
+      const result = await saveProductDisplayNameAction({
+        gamepassId: product.id,
+        displayName,
+      });
+
+      if (result.success) {
+        const normalizedDisplayName = displayName?.trim() || null;
+        onDisplayNameChange(product.id, normalizedDisplayName);
+        setDraftName(normalizedDisplayName ?? "");
+        setEditingName(false);
+        toast.success(
+          normalizedDisplayName
+            ? "Display name saved."
+            : "Display name reset.",
+        );
+      } else {
+        toast.error(result.error ?? "Display name was not saved.");
+      }
+    });
+  }
+
   return (
     <div
       draggable={!disabled && !orderDisabled}
@@ -159,7 +192,19 @@ function ProductRow({
         />
         <ProductThumb product={product} />
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{product.name}</p>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <p className="truncate text-sm font-semibold">{customerName}</p>
+            {product.displayName && (
+              <Badge variant="secondary" className="h-5">
+                Display name
+              </Badge>
+            )}
+          </div>
+          {product.displayName && (
+            <p className="text-muted-foreground mt-0.5 truncate text-xs">
+              Original: {product.name}
+            </p>
+          )}
           <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs">
             <span>{product.robuxAmount.toLocaleString()} R$</span>
             <span>{formatPrice(product.price)}</span>
@@ -171,6 +216,19 @@ function ProductRow({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={disabled || namePending}
+          onClick={() => {
+            setDraftName(product.displayName ?? "");
+            setEditingName((current) => !current);
+          }}
+        >
+          <Pencil className="size-3.5" />
+          Edit Display Name
+        </Button>
         <select
           value={product.sectionId ?? UNCATEGORIZED_ID}
           disabled={disabled}
@@ -214,6 +272,46 @@ function ProductRow({
           </Button>
         </div>
       </div>
+
+      {editingName && (
+        <div className="bg-muted/40 grid gap-2 rounded-xl p-3 sm:col-span-2 sm:grid-cols-[1fr_auto] sm:items-end">
+          <label className="grid gap-1 text-xs font-medium">
+            <span>
+              Display Name{" "}
+              <span className="text-muted-foreground font-normal">
+                Original: {product.name}
+              </span>
+            </span>
+            <Input
+              value={draftName}
+              maxLength={MAX_DISPLAY_NAME_LENGTH}
+              disabled={disabled || namePending}
+              onChange={(event) => setDraftName(event.target.value)}
+              placeholder={product.name}
+              className="h-9 text-sm"
+            />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={disabled || namePending || !product.displayName}
+              onClick={() => saveDisplayName(null)}
+            >
+              Reset to Original
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={disabled || namePending}
+              onClick={() => saveDisplayName(draftName)}
+            >
+              {namePending ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -408,6 +506,15 @@ export function ProductLayoutManager({
         hasCustomLayout: true,
       };
     });
+  }
+
+  function updateProductDisplayName(productId: string, displayName: string | null) {
+    updateSelectedLayout((layout) => ({
+      ...layout,
+      products: layout.products.map((product) =>
+        product.id === productId ? { ...product, displayName } : product,
+      ),
+    }));
   }
 
   function saveProductLayout() {
@@ -687,7 +794,12 @@ export function ProductLayoutManager({
                     : product.sectionId === section.id;
                 if (!sameSection) return false;
                 if (!normalizedQuery) return true;
-                return product.name.toLowerCase().includes(normalizedQuery);
+                return (
+                  product.name.toLowerCase().includes(normalizedQuery) ||
+                  (product.displayName ?? "")
+                    .toLowerCase()
+                    .includes(normalizedQuery)
+                );
               });
 
               if (section.system && sectionProducts.length === 0 && !normalizedQuery) {
@@ -725,6 +837,7 @@ export function ProductLayoutManager({
                           moveProductWithinSection(section.id, fromIndex, toIndex)
                         }
                         onMoveSection={moveProductToSection}
+                        onDisplayNameChange={updateProductDisplayName}
                         onDragStart={(dragIndex) =>
                           setProductDrag({ sectionId: section.id, index: dragIndex })
                         }

@@ -4,6 +4,7 @@ import { Gamepad2 } from "lucide-react";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { ProductBadge } from "@/components/catalog/product-badge";
 import { Price } from "@/components/shared/price";
+import { getProductDisplayName } from "@/lib/product-display-name";
 import type { FeaturedGamepass } from "@/lib/queries/catalog";
 
 export function FeaturedProductCard({
@@ -11,6 +12,8 @@ export function FeaturedProductCard({
   game,
   badge,
 }: FeaturedGamepass) {
+  const productName = getProductDisplayName(gamepass);
+
   return (
     <div className="surface-premium surface-premium-hover flex flex-col rounded-2xl p-5">
       <div className="flex items-start justify-between gap-2">
@@ -39,7 +42,7 @@ export function FeaturedProductCard({
       </div>
 
       <p className="font-heading mt-4 text-[15px] font-semibold">
-        {gamepass.name}
+        {productName}
       </p>
       <p className="text-muted-foreground mt-0.5 text-[13px]">
         {gamepass.robux_amount.toLocaleString()} Robux

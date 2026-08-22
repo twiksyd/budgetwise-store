@@ -38,6 +38,7 @@ export interface CatalogProductLayoutProduct {
   id: string;
   gameId: string;
   name: string;
+  displayName: string | null;
   robuxAmount: number;
   price: number;
   availabilityStatus: ProductAvailabilityStatus;
@@ -78,7 +79,8 @@ function isMissingProductLayoutTableError(error: {
     error.code === "42P01" ||
     error.code === "PGRST205" ||
     error.message?.includes("store_product_sections") === true ||
-    error.message?.includes("store_product_presentation") === true
+    error.message?.includes("store_product_presentation") === true ||
+    error.message?.includes("store_product_display_names") === true
   );
 }
 
@@ -162,7 +164,12 @@ async function getCatalogProductLayoutData(
   if (gameIds.length === 0) return { games: [] };
 
   const supabase = createAdminClient();
-  const [productsResult, sectionsResult, presentationResult] = await Promise.all([
+  const [
+    productsResult,
+    sectionsResult,
+    presentationResult,
+    displayNamesResult,
+  ] = await Promise.all([
     supabase
       .from("store_gamepasses")
       .select("id, game_id, name, robux_amount, price, availability_status")
@@ -177,6 +184,10 @@ async function getCatalogProductLayoutData(
       .from("store_product_presentation")
       .select("gamepass_id, game_id, section_id, sort_order")
       .in("game_id", gameIds),
+    supabase
+      .from("store_product_display_names")
+      .select("gamepass_id, display_name")
+      .in("game_id", gameIds),
   ]);
 
   if (productsResult.error) throw productsResult.error;
@@ -186,8 +197,19 @@ async function getCatalogProductLayoutData(
       throw error;
     }
   }
+  if (
+    displayNamesResult.error &&
+    !isMissingProductLayoutTableError(displayNamesResult.error)
+  ) {
+    throw displayNamesResult.error;
+  }
 
   const productRows = productsResult.data ?? [];
+  const displayNameByProductId = new Map(
+    (displayNamesResult.error ? [] : (displayNamesResult.data ?? [])).map(
+      (row) => [row.gamepass_id, row.display_name],
+    ),
+  );
   const artworkUrls = getProductArtworkUrlMap(
     await getProductArtworkMap(productRows, {
       includeRoblox: productRows.some((product) =>
@@ -231,6 +253,7 @@ async function getCatalogProductLayoutData(
       id: product.id,
       gameId: product.game_id,
       name: product.name,
+      displayName: displayNameByProductId.get(product.id) ?? null,
       robuxAmount: product.robux_amount,
       price: product.price,
       availabilityStatus: product.availability_status,

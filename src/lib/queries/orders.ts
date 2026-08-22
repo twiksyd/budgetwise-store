@@ -4,6 +4,8 @@ import { generateOrderNumber } from "@/lib/orders";
 import { resolveStoreStatus } from "@/lib/store-status";
 import { STORE_STATUS_DEFAULT_MESSAGES } from "@/types/store-operations";
 import { isRobuxViaLinkSourceGame } from "@/config/robux-via-link";
+import { isRobuxPlusGame, robuxPlusPresentation } from "@/config/robux-products";
+import { getProductDisplayName } from "@/lib/product-display-name";
 import type { CreateOrderInput } from "@/lib/validations/order";
 
 export class OrderCreationError extends Error {
@@ -127,6 +129,14 @@ export interface OrderConfirmation {
   lines: OrderConfirmationLine[];
 }
 
+function isMissingDisplayNameTableError(error: { code?: string; message?: string }) {
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    error.message?.includes("store_product_display_names") === true
+  );
+}
+
 export async function getOrderConfirmation(
   orderNumber: string,
 ): Promise<OrderConfirmation | null> {
@@ -151,6 +161,21 @@ export async function getOrderConfirmation(
   if (gamepassError) throw gamepassError;
 
   const gamepassById = new Map((gamepasses ?? []).map((g) => [g.id, g]));
+  const { data: displayNames, error: displayNameError } = await supabase
+    .from("store_product_display_names")
+    .select("gamepass_id, display_name")
+    .in("gamepass_id", gamepassIds);
+
+  if (displayNameError && !isMissingDisplayNameTableError(displayNameError)) {
+    throw displayNameError;
+  }
+
+  const displayNameByProductId = new Map(
+    (displayNameError ? [] : (displayNames ?? [])).map((row) => [
+      row.gamepass_id,
+      row.display_name,
+    ]),
+  );
   const gameIds = [...new Set((gamepasses ?? []).map((g) => g.game_id))];
 
   const { data: games, error: gamesError } = await supabase
@@ -187,8 +212,16 @@ export async function getOrderConfirmation(
 
       return {
         gamepassId: o.gamepass_id,
-        gameName: gameNameById.get(gamepass?.game_id ?? "") ?? "BudgetWise",
-        gamepassName: gamepass?.name ?? "Gamepass",
+        gameName:
+          gamepass && isRobuxPlusGame(gamepass.game_id)
+            ? robuxPlusPresentation.displayName
+            : gameNameById.get(gamepass?.game_id ?? "") ?? "BudgetWise",
+        gamepassName: gamepass
+          ? getProductDisplayName({
+              name: gamepass.name,
+              display_name: displayNameByProductId.get(gamepass.id) ?? null,
+            })
+          : "Gamepass",
         robuxAmount: o.robux_amount,
         sellingPrice: o.selling_price,
         quantity,

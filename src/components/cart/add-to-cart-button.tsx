@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { getProductDisplayName } from "@/lib/product-display-name";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import { useUIStore } from "@/stores/ui-store";
@@ -37,6 +38,7 @@ export function AddToCartButton({
   const closeCart = useUIStore((state) => state.closeCart);
   const [justAdded, setJustAdded] = useState(false);
   const revertTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const productName = getProductDisplayName(gamepass);
 
   useEffect(() => {
     return () => {
@@ -68,7 +70,7 @@ export function AddToCartButton({
             gameSlug,
             gameName,
             gameIconUrl,
-            name: gamepass.name,
+            name: productName,
             robuxAmount: gamepass.robux_amount,
             price: gamepass.price,
           });

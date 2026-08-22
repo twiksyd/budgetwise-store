@@ -24,9 +24,14 @@ import { GrowAGarden2ProductList } from "@/components/catalog/grow-a-garden-2-pr
 import { ConfiguredProductList } from "@/components/catalog/configured-product-list";
 import { EmptyState } from "@/components/shared/empty-state";
 import { OrderingProgress } from "@/components/ordering/ordering-progress";
+import {
+  RobuxPlusPageGate,
+  RobuxPlusPreorderReminder,
+} from "@/components/catalog/robux-plus-acknowledgement";
 import { robloxUniverseIds } from "@/config/roblox-universe-ids";
 import { BLOX_FRUITS_GAME_ID } from "@/config/blox-fruits";
 import { GROW_A_GARDEN_2_GAME_ID } from "@/config/grow-a-garden-2";
+import { isRobuxPlusGame, robuxPlusPresentation } from "@/config/robux-products";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
 import { getProductLayoutForGame } from "@/lib/queries/product-layout";
 
@@ -59,10 +64,11 @@ export async function generateMetadata({
   const game = await getGameBySlug(gameSlug);
 
   if (!game) return {};
+  const title = isRobuxPlusGame(game.id) ? robuxPlusPresentation.displayName : game.name;
 
   return {
-    title: game.name,
-    description: `Buy discounted Robux gamepasses for ${game.name} on BudgetWise.`,
+    title,
+    description: `Buy discounted Robux gamepasses for ${title} on BudgetWise.`,
   };
 }
 
@@ -77,6 +83,10 @@ export default async function GameDetailPage({ params }: Props) {
   const game = await getGameBySlug(gameSlug);
 
   if (!game) notFound();
+  const isRobuxPlus = isRobuxPlusGame(game.id);
+  const displayGameName = isRobuxPlus
+    ? robuxPlusPresentation.displayName
+    : game.name;
 
   const [gamepasses, { status: storeStatus }] = await Promise.all([
     getGamepassesByGameId(game.id),
@@ -91,6 +101,7 @@ export default async function GameDetailPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-6 sm:py-14">
+      {isRobuxPlus && <RobuxPlusPageGate />}
       <OrderingProgress
         currentStep={2}
         description="Piliin at i-add sa cart ang gamepasses o items na gusto ninyong bilhin."
@@ -101,7 +112,7 @@ export default async function GameDetailPage({ params }: Props) {
           Games
         </Link>
         <ChevronRight className="size-3.5" />
-        <span className="text-foreground">{game.name}</span>
+        <span className="text-foreground">{displayGameName}</span>
       </nav>
 
       <section className="mt-4 flex items-center gap-3.5 sm:gap-6">
@@ -112,7 +123,7 @@ export default async function GameDetailPage({ params }: Props) {
           {game.icon_url ? (
             <Image
               src={game.icon_url}
-              alt={game.name}
+              alt={displayGameName}
               fill
               sizes="(min-width: 640px) 112px, 72px"
               className="object-cover"
@@ -123,6 +134,14 @@ export default async function GameDetailPage({ params }: Props) {
         </div>
         <div className="min-w-0">
           <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs font-medium">
+            {isRobuxPlus && (
+              <>
+                <span className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-full border px-2 py-0.5 font-bold">
+                  {robuxPlusPresentation.badge}
+                </span>
+                <span className="text-muted-foreground/40">/</span>
+              </>
+            )}
             {game.category && <span>{game.category}</span>}
             {game.category && <span className="text-muted-foreground/40">/</span>}
             <span>
@@ -130,7 +149,7 @@ export default async function GameDetailPage({ params }: Props) {
             </span>
           </div>
           <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight text-balance sm:text-5xl">
-            {game.name}
+            {displayGameName}
           </h1>
           <p className="text-muted-foreground mt-1.5 max-w-2xl text-sm leading-relaxed sm:text-base">
             Piliin ang items sa baba, tapos i-add sa cart.
@@ -148,6 +167,8 @@ export default async function GameDetailPage({ params }: Props) {
         <span aria-hidden>·</span>
         <span>Delivered to your Roblox username</span>
       </div>
+
+      {isRobuxPlus && <RobuxPlusPreorderReminder className="mt-4" />}
 
       {game.availability_status === "temporarily_unavailable" ? (
         <div className="mt-12">
@@ -181,7 +202,7 @@ export default async function GameDetailPage({ params }: Props) {
           sections={productLayout.sections}
           gameId={game.id}
           gameSlug={game.slug}
-          gameName={game.name}
+          gameName={displayGameName}
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
           robloxIconUrls={productArtworkUrls}
@@ -191,7 +212,7 @@ export default async function GameDetailPage({ params }: Props) {
           gamepasses={gamepasses}
           gameId={game.id}
           gameSlug={game.slug}
-          gameName={game.name}
+          gameName={displayGameName}
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
           robloxIconUrls={productArtworkUrls}
@@ -201,7 +222,7 @@ export default async function GameDetailPage({ params }: Props) {
           gamepasses={gamepasses}
           gameId={game.id}
           gameSlug={game.slug}
-          gameName={game.name}
+          gameName={displayGameName}
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
           robloxIconUrls={productArtworkUrls}
@@ -211,7 +232,7 @@ export default async function GameDetailPage({ params }: Props) {
           gamepasses={gamepasses}
           gameId={game.id}
           gameSlug={game.slug}
-          gameName={game.name}
+          gameName={displayGameName}
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
           robloxIconUrls={productArtworkUrls}

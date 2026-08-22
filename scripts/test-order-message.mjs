@@ -173,6 +173,109 @@ test("Robux Via Link Covered and No Tax sections remain distinct", () => {
   assertPlainTextOnly(message);
 });
 
+test("Robux Via Plus adds one pre-order acknowledgement", () => {
+  const message = buildOrderMessage(
+    order({
+      total: 500,
+      lines: [
+        {
+          gamepassId: "plus-1",
+          gameName: "Robux Via Plus",
+          gamepassName: "1,000 Robux",
+          robuxAmount: 1000,
+          sellingPrice: 500,
+          quantity: 1,
+        },
+      ],
+    }),
+  );
+
+  assert.equal(
+    (message.match(/VIA PLUS PRE-ORDER ACKNOWLEDGEMENT/g) ?? []).length,
+    1,
+  );
+  assert.match(
+    message,
+    /I acknowledge that Robux Via Plus is a pre-order and may take 1–8 hours to receive after my payment has been confirmed\./,
+  );
+  assert.match(
+    message,
+    /if my Via Plus Robux is not delivered within 8 hours after confirmed payment, BudgetWise will issue a refund for the affected Via Plus order\./,
+  );
+  assertPlainTextOnly(message);
+});
+
+test("mixed cart with multiple Robux Via Plus items adds acknowledgement once", () => {
+  const message = buildOrderMessage(
+    order({
+      total: 850,
+      lines: [
+        {
+          gamepassId: "normal",
+          gameName: "Blox Fruits",
+          gamepassName: "2x Mastery",
+          robuxAmount: 450,
+          sellingPrice: 350,
+          quantity: 1,
+        },
+        {
+          gamepassId: "plus-1",
+          gameName: "Robux Via Plus",
+          gamepassName: "1,000 Robux",
+          robuxAmount: 1000,
+          sellingPrice: 250,
+          quantity: 1,
+        },
+        {
+          gamepassId: "plus-2",
+          gameName: "ROBUX PLUS",
+          gamepassName: "2,000 Robux",
+          robuxAmount: 2000,
+          sellingPrice: 250,
+          quantity: 1,
+        },
+      ],
+    }),
+  );
+
+  assert.equal(
+    (message.match(/VIA PLUS PRE-ORDER ACKNOWLEDGEMENT/g) ?? []).length,
+    1,
+  );
+  assert.match(message, /\n\nBlox Fruits\n• 2x Mastery/);
+  assert.match(message, /\n\nRobux Via Plus\n• 1,000 Robux/);
+  assert.match(message, /\n\nROBUX PLUS\n• 2,000 Robux/);
+  assertPlainTextOnly(message);
+});
+
+test("Robux Via Link alone does not add Via Plus acknowledgement", () => {
+  const message = buildOrderMessage(
+    order({
+      total: 300,
+      lines: [
+        {
+          gamepassId: "covered",
+          gameName: "Robux Sell - Covered Tax",
+          gamepassName: "1,000 Robux",
+          robuxAmount: 1000,
+          sellingPrice: 300,
+          quantity: 1,
+        },
+      ],
+    }),
+  );
+
+  assert.equal(message.includes("VIA PLUS PRE-ORDER ACKNOWLEDGEMENT"), false);
+  assertPlainTextOnly(message);
+});
+
+test("normal gamepasses do not add Via Plus acknowledgement", () => {
+  const message = buildOrderMessage(order());
+
+  assert.equal(message.includes("VIA PLUS PRE-ORDER ACKNOWLEDGEMENT"), false);
+  assertPlainTextOnly(message);
+});
+
 test("long product names remain plain text", () => {
   const message = buildOrderMessage(
     order({

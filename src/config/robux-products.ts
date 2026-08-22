@@ -9,6 +9,21 @@
 // replaced by the merged "Robux (Via Link)" page, added as a synthetic tile
 // alongside this list in games-explorer.tsx rather than resolved from a
 // real `games` row.
+export const robuxPlusGameId = "cc1ec858-663c-4ff2-9185-e3d587780b46";
+
 export const robuxGameIds: string[] = [
-  "cc1ec858-663c-4ff2-9185-e3d587780b46", // ROBUX PLUS
+  robuxPlusGameId, // ROBUX PLUS
 ];
+
+export function isRobuxPlusGame(gameId: string): boolean {
+  return gameId === robuxPlusGameId;
+}
+
+export const robuxPlusPresentation = {
+  displayName: "Robux Via Plus",
+  badge: "PRE-ORDER",
+  processingTime: "1-8 hours after confirmed payment",
+  shortProcessingTime: "1-8 HOURS PROCESSING",
+  refundGuarantee:
+    "If not delivered within 8 hours after confirmed payment, BudgetWise will issue a refund for the affected Via Plus order.",
+} as const;

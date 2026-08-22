@@ -151,6 +151,11 @@ function ProductAssetRow({ asset }: { asset: AdminProductAsset }) {
         />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{asset.name}</p>
+          {asset.displayName && (
+            <p className="text-muted-foreground mt-0.5 truncate text-xs">
+              Original: {asset.canonicalName}
+            </p>
+          )}
           <p className="text-muted-foreground mt-0.5 truncate text-xs">
             {asset.gameName}
             {asset.gameCategory ? ` / ${asset.gameCategory}` : ""}

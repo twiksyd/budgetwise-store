@@ -26,6 +26,7 @@ export interface ProductLayoutProductInput {
 
 const MAX_PRODUCT_SECTIONS = 100;
 const MAX_PRODUCTS_PER_LAYOUT = 1000;
+const MAX_PRODUCT_DISPLAY_NAME_LENGTH = 80;
 
 async function validateGameIds(gameIds: string[]) {
   if (!Array.isArray(gameIds) || gameIds.length === 0) {
@@ -83,6 +84,23 @@ async function validateGameId(gameId: string) {
 
   if (error) return error.message;
   if (!data) return "Game is no longer in the catalog.";
+  return null;
+}
+
+async function validateGamepassId(gamepassId: string) {
+  if (typeof gamepassId !== "string" || !UUID_RE.test(gamepassId)) {
+    return "Invalid product ID.";
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("gamepasses")
+    .select("id")
+    .eq("id", gamepassId)
+    .maybeSingle();
+
+  if (error) return error.message;
+  if (!data) return "Product is no longer in the catalog.";
   return null;
 }
 
@@ -267,6 +285,36 @@ export async function resetProductLayoutAction(
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("reset_store_product_layout", {
     p_game_id: gameId,
+    p_admin_user_id: admin.id,
+    p_admin_email: admin.email,
+  });
+
+  if (error) return { success: false, error: error.message };
+
+  revalidateCatalogLayout();
+  return { success: true };
+}
+
+export async function saveProductDisplayNameAction(input: {
+  gamepassId: string;
+  displayName: string | null;
+}): Promise<CatalogLayoutActionResult> {
+  const admin = await requireAdmin();
+  const validationError = await validateGamepassId(input.gamepassId);
+  if (validationError) return { success: false, error: validationError };
+
+  const displayName = input.displayName?.trim() || null;
+  if (displayName && displayName.length > MAX_PRODUCT_DISPLAY_NAME_LENGTH) {
+    return {
+      success: false,
+      error: `Display name must be ${MAX_PRODUCT_DISPLAY_NAME_LENGTH} characters or less.`,
+    };
+  }
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.rpc("apply_store_product_display_name", {
+    p_gamepass_id: input.gamepassId,
+    p_display_name: displayName,
     p_admin_user_id: admin.id,
     p_admin_email: admin.email,
   });

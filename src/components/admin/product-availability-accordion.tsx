@@ -101,6 +101,11 @@ export function ProductAvailabilityAccordion({
                     <TableRow key={gamepass.id}>
                       <TableCell className="font-medium">
                         {gamepass.name}
+                        {gamepass.displayName && (
+                          <span className="text-muted-foreground ml-2 text-xs font-normal">
+                            Original: {gamepass.canonicalName}
+                          </span>
+                        )}
                         {!gamepass.isActive && (
                           <span className="text-muted-foreground ml-2 text-xs">
                             (inactive in Dashboard)

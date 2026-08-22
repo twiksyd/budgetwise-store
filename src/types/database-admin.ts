@@ -77,7 +77,9 @@ type StorefrontPresentationAuditLogRow = {
     | "update_featured_games"
     | "reset_game_order"
     | "update_product_layout"
-    | "reset_product_layout";
+    | "reset_product_layout"
+    | "update_product_display_name"
+    | "reset_product_display_name";
   admin_user_id: string | null;
   admin_email: string | null;
   details: Record<string, unknown>;
@@ -99,6 +101,15 @@ type StoreProductPresentationRow = {
   game_id: string;
   section_id: string | null;
   sort_order: number;
+  updated_at: string;
+  updated_by: string | null;
+};
+
+type StoreProductDisplayNameRow = {
+  gamepass_id: string;
+  game_id: string;
+  display_name: string;
+  created_at: string;
   updated_at: string;
   updated_by: string | null;
 };
@@ -267,6 +278,7 @@ type StoreGamepassViewRow = {
   id: string;
   game_id: string;
   name: string;
+  display_name?: string | null;
   robux_amount: number;
   price: number;
   availability_status: ProductAvailabilityStatus;
@@ -319,6 +331,12 @@ export type AdminDatabase = {
       };
       store_product_presentation: {
         Row: StoreProductPresentationRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      store_product_display_names: {
+        Row: StoreProductDisplayNameRow;
         Insert: never;
         Update: never;
         Relationships: [];
@@ -462,6 +480,15 @@ export type AdminDatabase = {
       reset_store_product_layout: {
         Args: {
           p_game_id: string;
+          p_admin_user_id: string;
+          p_admin_email: string | null;
+        };
+        Returns: void;
+      };
+      apply_store_product_display_name: {
+        Args: {
+          p_gamepass_id: string;
+          p_display_name: string | null;
           p_admin_user_id: string;
           p_admin_email: string | null;
         };

@@ -8,6 +8,7 @@ import {
   ProductBadge,
   type ProductBadgeValue,
 } from "@/components/catalog/product-badge";
+import { getProductDisplayName } from "@/lib/product-display-name";
 import type { ProductCategory } from "@/lib/product-category";
 import { cn } from "@/lib/utils";
 import type { StoreGamepass } from "@/types/database";
@@ -39,6 +40,7 @@ export function GamepassCard({
   const isComingSoon = gamepass.availability_status === "coming_soon";
   const isUnavailable = isOutOfStock || isComingSoon;
   const isCurrency = category === "currency";
+  const productName = getProductDisplayName(gamepass);
 
   const displayBadge: ProductBadgeValue | null = isOutOfStock
     ? "out-of-stock"
@@ -67,7 +69,7 @@ export function GamepassCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="font-heading text-lg leading-tight font-semibold text-balance [font-variant-numeric:tabular-nums]">
-              {gamepass.name}
+              {productName}
             </p>
             <p className="text-muted-foreground mt-1 text-xs font-medium">
               Currency Pack
@@ -136,7 +138,7 @@ export function GamepassCard({
           </div>
 
           <h3 className="font-heading mt-1.5 text-[15px] leading-snug font-semibold text-balance">
-            {gamepass.name}
+            {productName}
           </h3>
 
           {featured && !isUnavailable && (
