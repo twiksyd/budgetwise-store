@@ -141,6 +141,8 @@ export type Database = {
           offset_y_px: number;
           scale_percent: number;
           opacity_percent: number;
+          fade_start_percent: number;
+          fade_width_percent: number;
           created_at: string;
           updated_at: string;
           updated_by: string | null;

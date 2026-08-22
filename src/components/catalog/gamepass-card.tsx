@@ -11,6 +11,7 @@ import {
 import { getProductDisplayName } from "@/lib/product-display-name";
 import {
   DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS,
+  getProductCardAccentMaskStyles,
   type ProductCardAccentSettings,
 } from "@/lib/product-card-accent";
 import type { ProductCategory } from "@/lib/product-category";
@@ -50,16 +51,21 @@ function DecorativeIconAccent({
   if (!src || !settings.enabled) return null;
 
   const sizePx = Math.round(76 * (settings.scalePercent / 100));
+  const maskStyles = getProductCardAccentMaskStyles(settings);
 
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
     >
-      <div className="absolute inset-y-0 right-0 w-[68%] [mask-image:linear-gradient(90deg,transparent_0%,rgba(0,0,0,0.16)_28%,rgba(0,0,0,0.72)_58%,black_100%)]">
+      <div
+        className="absolute inset-y-0 right-0 w-[68%]"
+        style={maskStyles.outerMask}
+      >
         <div
-          className="absolute top-1/2 right-0 [mask-image:linear-gradient(90deg,transparent_0%,rgba(0,0,0,0.12)_26%,rgba(0,0,0,0.78)_58%,black_100%)]"
+          className="absolute top-1/2 right-0"
           style={{
+            ...maskStyles.iconMask,
             height: `${sizePx}px`,
             width: `${sizePx}px`,
             opacity: settings.opacityPercent / 100,

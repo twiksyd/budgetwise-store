@@ -140,6 +140,16 @@ function validateAccentSettings(input: ProductCardAccentSettings) {
       value: input.opacityPercent,
       ...PRODUCT_CARD_ACCENT_LIMITS.opacityPercent,
     },
+    {
+      label: "Fade Start",
+      value: input.fadeStartPercent,
+      ...PRODUCT_CARD_ACCENT_LIMITS.fadeStartPercent,
+    },
+    {
+      label: "Fade Softness",
+      value: input.fadeWidthPercent,
+      ...PRODUCT_CARD_ACCENT_LIMITS.fadeWidthPercent,
+    },
   ];
 
   for (const check of checks) {
@@ -396,6 +406,8 @@ export async function saveProductCardAccentSettingsAction(input: {
     p_offset_y_px: Math.round(input.settings.offsetYPx),
     p_scale_percent: Math.round(input.settings.scalePercent),
     p_opacity_percent: Math.round(input.settings.opacityPercent),
+    p_fade_start_percent: Math.round(input.settings.fadeStartPercent),
+    p_fade_width_percent: Math.round(input.settings.fadeWidthPercent),
     p_admin_user_id: admin.id,
     p_admin_email: admin.email,
   });

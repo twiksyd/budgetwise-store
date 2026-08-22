@@ -124,6 +124,8 @@ type StoreGameCardAccentSettingsRow = {
   offset_y_px: number;
   scale_percent: number;
   opacity_percent: number;
+  fade_start_percent: number;
+  fade_width_percent: number;
   created_at: string;
   updated_at: string;
   updated_by: string | null;
@@ -584,6 +586,8 @@ export type AdminDatabase = {
           p_offset_y_px: number;
           p_scale_percent: number;
           p_opacity_percent: number;
+          p_fade_start_percent: number;
+          p_fade_width_percent: number;
           p_admin_user_id: string;
           p_admin_email: string | null;
         };

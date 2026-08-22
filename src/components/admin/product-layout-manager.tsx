@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import {
   clampProductCardAccentSettings,
   DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS,
+  getProductCardAccentMaskStyles,
   PRODUCT_CARD_ACCENT_LIMITS,
   type ProductCardAccentSettings,
   type ProductCardAccentSettingsWithMeta,
@@ -350,6 +351,7 @@ function RangeControl({
   max,
   step,
   suffix,
+  helperText,
   disabled,
   onChange,
 }: {
@@ -359,6 +361,7 @@ function RangeControl({
   max: number;
   step: number;
   suffix: string;
+  helperText?: string;
   disabled: boolean;
   onChange: (value: number) => void;
 }) {
@@ -371,6 +374,11 @@ function RangeControl({
           {suffix}
         </span>
       </span>
+      {helperText && (
+        <span className="text-muted-foreground text-[11px] leading-relaxed font-normal">
+          {helperText}
+        </span>
+      )}
       <div className="grid grid-cols-[1fr_4.5rem] gap-2">
         <input
           type="range"
@@ -405,15 +413,20 @@ function PreviewAccentLayer({
   settings: ProductCardAccentSettings;
 }) {
   const sizePx = Math.round(76 * (settings.scalePercent / 100));
+  const maskStyles = getProductCardAccentMaskStyles(settings);
 
   if (!settings.enabled) return null;
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
-      <div className="absolute inset-y-0 right-0 w-[68%] [mask-image:linear-gradient(90deg,transparent_0%,rgba(0,0,0,0.16)_28%,rgba(0,0,0,0.72)_58%,black_100%)]">
+      <div
+        className="absolute inset-y-0 right-0 w-[68%]"
+        style={maskStyles.outerMask}
+      >
         <div
-          className="absolute top-1/2 right-0 [mask-image:linear-gradient(90deg,transparent_0%,rgba(0,0,0,0.12)_26%,rgba(0,0,0,0.78)_58%,black_100%)]"
+          className="absolute top-1/2 right-0"
           style={{
+            ...maskStyles.iconMask,
             height: `${sizePx}px`,
             width: `${sizePx}px`,
             opacity: settings.opacityPercent / 100,
@@ -1154,6 +1167,34 @@ export function ProductLayoutManager({
                     }))
                   }
                   {...PRODUCT_CARD_ACCENT_LIMITS.opacityPercent}
+                />
+                <RangeControl
+                  label="Fade Start"
+                  value={selectedAccentSettings.fadeStartPercent}
+                  suffix="%"
+                  helperText="Controls how far toward the center the icon fade begins."
+                  disabled={pending || !selectedGame}
+                  onChange={(value) =>
+                    updateAccentSettings((settings) => ({
+                      ...settings,
+                      fadeStartPercent: value,
+                    }))
+                  }
+                  {...PRODUCT_CARD_ACCENT_LIMITS.fadeStartPercent}
+                />
+                <RangeControl
+                  label="Fade Softness"
+                  value={selectedAccentSettings.fadeWidthPercent}
+                  suffix="%"
+                  helperText="Controls how gradually the artwork fades into the card."
+                  disabled={pending || !selectedGame}
+                  onChange={(value) =>
+                    updateAccentSettings((settings) => ({
+                      ...settings,
+                      fadeWidthPercent: value,
+                    }))
+                  }
+                  {...PRODUCT_CARD_ACCENT_LIMITS.fadeWidthPercent}
                 />
               </div>
 

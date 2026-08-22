@@ -14,6 +14,8 @@ type ProductCardAccentSettingsRow = {
   offset_y_px: number;
   scale_percent: number;
   opacity_percent: number;
+  fade_start_percent?: number | null;
+  fade_width_percent?: number | null;
 };
 
 function isMissingAccentSettingsTableError(error: {
@@ -37,6 +39,12 @@ function fromRow(
     offsetYPx: row.offset_y_px,
     scalePercent: row.scale_percent,
     opacityPercent: row.opacity_percent,
+    fadeStartPercent:
+      row.fade_start_percent ??
+      DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS.fadeStartPercent,
+    fadeWidthPercent:
+      row.fade_width_percent ??
+      DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS.fadeWidthPercent,
     hasCustomSettings: true,
   };
 }
@@ -46,6 +54,18 @@ export function getDefaultProductCardAccentSettings(): ProductCardAccentSettings
     ...DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS,
     hasCustomSettings: false,
   };
+}
+
+function isMissingAccentSettingsColumnError(error: {
+  code?: string;
+  message?: string;
+}) {
+  return (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    error.message?.includes("fade_start_percent") === true ||
+    error.message?.includes("fade_width_percent") === true
+  );
 }
 
 export async function getProductCardAccentSettingsMap(
@@ -58,19 +78,38 @@ export async function getProductCardAccentSettingsMap(
   if (ids.length === 0) return settings;
 
   const supabase = createAdminClient();
+  let rows: ProductCardAccentSettingsRow[] | null = null;
   const { data, error } = await supabase
     .from("store_game_card_accent_settings")
     .select(
-      "game_id, enabled, blur_px, offset_x_percent, offset_y_px, scale_percent, opacity_percent",
+      "game_id, enabled, blur_px, offset_x_percent, offset_y_px, scale_percent, opacity_percent, fade_start_percent, fade_width_percent",
     )
     .in("game_id", ids);
 
   if (error) {
     if (isMissingAccentSettingsTableError(error)) return settings;
-    throw error;
+    if (!isMissingAccentSettingsColumnError(error)) throw error;
+
+    const fallbackResult = await supabase
+      .from("store_game_card_accent_settings")
+      .select(
+        "game_id, enabled, blur_px, offset_x_percent, offset_y_px, scale_percent, opacity_percent",
+      )
+      .in("game_id", ids);
+
+    if (fallbackResult.error) {
+      if (isMissingAccentSettingsTableError(fallbackResult.error)) {
+        return settings;
+      }
+      throw fallbackResult.error;
+    }
+
+    rows = fallbackResult.data as ProductCardAccentSettingsRow[];
+  } else {
+    rows = data as ProductCardAccentSettingsRow[];
   }
 
-  for (const row of (data ?? []) as ProductCardAccentSettingsRow[]) {
+  for (const row of rows ?? []) {
     settings.set(row.game_id, fromRow(row));
   }
 
