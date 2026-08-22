@@ -3,18 +3,14 @@
 import { useRef, useState } from "react";
 import {
   Check,
+  CheckCircle2,
   Copy,
   Send,
-  ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { copyPlainText } from "@/lib/plain-text-clipboard";
-import { cn } from "@/lib/utils";
-
-const MESSAGE_PREVIEW_LINE_LIMIT = 14;
-const MESSAGE_PREVIEW_ITEM_LIMIT = 3;
 
 export function MessengerHandoff({
   message,
@@ -59,39 +55,50 @@ export function MessengerHandoff({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="surface-premium rounded-2xl p-3.5 sm:p-5">
-        <div className="text-center">
-          <p className="text-primary text-xs font-semibold tracking-wide uppercase">
-            Final step
-          </p>
-          <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-            I-click ang button sa ibaba. Magbubukas ang Messenger na
-            naka-ready na ang buong order message.
-          </p>
+    <div className="space-y-4 sm:space-y-5">
+      <section className="bg-primary/5 border-primary/10 rounded-2xl border p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-full">
+            <CheckCircle2 className="text-primary size-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-primary text-xs font-semibold tracking-wide uppercase">
+              Order slip ready
+            </p>
+            <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+              I-send na ang Inyong Order
+            </h1>
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+              Hindi pa po namin mare-review ang order hangga&apos;t hindi ninyo
+              ito naipapadala sa Messenger.
+            </p>
+            <p className="text-muted-foreground mt-3 text-xs font-medium [font-variant-numeric:tabular-nums]">
+              Order No.:{" "}
+              <span className="text-foreground font-semibold">
+                {orderNumber}
+              </span>
+            </p>
+          </div>
         </div>
 
-        <div className="mt-3 flex flex-col gap-2.5">
-          <Button
-            size="lg"
-            onClick={handleCopyAndOpenMessenger}
-            className="h-12 w-full text-base font-semibold"
-            disabled={!messengerLink}
-          >
-            <Send className="size-5" />
-            Buksan ang Messenger
-          </Button>
-          <p className="text-muted-foreground -mt-1 text-center text-xs leading-relaxed">
-            I-check ang message at pindutin lang po ang Send.
-            <br />
-            Hindi lumabas ang message? I-paste po ang nakopyang order message
-            sa Messenger.
-          </p>
-        </div>
+        <Button
+          size="lg"
+          onClick={handleCopyAndOpenMessenger}
+          className="mt-4 h-12 w-full text-base font-semibold"
+          disabled={!messengerLink}
+        >
+          <Send className="size-5" />
+          Buksan ang Messenger
+        </Button>
+
+        <p className="text-muted-foreground mt-2 text-center text-xs leading-relaxed">
+          I-check ang message at pindutin lang po ang Send. Kung walang message,
+          i-paste ang nakopyang Order Message.
+        </p>
 
         {copyFailed ? (
           <p className="text-destructive mt-3 text-sm leading-relaxed">
-            Na-block ng browser ang copy. Piliin ang buong message sa preview,
+            Na-block ng browser ang copy. Piliin ang buong message sa ibaba,
             tapos i-paste sa Messenger.
           </p>
         ) : copied ? (
@@ -99,30 +106,7 @@ export function MessengerHandoff({
             Nakopya na rin bilang backup.
           </p>
         ) : null}
-
-        <div className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 mt-3 rounded-xl border p-3.5">
-          <div className="flex gap-2.5">
-            <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" />
-            <div>
-              <p className="text-sm font-semibold leading-relaxed">
-                Buong order message po ang i-send.
-              </p>
-              <p className="mt-1 text-xs leading-relaxed">
-                Hindi sapat ang order number o screenshot lang. Kailangan naming
-                makita ang Facebook Name, Roblox Username, items, at total.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <p className="text-muted-foreground mt-3 text-center text-xs font-medium [font-variant-numeric:tabular-nums]">
-          Order No.: <span className="text-foreground">{orderNumber}</span>
-        </p>
-
-        <div className="border-border mt-3 border-t pt-3">
-          <PreparedMessagePreview message={message} />
-        </div>
-      </div>
+      </section>
 
       <div className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 rounded-2xl border p-4">
         <div className="flex gap-2.5">
@@ -147,6 +131,8 @@ export function MessengerHandoff({
           </div>
         </div>
       </div>
+
+      <PreparedMessagePreview message={message} />
     </div>
   );
 }
@@ -154,17 +140,6 @@ export function MessengerHandoff({
 export function PreparedMessagePreview({ message }: { message: string }) {
   const previewRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const messageLines = message.split(/\r?\n/);
-  const itemCount = message.match(/^•/gm)?.length ?? 0;
-  const isLongMessage =
-    itemCount > MESSAGE_PREVIEW_ITEM_LIMIT ||
-    messageLines.length > 24 ||
-    message.length > 700;
-  const displayedMessage =
-    isLongMessage && !expanded
-      ? messageLines.slice(0, MESSAGE_PREVIEW_LINE_LIMIT).join("\n").trimEnd()
-      : message;
 
   async function handleCopy() {
     try {
@@ -179,62 +154,32 @@ export function PreparedMessagePreview({ message }: { message: string }) {
     }
   }
 
-  function handleTogglePreview() {
-    setExpanded((current) => !current);
-
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        previewRef.current?.scrollIntoView({
-          block: "start",
-          behavior: "smooth",
-        });
-      });
-    });
-  }
-
   return (
-    <div ref={previewRef} className="scroll-mt-36">
-      <div className="flex items-start justify-between gap-3">
+    <section ref={previewRef} className="scroll-mt-36">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="font-heading text-sm font-semibold">
-            Ito ang I-send sa Messenger
+          <h2 className="font-heading text-base font-semibold tracking-tight">
+            ITO ANG BUONG I-SEND SA MESSENGER
           </h2>
           <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-            Ito ang buong message na lalabas sa Messenger.
+            Kopyahin at i-send po ang buong message sa ibaba.
           </p>
         </div>
         <button
           type="button"
           onClick={handleCopy}
-          aria-label="Kopyahin ang buong order message"
-          className="border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground inline-flex size-9 shrink-0 items-center justify-center rounded-full border transition-colors"
+          className="border-border bg-background hover:bg-muted text-foreground inline-flex min-h-10 items-center justify-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors sm:shrink-0"
         >
           {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+          Copy Order Message
         </button>
       </div>
 
-      <div
-        className={cn(
-          "bg-muted/60 text-foreground mt-3 rounded-xl p-3.5",
-          isLongMessage &&
-            !expanded &&
-            "relative after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-10 after:rounded-b-xl after:bg-gradient-to-t after:from-muted after:to-transparent",
-        )}
-      >
+      <div className="bg-primary/5 border-primary/10 text-foreground mt-3 rounded-2xl border p-4">
         <pre className="font-sans text-[13px] leading-relaxed whitespace-pre-wrap">
-          {displayedMessage}
+          {message}
         </pre>
       </div>
-
-      {isLongMessage ? (
-        <button
-          type="button"
-          onClick={handleTogglePreview}
-          className="text-primary hover:text-primary/80 focus-visible:ring-ring mt-2.5 inline-flex min-h-10 items-center rounded-md text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-        >
-          {expanded ? "Paiksiin" : "Tingnan ang Buong Message"}
-        </button>
-      ) : null}
-    </div>
+    </section>
   );
 }

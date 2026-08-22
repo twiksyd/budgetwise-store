@@ -23,16 +23,21 @@ export function OrderingProgress({
   currentStep,
   title,
   description,
+  compact = false,
 }: {
   currentStep: OrderingStep;
   title?: string;
   description?: string;
+  compact?: boolean;
 }) {
   const currentTitle = title ?? stepTitles[currentStep];
 
   return (
     <section
-      className="surface-premium rounded-2xl p-3.5 sm:p-4"
+      className={cn(
+        "surface-premium rounded-2xl",
+        compact ? "p-3 sm:p-3.5" : "p-3.5 sm:p-4",
+      )}
       aria-label={`Step ${currentStep} of 4 - ${currentTitle}`}
     >
       <div>
@@ -40,13 +45,18 @@ export function OrderingProgress({
           Step {currentStep} of 4 - {currentTitle}
         </p>
         {description ? (
-          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+          <p
+            className={cn(
+              "text-muted-foreground mt-1 leading-relaxed",
+              compact ? "text-xs sm:text-sm" : "text-sm",
+            )}
+          >
             {description}
           </p>
         ) : null}
       </div>
 
-      <ol className="mt-3 grid grid-cols-4 gap-1.5 sm:gap-2">
+      <ol className={cn("grid grid-cols-4 gap-1.5 sm:gap-2", compact ? "mt-2" : "mt-3")}>
         {steps.map((step) => {
           const completed = step.number < currentStep;
           const current = step.number === currentStep;
@@ -55,7 +65,8 @@ export function OrderingProgress({
             <li key={step.number} className="min-w-0">
               <div
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center rounded-xl border px-1.5 py-2 text-center transition-colors",
+                  "flex flex-col items-center justify-center rounded-xl border px-1.5 text-center transition-colors",
+                  compact ? "min-h-11 py-1.5 sm:min-h-12" : "min-h-14 py-2",
                   completed &&
                     "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
                   current &&
@@ -68,7 +79,8 @@ export function OrderingProgress({
               >
                 <span
                   className={cn(
-                    "flex size-5 items-center justify-center rounded-full text-[11px] font-bold",
+                    "flex items-center justify-center rounded-full font-bold",
+                    compact ? "size-4 text-[10px]" : "size-5 text-[11px]",
                     completed && "bg-emerald-600 text-white",
                     current && "bg-primary text-primary-foreground",
                     !completed && !current && "bg-muted text-muted-foreground",
@@ -77,7 +89,12 @@ export function OrderingProgress({
                 >
                   {completed ? <Check className="size-3" /> : step.number}
                 </span>
-                <span className="mt-1 text-[11px] leading-tight font-medium">
+                <span
+                  className={cn(
+                    "mt-1 leading-tight font-medium",
+                    compact ? "text-[10px] sm:text-[11px]" : "text-[11px]",
+                  )}
+                >
                   {step.label}
                 </span>
                 <span className="sr-only">

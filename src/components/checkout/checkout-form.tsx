@@ -267,16 +267,16 @@ export function CheckoutForm() {
 
       {error && <p className="text-destructive text-sm">{error}</p>}
 
-      <div className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 rounded-xl border p-3.5">
+      <div className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 rounded-xl border px-3 py-2.5">
         <div className="flex gap-2.5">
           <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" />
           <div>
-            <p className="text-sm font-semibold leading-relaxed">
-              Hindi pa po masesend sa amin ang order pagkatapos nito.
+            <p className="text-[11px] font-semibold tracking-wide uppercase">
+              Next step
             </p>
-            <p className="mt-1 text-xs leading-relaxed">
-              Kailangan pa ninyong i-send ang buong order message through
-              Messenger.
+            <p className="mt-0.5 text-xs leading-relaxed">
+              Hindi pa po mase-send sa amin ang order pagkatapos nito. Ipapadala
+              pa ninyo ang buong Order Message sa Messenger.
             </p>
           </div>
         </div>

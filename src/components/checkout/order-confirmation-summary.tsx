@@ -1,27 +1,14 @@
-"use client";
-
-import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Price } from "@/components/shared/price";
 import type { OrderConfirmation } from "@/lib/queries/orders";
-
-const INITIAL_VISIBLE_ITEMS = 3;
 
 export function OrderConfirmationSummary({
   order,
 }: {
   order: OrderConfirmation;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const hasHiddenItems = order.lines.length > INITIAL_VISIBLE_ITEMS;
-  const visibleLines = expanded
-    ? order.lines
-    : order.lines.slice(0, INITIAL_VISIBLE_ITEMS);
-
   return (
-    <div className="surface-premium rounded-2xl p-4 sm:p-6">
+    <aside className="surface-premium rounded-2xl p-4 sm:p-5 lg:sticky lg:top-24">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 className="font-heading text-base font-semibold">
@@ -49,7 +36,7 @@ export function OrderConfirmationSummary({
       <Separator className="my-4" />
 
       <div className="flex flex-col gap-3">
-        {visibleLines.map((line, index) => (
+        {order.lines.map((line, index) => (
           <div
             key={`${line.gamepassId}-${index}`}
             className="flex items-start justify-between gap-3 text-sm"
@@ -71,28 +58,6 @@ export function OrderConfirmationSummary({
           </div>
         ))}
       </div>
-
-      {hasHiddenItems && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setExpanded((value) => !value)}
-          className="mt-4 w-full"
-        >
-          {expanded ? (
-            <>
-              Show fewer items
-              <ChevronUp className="size-3.5" />
-            </>
-          ) : (
-            <>
-              View all items
-              <ChevronDown className="size-3.5" />
-            </>
-          )}
-        </Button>
-      )}
-    </div>
+    </aside>
   );
 }
