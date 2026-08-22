@@ -55,7 +55,7 @@ function RobuxPlusNotice({
         onPointerDownOutside={onCancel}
       >
         <motion.div
-          className="bg-background fixed top-1/2 left-1/2 z-50 max-h-[calc(100svh-2rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-primary/15 p-3.5 shadow-[0_24px_80px_-30px_rgba(109,40,217,0.45)] outline-none sm:p-5"
+          className="bg-background fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh_-_1rem_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-primary/15 shadow-[0_24px_80px_-30px_rgba(109,40,217,0.45)] outline-none sm:max-h-[calc(100dvh_-_2rem)]"
           initial={reduceMotion ? false : { opacity: 0, y: 12, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{
@@ -64,6 +64,7 @@ function RobuxPlusNotice({
           }}
         >
           <motion.div
+            className="flex min-h-0 flex-1 flex-col"
             initial="hidden"
             animate="show"
             variants={{
@@ -78,7 +79,7 @@ function RobuxPlusNotice({
           >
             <motion.div
               variants={sectionVariants}
-              className="relative overflow-hidden rounded-2xl border border-primary/15 bg-primary/6 p-3 text-center sm:p-4"
+              className="bg-background/95 sticky top-0 z-10 border-b border-border/70 px-3.5 pt-3.5 pb-2.5 text-center backdrop-blur sm:px-5 sm:pt-5 sm:pb-3"
             >
               <p className="relative mx-auto inline-flex rounded-full border border-red-500/25 bg-red-500/10 px-3 py-1 text-[11px] font-black tracking-[0.18em] text-red-700 uppercase shadow-sm dark:text-red-300">
                 {robuxPlusPresentation.badge}
@@ -90,62 +91,70 @@ function RobuxPlusNotice({
                 Robux Via Plus is a pre-order with 1-8 hours processing after
                 confirmed payment.
               </DialogPrimitive.Description>
-              <motion.div
-                className="relative mt-3 overflow-hidden rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-2.5 text-red-950 shadow-[0_12px_28px_-24px_rgba(239,68,68,0.75)] dark:text-red-50 sm:px-5"
-                initial={
-                  reduceMotion
-                    ? false
-                    : {
-                        scale: 0.985,
-                        boxShadow: "0 12px 28px -24px rgba(239,68,68,0.58)",
-                      }
-                }
-                animate={
-                  reduceMotion
-                    ? undefined
-                    : {
-                        scale: [0.985, 1.012, 1],
-                        boxShadow: [
-                          "0 12px 28px -24px rgba(239,68,68,0.58)",
-                          "0 16px 36px -24px rgba(239,68,68,0.88)",
-                          "0 12px 28px -24px rgba(239,68,68,0.58)",
-                        ],
-                      }
-                }
-                transition={{
-                  delay: reduceMotion ? 0 : 0.22,
-                  duration: reduceMotion ? 0 : 0.58,
-                  ease: "easeOut",
-                }}
-              >
-                <motion.div
-                  className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  animate={reduceMotion ? undefined : { x: ["0%", "320%"] }}
-                  transition={{
-                    delay: reduceMotion ? 0 : 0.24,
-                    duration: reduceMotion ? 0 : 0.72,
-                    ease: "easeOut",
-                  }}
-                />
-                <div className="relative flex items-center justify-center gap-2 text-red-700 dark:text-red-300">
-                  <Clock className="size-4" />
-                  <p className="text-[11px] font-black tracking-[0.18em] uppercase">
-                    Processing Time
-                  </p>
-                </div>
-                <p className="font-heading relative mt-1 text-3xl font-black tracking-tight sm:text-4xl">
-                  1-8 HOURS
-                </p>
-                <p className="relative mt-1 text-xs font-semibold text-red-800 dark:text-red-200">
-                  after confirmed payment
-                </p>
-              </motion.div>
             </motion.div>
 
-            <div className="mt-3 grid gap-2.5 text-sm">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 py-3 sm:px-5 sm:py-4">
               <motion.div
                 variants={sectionVariants}
-                className="rounded-xl border border-red-500/20 bg-red-500/8 p-3"
+                className="relative overflow-hidden rounded-2xl border border-primary/15 bg-primary/6 p-2.5 text-center sm:p-4"
+              >
+                <motion.div
+                  className="relative overflow-hidden rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-2.5 text-red-950 shadow-[0_12px_28px_-24px_rgba(239,68,68,0.75)] dark:text-red-50 sm:px-5"
+                  initial={
+                    reduceMotion
+                      ? false
+                      : {
+                          scale: 0.985,
+                          boxShadow:
+                            "0 12px 28px -24px rgba(239,68,68,0.58)",
+                        }
+                  }
+                  animate={
+                    reduceMotion
+                      ? undefined
+                      : {
+                          scale: [0.985, 1.012, 1],
+                          boxShadow: [
+                            "0 12px 28px -24px rgba(239,68,68,0.58)",
+                            "0 16px 36px -24px rgba(239,68,68,0.88)",
+                            "0 12px 28px -24px rgba(239,68,68,0.58)",
+                          ],
+                        }
+                  }
+                  transition={{
+                    delay: reduceMotion ? 0 : 0.22,
+                    duration: reduceMotion ? 0 : 0.58,
+                    ease: "easeOut",
+                  }}
+                >
+                  <motion.div
+                    className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                    animate={reduceMotion ? undefined : { x: ["0%", "320%"] }}
+                    transition={{
+                      delay: reduceMotion ? 0 : 0.24,
+                      duration: reduceMotion ? 0 : 0.72,
+                      ease: "easeOut",
+                    }}
+                  />
+                  <div className="relative flex items-center justify-center gap-2 text-red-700 dark:text-red-300">
+                    <Clock className="size-4" />
+                    <p className="text-[11px] font-black tracking-[0.18em] uppercase">
+                      Processing Time
+                    </p>
+                  </div>
+                  <p className="font-heading relative mt-1 text-3xl font-black tracking-tight sm:text-4xl">
+                    1-8 HOURS
+                  </p>
+                  <p className="relative mt-1 text-xs font-semibold text-red-800 dark:text-red-200">
+                    after confirmed payment
+                  </p>
+                </motion.div>
+              </motion.div>
+
+            <div className="mt-2.5 grid gap-2 text-sm sm:mt-3 sm:gap-2.5">
+              <motion.div
+                variants={sectionVariants}
+                className="rounded-xl border border-red-500/20 bg-red-500/8 p-2.5 sm:p-3"
               >
                 <div className="flex items-start gap-2.5">
                   <Clock className="mt-0.5 size-4 shrink-0 text-red-700 dark:text-red-300" />
@@ -163,7 +172,7 @@ function RobuxPlusNotice({
 
               <motion.div
                 variants={sectionVariants}
-                className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-3"
+                className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-2.5 sm:p-3"
               >
                 <div className="flex items-start gap-2.5">
                   <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
@@ -183,7 +192,7 @@ function RobuxPlusNotice({
 
             <motion.label
               variants={sectionVariants}
-              className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm leading-relaxed transition-colors has-checked:border-primary/40 has-checked:bg-primary/10"
+              className="mt-2.5 flex cursor-pointer items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-2.5 text-sm leading-relaxed transition-colors has-checked:border-primary/40 has-checked:bg-primary/10 sm:mt-3 sm:p-3"
             >
               <input
                 type="checkbox"
@@ -197,10 +206,11 @@ function RobuxPlusNotice({
                 <strong>1-8 hours after confirmed payment</strong>.
               </span>
             </motion.label>
+            </div>
 
             <motion.div
               variants={sectionVariants}
-              className="mt-4 grid gap-2 sm:grid-cols-2"
+              className="bg-background/95 grid shrink-0 gap-2 border-t border-border/70 px-3.5 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] backdrop-blur sm:grid-cols-2 sm:px-5 sm:pt-4 sm:pb-5"
             >
               <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel
