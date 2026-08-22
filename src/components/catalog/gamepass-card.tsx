@@ -9,6 +9,10 @@ import {
   type ProductBadgeValue,
 } from "@/components/catalog/product-badge";
 import { getProductDisplayName } from "@/lib/product-display-name";
+import {
+  DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS,
+  type ProductCardAccentSettings,
+} from "@/lib/product-card-accent";
 import type { ProductCategory } from "@/lib/product-category";
 import { cn } from "@/lib/utils";
 import type { StoreGamepass } from "@/types/database";
@@ -25,10 +29,50 @@ function CardBackgroundLayer({ src }: { src?: string | null }) {
         loading="lazy"
         decoding="async"
         referrerPolicy="no-referrer"
-        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-xl saturate-125 motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out motion-safe:group-hover:scale-[1.14] dark:opacity-30"
+        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-85 blur-[2.5px] saturate-125 motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out motion-safe:group-hover:scale-[1.14] dark:opacity-70"
       />
-      <div className="absolute inset-0 bg-background/86 dark:bg-background/88" />
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background/74 to-background/92 dark:from-primary/12 dark:via-background/78 dark:to-background/94" />
+      <div className="absolute inset-0 bg-background/30 dark:bg-background/52" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,color-mix(in_oklch,var(--background)_88%,transparent)_0%,color-mix(in_oklch,var(--background)_68%,transparent)_38%,color-mix(in_oklch,var(--background)_24%,transparent)_72%,transparent_100%)] dark:bg-[linear-gradient(90deg,color-mix(in_oklch,var(--background)_92%,transparent)_0%,color-mix(in_oklch,var(--background)_76%,transparent)_42%,color-mix(in_oklch,var(--background)_34%,transparent)_76%,transparent_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(0deg,color-mix(in_oklch,var(--background)_86%,transparent)_0%,color-mix(in_oklch,var(--background)_52%,transparent)_28%,transparent_58%)] dark:bg-[linear-gradient(0deg,color-mix(in_oklch,var(--background)_92%,transparent)_0%,color-mix(in_oklch,var(--background)_64%,transparent)_32%,transparent_62%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_23%_27%,color-mix(in_oklch,var(--background)_82%,transparent)_0%,color-mix(in_oklch,var(--background)_58%,transparent)_24%,transparent_48%)] dark:bg-[radial-gradient(circle_at_23%_27%,color-mix(in_oklch,var(--background)_88%,transparent)_0%,color-mix(in_oklch,var(--background)_66%,transparent)_28%,transparent_52%)]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/6 via-transparent to-background/18 dark:from-primary/10 dark:to-background/26" />
+    </div>
+  );
+}
+
+function DecorativeIconAccent({
+  src,
+  settings,
+}: {
+  src?: string | null;
+  settings: ProductCardAccentSettings;
+}) {
+  if (!src || !settings.enabled) return null;
+
+  const sizePx = Math.round(76 * (settings.scalePercent / 100));
+
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        className="absolute top-1/2 right-0 rounded-[2rem] object-cover [mask-image:radial-gradient(circle_at_58%_50%,black_0%,black_52%,rgba(0,0,0,0.72)_66%,transparent_86%)]"
+        style={{
+          height: `${sizePx}px`,
+          width: `${sizePx}px`,
+          opacity: settings.opacityPercent / 100,
+          filter: `blur(${settings.blurPx}px) saturate(1.25)`,
+          transform: `translate(${settings.offsetXPercent}%, calc(-50% + ${settings.offsetYPx}px))`,
+        }}
+      />
+      <div className="absolute inset-y-0 right-0 w-2/3 bg-gradient-to-r from-background/82 via-background/28 to-transparent dark:from-background/86 dark:via-background/34" />
     </div>
   );
 }
@@ -45,6 +89,8 @@ export function GamepassCard({
   orderingDisabled = false,
   robloxIconUrl,
   cardBackgroundUrl,
+  hasProductSpecificArtwork = false,
+  accentSettings = DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS,
 }: {
   gamepass: StoreGamepass;
   gameId: string;
@@ -57,12 +103,15 @@ export function GamepassCard({
   orderingDisabled?: boolean;
   robloxIconUrl?: string;
   cardBackgroundUrl?: string;
+  hasProductSpecificArtwork?: boolean;
+  accentSettings?: ProductCardAccentSettings;
 }) {
   const isOutOfStock = gamepass.availability_status === "out_of_stock";
   const isComingSoon = gamepass.availability_status === "coming_soon";
   const isUnavailable = isOutOfStock || isComingSoon;
   const isCurrency = category === "currency";
   const productName = getProductDisplayName(gamepass);
+  const decorativeIconUrl = hasProductSpecificArtwork ? robloxIconUrl : null;
 
   const displayBadge: ProductBadgeValue | null = isOutOfStock
     ? "out-of-stock"
@@ -137,6 +186,12 @@ export function GamepassCard({
       )}
     >
       <CardBackgroundLayer src={cardBackgroundUrl} />
+      {!cardBackgroundUrl && (
+        <DecorativeIconAccent
+          src={decorativeIconUrl}
+          settings={accentSettings}
+        />
+      )}
 
       <div className="relative z-10 grid grid-cols-[4.75rem_1fr] gap-3">
         <div className="bg-muted relative aspect-square overflow-hidden rounded-2xl">

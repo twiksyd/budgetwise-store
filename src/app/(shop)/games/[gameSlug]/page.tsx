@@ -18,6 +18,7 @@ import {
   getProductArtworkMap,
   getProductArtworkUrlMap,
 } from "@/lib/queries/product-artwork";
+import { getProductCardAccentSettingsForGame } from "@/lib/queries/product-card-accent-settings";
 import { getProductCardBackgroundUrlMap } from "@/lib/queries/product-card-backgrounds";
 import { GamepassList } from "@/components/catalog/gamepass-list";
 import { BloxFruitsProductList } from "@/components/catalog/blox-fruits-product-list";
@@ -98,9 +99,14 @@ export default async function GameDetailPage({ params }: Props) {
     includeRoblox: Boolean(robloxUniverseIds[game.id]),
   });
   const productArtworkUrls = getProductArtworkUrlMap(productArtwork);
+  const productArtworkSources = new Map(
+    [...productArtwork.entries()].map(([id, artwork]) => [id, artwork.source]),
+  );
   const productCardBackgroundUrls = await getProductCardBackgroundUrlMap(
     gamepasses.map((gamepass) => gamepass.id),
   );
+  const productCardAccentSettings =
+    await getProductCardAccentSettingsForGame(game.id);
   const productLayout = await getProductLayoutForGame(game.id, gamepasses);
 
   return (
@@ -210,7 +216,9 @@ export default async function GameDetailPage({ params }: Props) {
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
           robloxIconUrls={productArtworkUrls}
+          productArtworkSources={productArtworkSources}
           cardBackgroundUrls={productCardBackgroundUrls}
+          accentSettings={productCardAccentSettings}
         />
       ) : game.id === BLOX_FRUITS_GAME_ID ? (
         <BloxFruitsProductList
@@ -221,7 +229,9 @@ export default async function GameDetailPage({ params }: Props) {
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
           robloxIconUrls={productArtworkUrls}
+          productArtworkSources={productArtworkSources}
           cardBackgroundUrls={productCardBackgroundUrls}
+          accentSettings={productCardAccentSettings}
         />
       ) : game.id === GROW_A_GARDEN_2_GAME_ID ? (
         <GrowAGarden2ProductList
@@ -232,7 +242,9 @@ export default async function GameDetailPage({ params }: Props) {
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
           robloxIconUrls={productArtworkUrls}
+          productArtworkSources={productArtworkSources}
           cardBackgroundUrls={productCardBackgroundUrls}
+          accentSettings={productCardAccentSettings}
         />
       ) : (
         <GamepassList
@@ -243,7 +255,9 @@ export default async function GameDetailPage({ params }: Props) {
           gameIconUrl={game.icon_url}
           orderingDisabled={storeStatus !== "open"}
           robloxIconUrls={productArtworkUrls}
+          productArtworkSources={productArtworkSources}
           cardBackgroundUrls={productCardBackgroundUrls}
+          accentSettings={productCardAccentSettings}
         />
       )}
     </div>

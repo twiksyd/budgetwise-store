@@ -1,8 +1,7 @@
 import "server-only";
 import { robloxUniverseIds } from "@/config/roblox-universe-ids";
+import type { ProductArtworkSource } from "@/lib/product-artwork-source";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-export type ProductArtworkSource = "manual" | "roblox" | "placeholder";
 
 export interface ProductArtwork {
   url: string | null;

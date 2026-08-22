@@ -3,8 +3,14 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getProductArtworkMap,
-  getProductArtworkUrlMap,
 } from "@/lib/queries/product-artwork";
+import type { ProductArtworkSource } from "@/lib/product-artwork-source";
+import { getProductCardBackgroundUrlMap } from "@/lib/queries/product-card-backgrounds";
+import {
+  getDefaultProductCardAccentSettings,
+  getProductCardAccentSettingsMap,
+} from "@/lib/queries/product-card-accent-settings";
+import type { ProductCardAccentSettingsWithMeta } from "@/lib/product-card-accent";
 import { robloxUniverseIds } from "@/config/roblox-universe-ids";
 import type { GameAvailabilityStatus } from "@/types/store-operations";
 import type { ProductAvailabilityStatus } from "@/types/store-operations";
@@ -45,6 +51,8 @@ export interface CatalogProductLayoutProduct {
   sectionId: string | null;
   sortOrder: number;
   artworkUrl: string | null;
+  artworkSource: ProductArtworkSource | null;
+  cardBackgroundUrl: string | null;
 }
 
 export interface CatalogProductLayoutGame {
@@ -52,6 +60,7 @@ export interface CatalogProductLayoutGame {
   sections: CatalogProductLayoutSection[];
   products: CatalogProductLayoutProduct[];
   hasCustomLayout: boolean;
+  accentSettings: ProductCardAccentSettingsWithMeta;
 }
 
 export interface CatalogProductLayoutData {
@@ -210,13 +219,15 @@ async function getCatalogProductLayoutData(
       (row) => [row.gamepass_id, row.display_name],
     ),
   );
-  const artworkUrls = getProductArtworkUrlMap(
-    await getProductArtworkMap(productRows, {
-      includeRoblox: productRows.some((product) =>
-        Boolean(robloxUniverseIds[product.game_id]),
-      ),
-    }),
-  );
+  const productArtwork = await getProductArtworkMap(productRows, {
+    includeRoblox: productRows.some((product) =>
+      Boolean(robloxUniverseIds[product.game_id]),
+    ),
+  });
+  const [cardBackgroundUrls, accentSettings] = await Promise.all([
+    getProductCardBackgroundUrlMap(productRows.map((product) => product.id)),
+    getProductCardAccentSettingsMap(gameIds),
+  ]);
 
   const sectionsByGameId = new Map<string, CatalogProductLayoutSection[]>();
   for (const section of sectionsResult.error ? [] : (sectionsResult.data ?? [])) {
@@ -261,7 +272,9 @@ async function getCatalogProductLayoutData(
       sortOrder:
         presentation?.sort_order ??
         (maxSortOrderByGameId.get(product.game_id) ?? -1) + fallbackIndex + 1,
-      artworkUrl: artworkUrls.get(product.id) ?? null,
+      artworkUrl: productArtwork.get(product.id)?.url ?? null,
+      artworkSource: productArtwork.get(product.id)?.source ?? null,
+      cardBackgroundUrl: cardBackgroundUrls.get(product.id) ?? null,
     });
     productsByGameId.set(product.game_id, list);
   }
@@ -282,6 +295,8 @@ async function getCatalogProductLayoutData(
         hasCustomLayout:
           sections.length > 0 ||
           products.some((product) => presentationByProductId.has(product.id)),
+        accentSettings:
+          accentSettings.get(gameId) ?? getDefaultProductCardAccentSettings(),
       };
     }),
   };

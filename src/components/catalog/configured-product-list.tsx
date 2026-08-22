@@ -4,6 +4,8 @@ import { motion, type Variants } from "framer-motion";
 import { Gamepad2 } from "lucide-react";
 import { GamepassCard } from "@/components/catalog/gamepass-card";
 import type { ProductBadgeValue } from "@/components/catalog/product-badge";
+import type { ProductCardAccentSettings } from "@/lib/product-card-accent";
+import type { ProductArtworkSource } from "@/lib/product-artwork-source";
 import type { ConfiguredProductSection } from "@/lib/queries/product-layout";
 import { getBestValueId, getConfiguredBadge } from "@/lib/merchandising";
 import { getProductCategory } from "@/lib/product-category";
@@ -27,7 +29,9 @@ export function ConfiguredProductList({
   gameIconUrl = null,
   orderingDisabled = false,
   robloxIconUrls,
+  productArtworkSources,
   cardBackgroundUrls,
+  accentSettings,
 }: {
   sections: ConfiguredProductSection[];
   gameId: string;
@@ -36,7 +40,9 @@ export function ConfiguredProductList({
   gameIconUrl?: string | null;
   orderingDisabled?: boolean;
   robloxIconUrls?: Map<string, string>;
+  productArtworkSources?: Map<string, ProductArtworkSource>;
   cardBackgroundUrls?: Map<string, string>;
+  accentSettings?: ProductCardAccentSettings;
 }) {
   return (
     <div className="mt-7 flex flex-col gap-8 sm:mt-12 sm:gap-14">
@@ -97,7 +103,12 @@ export function ConfiguredProductList({
                       featured={isBestValue}
                       orderingDisabled={orderingDisabled}
                       robloxIconUrl={robloxIconUrls?.get(gamepass.id)}
+                      hasProductSpecificArtwork={
+                        productArtworkSources?.get(gamepass.id) === "manual" ||
+                        productArtworkSources?.get(gamepass.id) === "roblox"
+                      }
                       cardBackgroundUrl={cardBackgroundUrls?.get(gamepass.id)}
+                      accentSettings={accentSettings}
                     />
                   </motion.div>
                 );

@@ -4,6 +4,8 @@ import { motion, type Variants } from "framer-motion";
 import { GamepassCard } from "@/components/catalog/gamepass-card";
 import type { ProductBadgeValue } from "@/components/catalog/product-badge";
 import { getBestValueId, getConfiguredBadge } from "@/lib/merchandising";
+import type { ProductArtworkSource } from "@/lib/product-artwork-source";
+import type { ProductCardAccentSettings } from "@/lib/product-card-accent";
 import {
   groupByCategory,
   PRODUCT_CATEGORY_ICONS,
@@ -45,7 +47,9 @@ export function GamepassList({
   gameIconUrl = null,
   orderingDisabled = false,
   robloxIconUrls,
+  productArtworkSources,
   cardBackgroundUrls,
+  accentSettings,
 }: {
   gamepasses: StoreGamepass[];
   gameId: string;
@@ -54,7 +58,9 @@ export function GamepassList({
   gameIconUrl?: string | null;
   orderingDisabled?: boolean;
   robloxIconUrls?: Map<string, string>;
+  productArtworkSources?: Map<string, ProductArtworkSource>;
   cardBackgroundUrls?: Map<string, string>;
+  accentSettings?: ProductCardAccentSettings;
 }) {
   const bestValueId = getBestValueId(
     gamepasses.filter(
@@ -135,7 +141,12 @@ export function GamepassList({
                       featured={isBestValue}
                       orderingDisabled={orderingDisabled}
                       robloxIconUrl={robloxIconUrls?.get(gamepass.id)}
+                      hasProductSpecificArtwork={
+                        productArtworkSources?.get(gamepass.id) === "manual" ||
+                        productArtworkSources?.get(gamepass.id) === "roblox"
+                      }
                       cardBackgroundUrl={cardBackgroundUrls?.get(gamepass.id)}
+                      accentSettings={accentSettings}
                     />
                   </motion.div>
                 );

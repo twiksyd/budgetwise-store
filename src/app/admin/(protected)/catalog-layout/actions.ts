@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/admin";
+import {
+  PRODUCT_CARD_ACCENT_LIMITS,
+  type ProductCardAccentSettings,
+} from "@/lib/product-card-accent";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const UUID_RE =
@@ -67,6 +71,7 @@ async function validateGameIds(gameIds: string[]) {
 
 function revalidateCatalogLayout() {
   revalidatePath("/", "layout");
+  revalidatePath("/games", "layout");
   revalidatePath("/admin/catalog-layout");
 }
 
@@ -101,6 +106,52 @@ async function validateGamepassId(gamepassId: string) {
 
   if (error) return error.message;
   if (!data) return "Product is no longer in the catalog.";
+  return null;
+}
+
+function validateAccentSettings(input: ProductCardAccentSettings) {
+  if (typeof input.enabled !== "boolean") {
+    return "Accent enabled must be true or false.";
+  }
+
+  const checks = [
+    {
+      label: "Blur",
+      value: input.blurPx,
+      ...PRODUCT_CARD_ACCENT_LIMITS.blurPx,
+    },
+    {
+      label: "Horizontal position",
+      value: input.offsetXPercent,
+      ...PRODUCT_CARD_ACCENT_LIMITS.offsetXPercent,
+    },
+    {
+      label: "Vertical position",
+      value: input.offsetYPx,
+      ...PRODUCT_CARD_ACCENT_LIMITS.offsetYPx,
+    },
+    {
+      label: "Size",
+      value: input.scalePercent,
+      ...PRODUCT_CARD_ACCENT_LIMITS.scalePercent,
+    },
+    {
+      label: "Opacity",
+      value: input.opacityPercent,
+      ...PRODUCT_CARD_ACCENT_LIMITS.opacityPercent,
+    },
+  ];
+
+  for (const check of checks) {
+    if (
+      !Number.isFinite(check.value) ||
+      check.value < check.min ||
+      check.value > check.max
+    ) {
+      return `${check.label} must be between ${check.min} and ${check.max}.`;
+    }
+  }
+
   return null;
 }
 
@@ -315,6 +366,56 @@ export async function saveProductDisplayNameAction(input: {
   const { error } = await supabase.rpc("apply_store_product_display_name", {
     p_gamepass_id: input.gamepassId,
     p_display_name: displayName,
+    p_admin_user_id: admin.id,
+    p_admin_email: admin.email,
+  });
+
+  if (error) return { success: false, error: error.message };
+
+  revalidateCatalogLayout();
+  return { success: true };
+}
+
+export async function saveProductCardAccentSettingsAction(input: {
+  gameId: string;
+  settings: ProductCardAccentSettings;
+}): Promise<CatalogLayoutActionResult> {
+  const admin = await requireAdmin();
+  const gameError = await validateGameId(input.gameId);
+  if (gameError) return { success: false, error: gameError };
+
+  const settingsError = validateAccentSettings(input.settings);
+  if (settingsError) return { success: false, error: settingsError };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.rpc("apply_store_game_card_accent_settings", {
+    p_game_id: input.gameId,
+    p_enabled: input.settings.enabled,
+    p_blur_px: input.settings.blurPx,
+    p_offset_x_percent: Math.round(input.settings.offsetXPercent),
+    p_offset_y_px: Math.round(input.settings.offsetYPx),
+    p_scale_percent: Math.round(input.settings.scalePercent),
+    p_opacity_percent: Math.round(input.settings.opacityPercent),
+    p_admin_user_id: admin.id,
+    p_admin_email: admin.email,
+  });
+
+  if (error) return { success: false, error: error.message };
+
+  revalidateCatalogLayout();
+  return { success: true };
+}
+
+export async function resetProductCardAccentSettingsAction(
+  gameId: string,
+): Promise<CatalogLayoutActionResult> {
+  const admin = await requireAdmin();
+  const validationError = await validateGameId(gameId);
+  if (validationError) return { success: false, error: validationError };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.rpc("reset_store_game_card_accent_settings", {
+    p_game_id: gameId,
     p_admin_user_id: admin.id,
     p_admin_email: admin.email,
   });

@@ -132,6 +132,23 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      store_game_card_accent_settings: {
+        Row: {
+          game_id: string;
+          enabled: boolean;
+          blur_px: number;
+          offset_x_percent: number;
+          offset_y_px: number;
+          scale_percent: number;
+          opacity_percent: number;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       store_games: {

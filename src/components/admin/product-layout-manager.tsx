@@ -16,12 +16,21 @@ import {
 import { toast } from "sonner";
 import {
   resetProductLayoutAction,
+  resetProductCardAccentSettingsAction,
   saveProductDisplayNameAction,
   saveProductLayoutAction,
+  saveProductCardAccentSettingsAction,
 } from "@/app/admin/(protected)/catalog-layout/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  clampProductCardAccentSettings,
+  DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS,
+  PRODUCT_CARD_ACCENT_LIMITS,
+  type ProductCardAccentSettings,
+  type ProductCardAccentSettingsWithMeta,
+} from "@/lib/product-card-accent";
 import type {
   CatalogLayoutGame,
   CatalogProductLayoutData,
@@ -316,6 +325,170 @@ function ProductRow({
   );
 }
 
+function snapshotAccentSettings(settings: ProductCardAccentSettings) {
+  return JSON.stringify(clampProductCardAccentSettings(settings));
+}
+
+function buildInitialAccentSettings(productLayout: CatalogProductLayoutData) {
+  return new Map(
+    productLayout.games.map((game) => [game.gameId, game.accentSettings]),
+  );
+}
+
+function isAccentEligible(product: EditableProduct) {
+  return (
+    !product.cardBackgroundUrl &&
+    Boolean(product.artworkUrl) &&
+    (product.artworkSource === "manual" || product.artworkSource === "roblox")
+  );
+}
+
+function RangeControl({
+  label,
+  value,
+  min,
+  max,
+  step,
+  suffix,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  suffix: string;
+  disabled: boolean;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="grid gap-1.5 text-xs font-medium">
+      <span className="flex items-center justify-between gap-3">
+        <span>{label}</span>
+        <span className="text-muted-foreground tabular-nums">
+          {value}
+          {suffix}
+        </span>
+      </span>
+      <div className="grid grid-cols-[1fr_4.5rem] gap-2">
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          disabled={disabled}
+          onChange={(event) => onChange(Number(event.target.value))}
+          className="accent-primary h-8 w-full"
+        />
+        <Input
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          disabled={disabled}
+          onChange={(event) => onChange(Number(event.target.value))}
+          className="h-8 px-2 text-xs"
+        />
+      </div>
+    </label>
+  );
+}
+
+function PreviewAccentLayer({
+  src,
+  settings,
+}: {
+  src: string;
+  settings: ProductCardAccentSettings;
+}) {
+  const sizePx = Math.round(76 * (settings.scalePercent / 100));
+
+  if (!settings.enabled) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        className="absolute top-1/2 right-0 rounded-[2rem] object-cover [mask-image:radial-gradient(circle_at_58%_50%,black_0%,black_52%,rgba(0,0,0,0.72)_66%,transparent_86%)]"
+        style={{
+          height: `${sizePx}px`,
+          width: `${sizePx}px`,
+          opacity: settings.opacityPercent / 100,
+          filter: `blur(${settings.blurPx}px) saturate(1.25)`,
+          transform: `translate(${settings.offsetXPercent}%, calc(-50% + ${settings.offsetYPx}px))`,
+        }}
+      />
+      <div className="absolute inset-y-0 right-0 w-2/3 bg-gradient-to-r from-background/82 via-background/28 to-transparent dark:from-background/86 dark:via-background/34" />
+    </div>
+  );
+}
+
+function AccentPreview({
+  product,
+  settings,
+}: {
+  product: EditableProduct | undefined;
+  settings: ProductCardAccentSettings;
+}) {
+  if (!product?.artworkUrl) {
+    return (
+      <div className="bg-muted/40 rounded-xl p-4 text-sm">
+        <p className="font-medium">No eligible product preview.</p>
+        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+          Products need manual or matched Roblox artwork, and cannot have a
+          manual full-card background.
+        </p>
+      </div>
+    );
+  }
+
+  const customerName = product.displayName?.trim() || product.name;
+
+  return (
+    <div className="surface-premium relative overflow-hidden rounded-2xl p-3.5">
+      <PreviewAccentLayer src={product.artworkUrl} settings={settings} />
+      <div className="relative z-10 grid grid-cols-[4.75rem_1fr] gap-3">
+        <div className="bg-muted relative aspect-square overflow-hidden rounded-2xl">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={product.artworkUrl}
+            alt=""
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="h-full w-full object-contain"
+          />
+        </div>
+        <div className="min-w-0">
+          <Badge variant="secondary" className="h-6 px-2 text-[11px]">
+            {product.robuxAmount.toLocaleString()} Robux
+          </Badge>
+          <p className="font-heading mt-1.5 truncate text-[15px] leading-snug font-semibold">
+            {customerName}
+          </p>
+          <p className="text-muted-foreground mt-1 text-xs">
+            Preview only · {product.artworkSource} artwork
+          </p>
+        </div>
+      </div>
+      <div className="relative z-10 mt-3 flex items-end justify-between gap-3">
+        <p className="text-primary font-heading text-2xl font-bold tracking-normal tabular-nums">
+          {formatPrice(product.price)}
+        </p>
+        <div className="bg-primary text-primary-foreground rounded-full px-4 py-2 text-xs font-semibold">
+          I-add sa Cart
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function buildInitialLayouts(productLayout: CatalogProductLayoutData) {
   return new Map(
     productLayout.games.map((game) => [
@@ -340,12 +513,25 @@ export function ProductLayoutManager({
     () => buildInitialLayouts(productLayout),
     [productLayout],
   );
+  const initialAccentSettings = useMemo(
+    () => buildInitialAccentSettings(productLayout),
+    [productLayout],
+  );
   const [selectedGameId, setSelectedGameId] = useState(games[0]?.id ?? "");
   const [layouts, setLayouts] = useState(initialLayouts);
+  const [accentSettingsByGameId, setAccentSettingsByGameId] =
+    useState(initialAccentSettings);
   const [savedSnapshots, setSavedSnapshots] = useState(() => {
     const snapshots = new Map<string, string>();
     for (const [gameId, layout] of initialLayouts.entries()) {
       snapshots.set(gameId, snapshotLayout(layout.sections, layout.products));
+    }
+    return snapshots;
+  });
+  const [savedAccentSnapshots, setSavedAccentSnapshots] = useState(() => {
+    const snapshots = new Map<string, string>();
+    for (const [gameId, settings] of initialAccentSettings.entries()) {
+      snapshots.set(gameId, snapshotAccentSettings(settings));
     }
     return snapshots;
   });
@@ -361,6 +547,16 @@ export function ProductLayoutManager({
   const selectedLayout = selectedGame
     ? layouts.get(selectedGame.id) ?? { sections: [], products: [], hasCustomLayout: false }
     : { sections: [], products: [], hasCustomLayout: false };
+  const selectedAccentSettings = selectedGame
+    ? (accentSettingsByGameId.get(selectedGame.id) ??
+      {
+        ...DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS,
+        hasCustomSettings: false,
+      })
+    : {
+        ...DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS,
+        hasCustomSettings: false,
+      };
   const sections = selectedLayout.sections;
   const products = selectedLayout.products;
   const normalizedQuery = query.trim().toLowerCase();
@@ -371,6 +567,12 @@ export function ProductLayoutManager({
     ? savedSnapshots.get(selectedGame.id) ?? ""
     : "";
   const dirty = currentSnapshot !== savedSnapshot;
+  const currentAccentSnapshot = snapshotAccentSettings(selectedAccentSettings);
+  const savedAccentSnapshot = selectedGame
+    ? savedAccentSnapshots.get(selectedGame.id) ?? ""
+    : "";
+  const accentDirty = currentAccentSnapshot !== savedAccentSnapshot;
+  const previewProduct = products.find(isAccentEligible);
 
   function updateSelectedLayout(
     updater: (layout: {
@@ -515,6 +717,80 @@ export function ProductLayoutManager({
         product.id === productId ? { ...product, displayName } : product,
       ),
     }));
+  }
+
+  function updateAccentSettings(
+    updater: (
+      settings: ProductCardAccentSettingsWithMeta,
+    ) => ProductCardAccentSettingsWithMeta,
+  ) {
+    if (!selectedGame) return;
+    setAccentSettingsByGameId((current) => {
+      const next = new Map(current);
+      const settings =
+        next.get(selectedGame.id) ?? {
+          ...DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS,
+          hasCustomSettings: false,
+        };
+      next.set(selectedGame.id, updater(settings));
+      return next;
+    });
+  }
+
+  function saveAccentSettings() {
+    if (!selectedGame) return;
+    const settings = clampProductCardAccentSettings(selectedAccentSettings);
+
+    startTransition(async () => {
+      const result = await saveProductCardAccentSettingsAction({
+        gameId: selectedGame.id,
+        settings,
+      });
+
+      if (result.success) {
+        const saved = { ...settings, hasCustomSettings: true };
+        setAccentSettingsByGameId((current) => {
+          const next = new Map(current);
+          next.set(selectedGame.id, saved);
+          return next;
+        });
+        setSavedAccentSnapshots((current) => {
+          const next = new Map(current);
+          next.set(selectedGame.id, snapshotAccentSettings(saved));
+          return next;
+        });
+        toast.success("Accent settings saved.");
+      } else {
+        toast.error(result.error ?? "Accent settings were not saved.");
+      }
+    });
+  }
+
+  function resetAccentSettings() {
+    if (!selectedGame) return;
+
+    startTransition(async () => {
+      const result = await resetProductCardAccentSettingsAction(selectedGame.id);
+      if (result.success) {
+        const reset = {
+          ...DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS,
+          hasCustomSettings: false,
+        };
+        setAccentSettingsByGameId((current) => {
+          const next = new Map(current);
+          next.set(selectedGame.id, reset);
+          return next;
+        });
+        setSavedAccentSnapshots((current) => {
+          const next = new Map(current);
+          next.set(selectedGame.id, snapshotAccentSettings(reset));
+          return next;
+        });
+        toast.success("Accent settings reset.");
+      } else {
+        toast.error(result.error ?? "Accent settings were not reset.");
+      }
+    });
   }
 
   function saveProductLayout() {
@@ -765,6 +1041,153 @@ export function ProductLayoutManager({
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="surface-premium overflow-hidden rounded-2xl">
+            <div className="border-b p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">Product Card Accent</p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    Per-game right-side icon treatment
+                  </p>
+                </div>
+                <Badge
+                  variant={accentDirty ? "default" : "outline"}
+                  className="h-6 shrink-0"
+                >
+                  {pending ? "Saving..." : accentDirty ? "Unsaved" : "Saved"}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="grid gap-4 p-3">
+              <label className="flex items-center justify-between gap-3 text-sm font-medium">
+                <span>
+                  Enabled
+                  <span className="text-muted-foreground mt-0.5 block text-xs font-normal">
+                    Applies only to products with real product artwork.
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={selectedAccentSettings.enabled}
+                  disabled={pending || !selectedGame}
+                  onChange={(event) =>
+                    updateAccentSettings((settings) => ({
+                      ...settings,
+                      enabled: event.target.checked,
+                    }))
+                  }
+                  className="accent-primary size-4"
+                />
+              </label>
+
+              <div className="grid gap-3">
+                <RangeControl
+                  label="Blur"
+                  value={selectedAccentSettings.blurPx}
+                  suffix="px"
+                  disabled={pending || !selectedGame}
+                  onChange={(value) =>
+                    updateAccentSettings((settings) => ({
+                      ...settings,
+                      blurPx: value,
+                    }))
+                  }
+                  {...PRODUCT_CARD_ACCENT_LIMITS.blurPx}
+                />
+                <RangeControl
+                  label="Position X"
+                  value={selectedAccentSettings.offsetXPercent}
+                  suffix="%"
+                  disabled={pending || !selectedGame}
+                  onChange={(value) =>
+                    updateAccentSettings((settings) => ({
+                      ...settings,
+                      offsetXPercent: value,
+                    }))
+                  }
+                  {...PRODUCT_CARD_ACCENT_LIMITS.offsetXPercent}
+                />
+                <RangeControl
+                  label="Position Y"
+                  value={selectedAccentSettings.offsetYPx}
+                  suffix="px"
+                  disabled={pending || !selectedGame}
+                  onChange={(value) =>
+                    updateAccentSettings((settings) => ({
+                      ...settings,
+                      offsetYPx: value,
+                    }))
+                  }
+                  {...PRODUCT_CARD_ACCENT_LIMITS.offsetYPx}
+                />
+                <RangeControl
+                  label="Size"
+                  value={selectedAccentSettings.scalePercent}
+                  suffix="%"
+                  disabled={pending || !selectedGame}
+                  onChange={(value) =>
+                    updateAccentSettings((settings) => ({
+                      ...settings,
+                      scalePercent: value,
+                    }))
+                  }
+                  {...PRODUCT_CARD_ACCENT_LIMITS.scalePercent}
+                />
+                <RangeControl
+                  label="Opacity"
+                  value={selectedAccentSettings.opacityPercent}
+                  suffix="%"
+                  disabled={pending || !selectedGame}
+                  onChange={(value) =>
+                    updateAccentSettings((settings) => ({
+                      ...settings,
+                      opacityPercent: value,
+                    }))
+                  }
+                  {...PRODUCT_CARD_ACCENT_LIMITS.opacityPercent}
+                />
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold">Preview</p>
+                  <Badge variant="outline" className="h-5">
+                    {selectedAccentSettings.hasCustomSettings
+                      ? "Custom"
+                      : "Default"}
+                  </Badge>
+                </div>
+                <AccentPreview
+                  product={previewProduct}
+                  settings={selectedAccentSettings}
+                />
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={pending || !selectedGame}
+                  onClick={resetAccentSettings}
+                >
+                  <RotateCcw className="size-3.5" />
+                  Reset
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={pending || !selectedGame || !accentDirty}
+                  onClick={saveAccentSettings}
+                >
+                  <Save className="size-3.5" />
+                  {pending ? "Saving..." : "Save Accent Settings"}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 

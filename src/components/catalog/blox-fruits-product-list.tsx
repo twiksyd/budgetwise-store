@@ -8,6 +8,8 @@ import {
   BLOX_FRUITS_SECTION_LABELS,
   type BloxFruitsSection,
 } from "@/config/blox-fruits";
+import type { ProductCardAccentSettings } from "@/lib/product-card-accent";
+import type { ProductArtworkSource } from "@/lib/product-artwork-source";
 import { groupBloxFruitsProducts } from "@/lib/blox-fruits";
 import { getConfiguredBadge, getBestValueId } from "@/lib/merchandising";
 import { cn } from "@/lib/utils";
@@ -43,7 +45,9 @@ export function BloxFruitsProductList({
   gameIconUrl = null,
   orderingDisabled = false,
   robloxIconUrls,
+  productArtworkSources,
   cardBackgroundUrls,
+  accentSettings,
 }: {
   gamepasses: StoreGamepass[];
   gameId: string;
@@ -52,7 +56,9 @@ export function BloxFruitsProductList({
   gameIconUrl?: string | null;
   orderingDisabled?: boolean;
   robloxIconUrls?: Map<string, string>;
+  productArtworkSources?: Map<string, ProductArtworkSource>;
   cardBackgroundUrls?: Map<string, string>;
+  accentSettings?: ProductCardAccentSettings;
 }) {
   const sections = groupBloxFruitsProducts(gamepasses);
 
@@ -121,7 +127,12 @@ export function BloxFruitsProductList({
                       featured={isBestValue}
                       orderingDisabled={orderingDisabled}
                       robloxIconUrl={robloxIconUrls?.get(gamepass.id)}
+                      hasProductSpecificArtwork={
+                        productArtworkSources?.get(gamepass.id) === "manual" ||
+                        productArtworkSources?.get(gamepass.id) === "roblox"
+                      }
                       cardBackgroundUrl={cardBackgroundUrls?.get(gamepass.id)}
+                      accentSettings={accentSettings}
                     />
                   </motion.div>
                 );

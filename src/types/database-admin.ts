@@ -79,7 +79,9 @@ type StorefrontPresentationAuditLogRow = {
     | "update_product_layout"
     | "reset_product_layout"
     | "update_product_display_name"
-    | "reset_product_display_name";
+    | "reset_product_display_name"
+    | "update_game_card_accent"
+    | "reset_game_card_accent";
   admin_user_id: string | null;
   admin_email: string | null;
   details: Record<string, unknown>;
@@ -109,6 +111,19 @@ type StoreProductDisplayNameRow = {
   gamepass_id: string;
   game_id: string;
   display_name: string;
+  created_at: string;
+  updated_at: string;
+  updated_by: string | null;
+};
+
+type StoreGameCardAccentSettingsRow = {
+  game_id: string;
+  enabled: boolean;
+  blur_px: number;
+  offset_x_percent: number;
+  offset_y_px: number;
+  scale_percent: number;
+  opacity_percent: number;
   created_at: string;
   updated_at: string;
   updated_by: string | null;
@@ -389,6 +404,12 @@ export type AdminDatabase = {
         Update: never;
         Relationships: [];
       };
+      store_game_card_accent_settings: {
+        Row: StoreGameCardAccentSettingsRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       admin_users: {
         Row: AdminUserRow;
         Insert: never;
@@ -549,6 +570,28 @@ export type AdminDatabase = {
         Args: {
           p_gamepass_id: string;
           p_display_name: string | null;
+          p_admin_user_id: string;
+          p_admin_email: string | null;
+        };
+        Returns: void;
+      };
+      apply_store_game_card_accent_settings: {
+        Args: {
+          p_game_id: string;
+          p_enabled: boolean;
+          p_blur_px: number;
+          p_offset_x_percent: number;
+          p_offset_y_px: number;
+          p_scale_percent: number;
+          p_opacity_percent: number;
+          p_admin_user_id: string;
+          p_admin_email: string | null;
+        };
+        Returns: void;
+      };
+      reset_store_game_card_accent_settings: {
+        Args: {
+          p_game_id: string;
           p_admin_user_id: string;
           p_admin_email: string | null;
         };

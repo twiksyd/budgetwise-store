@@ -5,6 +5,8 @@ import { Egg } from "lucide-react";
 import { GamepassCard } from "@/components/catalog/gamepass-card";
 import type { ProductBadgeValue } from "@/components/catalog/product-badge";
 import { isFallEggProduct } from "@/config/grow-a-garden-2";
+import type { ProductCardAccentSettings } from "@/lib/product-card-accent";
+import type { ProductArtworkSource } from "@/lib/product-artwork-source";
 import { getBestValueId, getConfiguredBadge } from "@/lib/merchandising";
 import {
   groupByCategory,
@@ -34,7 +36,9 @@ function ProductGrid({
   category,
   orderingDisabled,
   robloxIconUrls,
+  productArtworkSources,
   cardBackgroundUrls,
+  accentSettings,
 }: {
   items: StoreGamepass[];
   gameId: string;
@@ -44,7 +48,9 @@ function ProductGrid({
   category: ProductCategory;
   orderingDisabled: boolean;
   robloxIconUrls?: Map<string, string>;
+  productArtworkSources?: Map<string, ProductArtworkSource>;
   cardBackgroundUrls?: Map<string, string>;
+  accentSettings?: ProductCardAccentSettings;
 }) {
   const bestValueId = getBestValueId(
     items.filter(
@@ -83,7 +89,12 @@ function ProductGrid({
               featured={isBestValue}
               orderingDisabled={orderingDisabled}
               robloxIconUrl={robloxIconUrls?.get(gamepass.id)}
+              hasProductSpecificArtwork={
+                productArtworkSources?.get(gamepass.id) === "manual" ||
+                productArtworkSources?.get(gamepass.id) === "roblox"
+              }
               cardBackgroundUrl={cardBackgroundUrls?.get(gamepass.id)}
+              accentSettings={accentSettings}
             />
           </motion.div>
         );
@@ -100,7 +111,9 @@ export function GrowAGarden2ProductList({
   gameIconUrl = null,
   orderingDisabled = false,
   robloxIconUrls,
+  productArtworkSources,
   cardBackgroundUrls,
+  accentSettings,
 }: {
   gamepasses: StoreGamepass[];
   gameId: string;
@@ -109,7 +122,9 @@ export function GrowAGarden2ProductList({
   gameIconUrl?: string | null;
   orderingDisabled?: boolean;
   robloxIconUrls?: Map<string, string>;
+  productArtworkSources?: Map<string, ProductArtworkSource>;
   cardBackgroundUrls?: Map<string, string>;
+  accentSettings?: ProductCardAccentSettings;
 }) {
   const fallEggItems = gamepasses.filter((g) => isFallEggProduct(g.name));
   const rest = gamepasses.filter((g) => !isFallEggProduct(g.name));
@@ -149,7 +164,9 @@ export function GrowAGarden2ProductList({
               category={category}
               orderingDisabled={orderingDisabled}
               robloxIconUrls={robloxIconUrls}
+              productArtworkSources={productArtworkSources}
               cardBackgroundUrls={cardBackgroundUrls}
+              accentSettings={accentSettings}
             />
           </section>
         );
@@ -187,7 +204,9 @@ export function GrowAGarden2ProductList({
             category="gamepasses"
             orderingDisabled={orderingDisabled}
             robloxIconUrls={robloxIconUrls}
+            productArtworkSources={productArtworkSources}
             cardBackgroundUrls={cardBackgroundUrls}
+            accentSettings={accentSettings}
           />
         </section>
       )}
