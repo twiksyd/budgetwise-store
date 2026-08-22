@@ -214,6 +214,47 @@
     z-index: 1;
   }
 
+  .messenger-handoff-cta {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    box-shadow:
+      0 12px 30px -16px color-mix(in oklch, var(--primary) 80%, black),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+
+  .messenger-handoff-cta::after {
+    content: "";
+    position: absolute;
+    inset: -55% -35%;
+    z-index: 1;
+    transform: translateX(-145%) skewX(-20deg);
+    background: linear-gradient(
+      100deg,
+      transparent 28%,
+      rgba(255, 255, 255, 0.2) 40%,
+      rgba(255, 255, 255, 0.82) 50%,
+      rgba(238, 226, 255, 0.52) 58%,
+      transparent 72%
+    );
+    mix-blend-mode: screen;
+    opacity: 0;
+    animation: messenger-button-shimmer 3.6s ease-in-out 0.9s infinite;
+    pointer-events: none;
+  }
+
+  .messenger-handoff-cta:hover {
+    filter: brightness(1.05);
+    box-shadow:
+      0 16px 34px -16px color-mix(in oklch, var(--primary) 90%, black),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  }
+
+  .messenger-handoff-cta > * {
+    position: relative;
+    z-index: 2;
+  }
+
   .cn-toast [data-button][data-action] {
     transition:
       transform 120ms ease-out,
@@ -241,12 +282,30 @@
   }
 }
 
+@keyframes messenger-button-shimmer {
+  0%,
+  3%,
+  100% {
+    opacity: 0;
+    transform: translateX(-145%) skewX(-20deg);
+  }
+  12% {
+    opacity: 0.95;
+  }
+  24% {
+    opacity: 0;
+    transform: translateX(145%) skewX(-20deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .via-plus-preorder-badge::after {
     animation: none;
   }
 
-  .via-plus-preorder-badge::after {
+  .via-plus-preorder-badge::after,
+  .messenger-handoff-cta::after {
+    animation: none;
     display: none;
   }
 }

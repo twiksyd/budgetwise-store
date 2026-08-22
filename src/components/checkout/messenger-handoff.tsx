@@ -84,7 +84,7 @@ export function MessengerHandoff({
         <Button
           size="lg"
           onClick={handleCopyAndOpenMessenger}
-          className="mt-4 h-12 w-full text-base font-semibold"
+          className="messenger-handoff-cta mt-4 h-12 w-full text-base font-semibold active:scale-[0.98] active:translate-y-0"
           disabled={!messengerLink}
         >
           <Send className="size-5" />
@@ -92,8 +92,8 @@ export function MessengerHandoff({
         </Button>
 
         <p className="text-muted-foreground mt-2 text-center text-xs leading-relaxed">
-          I-check ang message at pindutin lang po ang Send. Kung walang message,
-          i-paste ang nakopyang Order Message.
+          I-click ito para buksan ang Messenger. I-check ang message at pindutin
+          lang po ang Send.
         </p>
 
         {copyFailed ? (
