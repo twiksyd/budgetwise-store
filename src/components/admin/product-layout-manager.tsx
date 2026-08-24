@@ -21,13 +21,15 @@ import {
   saveProductLayoutAction,
   saveProductCardAccentSettingsAction,
 } from "@/app/admin/(protected)/catalog-layout/actions";
+import { ProductCardArtworkAccent } from "@/components/catalog/product-card-artwork-accent";
+import { ProductArtworkImage } from "@/components/catalog/product-artwork-image";
+import { Price } from "@/components/shared/price";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   clampProductCardAccentSettings,
   DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS,
-  getProductCardAccentMaskStyles,
   PRODUCT_CARD_ACCENT_LIMITS,
   type ProductCardAccentSettings,
   type ProductCardAccentSettingsWithMeta,
@@ -405,50 +407,6 @@ function RangeControl({
   );
 }
 
-function PreviewAccentLayer({
-  src,
-  settings,
-}: {
-  src: string;
-  settings: ProductCardAccentSettings;
-}) {
-  const sizePx = Math.round(76 * (settings.scalePercent / 100));
-  const maskStyles = getProductCardAccentMaskStyles(settings);
-
-  if (!settings.enabled) return null;
-
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
-      <div
-        className="absolute inset-y-0 right-0 w-[68%]"
-        style={maskStyles.outerMask}
-      >
-        <div
-          className="absolute top-1/2 right-0"
-          style={{
-            ...maskStyles.iconMask,
-            height: `${sizePx}px`,
-            width: `${sizePx}px`,
-            opacity: settings.opacityPercent / 100,
-            filter: `blur(${settings.blurPx}px) saturate(1.25)`,
-            transform: `translate(${settings.offsetXPercent}%, calc(-50% + ${settings.offsetYPx}px))`,
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={src}
-            alt=""
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            className="absolute inset-0 h-full w-full rounded-[2rem] object-cover [mask-image:radial-gradient(circle_at_58%_50%,black_0%,black_58%,rgba(0,0,0,0.62)_74%,transparent_96%)] dark:mix-blend-screen dark:brightness-125 dark:saturate-150"
-          />
-        </div>
-      </div>
-      <div className="absolute inset-y-0 right-0 w-2/3 bg-gradient-to-r from-background/78 via-background/18 to-transparent dark:hidden" />
-    </div>
-  );
-}
-
 function AccentPreview({
   product,
   settings,
@@ -472,23 +430,18 @@ function AccentPreview({
 
   return (
     <div className="surface-premium relative overflow-hidden rounded-2xl p-3.5">
-      <PreviewAccentLayer src={product.artworkUrl} settings={settings} />
+      <ProductCardArtworkAccent src={product.artworkUrl} settings={settings} />
       <div className="relative z-10 grid grid-cols-[4.75rem_1fr] gap-3">
         <div className="bg-muted relative aspect-square overflow-hidden rounded-2xl">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={product.artworkUrl}
-            alt=""
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            className="h-full w-full object-contain"
-          />
+          <ProductArtworkImage src={product.artworkUrl} />
         </div>
-        <div className="min-w-0">
-          <Badge variant="secondary" className="h-6 px-2 text-[11px]">
-            {product.robuxAmount.toLocaleString()} Robux
-          </Badge>
-          <p className="font-heading mt-1.5 truncate text-[15px] leading-snug font-semibold">
+        <div className="flex min-w-0 flex-col">
+          <div className="flex min-h-6 items-start justify-between gap-2">
+            <Badge variant="secondary" className="h-6 px-2 text-[11px]">
+              {product.robuxAmount.toLocaleString()} Robux
+            </Badge>
+          </div>
+          <p className="font-heading mt-1.5 text-[15px] leading-snug font-semibold text-balance">
             {customerName}
           </p>
           <p className="text-muted-foreground mt-1 text-xs">
@@ -497,11 +450,11 @@ function AccentPreview({
         </div>
       </div>
       <div className="relative z-10 mt-3 flex items-end justify-between gap-3">
-        <p className="text-primary font-heading text-2xl font-bold tracking-normal tabular-nums">
-          {formatPrice(product.price)}
-        </p>
-        <div className="bg-primary text-primary-foreground rounded-full px-4 py-2 text-xs font-semibold">
-          I-add sa Cart
+        <Price amount={product.price} />
+        <div className="w-[9.25rem] max-w-[58%] shrink-0">
+          <div className="bg-primary text-primary-foreground flex h-11 w-full items-center justify-center rounded-xl px-3 text-sm font-semibold shadow-[0_10px_24px_-16px_color-mix(in_oklch,var(--primary)_60%,transparent)] sm:h-10">
+            I-add sa Cart
+          </div>
         </div>
       </div>
     </div>

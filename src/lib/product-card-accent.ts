@@ -107,12 +107,15 @@ export function getProductCardAccentMaskStyles(
     PRODUCT_CARD_ACCENT_LIMITS.fadeWidthPercent.min,
     PRODUCT_CARD_ACCENT_LIMITS.fadeWidthPercent.max,
   );
-  const fadeMid = clamp(fadeStart + fadeWidth * 0.45, fadeStart, 96);
-  const fadeEnd = clamp(fadeStart + fadeWidth, fadeMid, 100);
-  const outerMaskImage = `linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.12) ${fadeStart}%, rgba(0,0,0,0.78) ${fadeMid}%, black ${fadeEnd}%)`;
-  const iconEdgeWidth = clamp(fadeWidth * 0.42, 10, 28);
-  const iconEdgeMid = clamp(iconEdgeWidth * 0.45, 4, 14);
-  const iconMaskImage = `linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.32) ${iconEdgeMid}%, black ${iconEdgeWidth}%)`;
+  const softStop = clamp(fadeStart + fadeWidth, fadeStart + 12, 100);
+  const p1 = clamp(fadeStart + fadeWidth * 0.2, fadeStart, 100);
+  const p2 = clamp(fadeStart + fadeWidth * 0.45, p1, 100);
+  const p3 = clamp(fadeStart + fadeWidth * 0.7, p2, 100);
+  const p4 = softStop;
+  const p5 = clamp(p4 + (100 - p4) * 0.55, p4, 100);
+  const outerMaskImage = `linear-gradient(90deg, transparent 0%, transparent ${fadeStart}%, rgba(0,0,0,0.08) ${p1}%, rgba(0,0,0,0.22) ${p2}%, rgba(0,0,0,0.48) ${p3}%, rgba(0,0,0,0.72) ${p4}%, rgba(0,0,0,0.88) ${p5}%, black 100%)`;
+  const iconMaskImage =
+    "radial-gradient(ellipse at 58% 50%, black 0%, black 48%, rgba(0,0,0,0.72) 72%, transparent 100%)";
 
   return {
     outerMask: {

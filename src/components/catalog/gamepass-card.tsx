@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Gamepad2 } from "lucide-react";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
+import { ProductCardArtworkAccent } from "@/components/catalog/product-card-artwork-accent";
 import { ProductArtworkImage } from "@/components/catalog/product-artwork-image";
 import { Price } from "@/components/shared/price";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,6 @@ import {
 import { getProductDisplayName } from "@/lib/product-display-name";
 import {
   DEFAULT_PRODUCT_CARD_ACCENT_SETTINGS,
-  getProductCardAccentMaskStyles,
   type ProductCardAccentSettings,
 } from "@/lib/product-card-accent";
 import type { ProductCategory } from "@/lib/product-category";
@@ -37,54 +37,6 @@ function CardBackgroundLayer({ src }: { src?: string | null }) {
       <div className="absolute inset-0 bg-[linear-gradient(0deg,color-mix(in_oklch,var(--background)_86%,transparent)_0%,color-mix(in_oklch,var(--background)_52%,transparent)_28%,transparent_58%)] dark:bg-[linear-gradient(0deg,color-mix(in_oklch,var(--background)_92%,transparent)_0%,color-mix(in_oklch,var(--background)_64%,transparent)_32%,transparent_62%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_23%_27%,color-mix(in_oklch,var(--background)_82%,transparent)_0%,color-mix(in_oklch,var(--background)_58%,transparent)_24%,transparent_48%)] dark:bg-[radial-gradient(circle_at_23%_27%,color-mix(in_oklch,var(--background)_88%,transparent)_0%,color-mix(in_oklch,var(--background)_66%,transparent)_28%,transparent_52%)]" />
       <div className="absolute inset-0 bg-gradient-to-br from-primary/6 via-transparent to-background/18 dark:from-primary/10 dark:to-background/26" />
-    </div>
-  );
-}
-
-function DecorativeIconAccent({
-  src,
-  settings,
-}: {
-  src?: string | null;
-  settings: ProductCardAccentSettings;
-}) {
-  if (!src || !settings.enabled) return null;
-
-  const sizePx = Math.round(76 * (settings.scalePercent / 100));
-  const maskStyles = getProductCardAccentMaskStyles(settings);
-
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
-    >
-      <div
-        className="absolute inset-y-0 right-0 w-[68%]"
-        style={maskStyles.outerMask}
-      >
-        <div
-          className="absolute top-1/2 right-0"
-          style={{
-            ...maskStyles.iconMask,
-            height: `${sizePx}px`,
-            width: `${sizePx}px`,
-            opacity: settings.opacityPercent / 100,
-            filter: `blur(${settings.blurPx}px) saturate(1.25)`,
-            transform: `translate(${settings.offsetXPercent}%, calc(-50% + ${settings.offsetYPx}px))`,
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={src}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            referrerPolicy="no-referrer"
-            className="absolute inset-0 h-full w-full rounded-[2rem] object-cover [mask-image:radial-gradient(circle_at_58%_50%,black_0%,black_58%,rgba(0,0,0,0.62)_74%,transparent_96%)] dark:mix-blend-screen dark:brightness-125 dark:saturate-150"
-          />
-        </div>
-      </div>
-      <div className="absolute inset-y-0 right-0 w-2/3 bg-gradient-to-r from-background/78 via-background/18 to-transparent dark:hidden" />
     </div>
   );
 }
@@ -199,7 +151,7 @@ export function GamepassCard({
     >
       <CardBackgroundLayer src={cardBackgroundUrl} />
       {!cardBackgroundUrl && (
-        <DecorativeIconAccent
+        <ProductCardArtworkAccent
           src={decorativeIconUrl}
           settings={accentSettings}
         />
