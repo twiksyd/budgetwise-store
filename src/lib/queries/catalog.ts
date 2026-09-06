@@ -1,4 +1,5 @@
 import { createPublicClient } from "@/lib/supabase/public";
+import { withGameArtwork } from "@/lib/game-artwork";
 import { featuredGamepasses, type ProductBadgeKind } from "@/config/merchandising";
 import type { StoreGame, StoreGamepass } from "@/types/database";
 
@@ -139,7 +140,7 @@ export async function getGamesAndPresentation(): Promise<{
   if (gamesResult.error) throw gamesResult.error;
 
   return {
-    games: sortGamesForStorefront(gamesResult.data ?? [], presentation),
+    games: sortGamesForStorefront((gamesResult.data ?? []).map(withGameArtwork), presentation),
     presentation,
   };
 }
@@ -157,7 +158,7 @@ export async function getGameBySlug(slug: string): Promise<StoreGame | null> {
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return data ? withGameArtwork(data) : null;
 }
 
 export interface FeaturedGamepass {
@@ -192,7 +193,7 @@ export async function getFeaturedGamepasses(): Promise<FeaturedGamepass[]> {
 
   if (gamesError) throw gamesError;
 
-  const gameById = new Map((games ?? []).map((g) => [g.id, g]));
+  const gameById = new Map((games ?? []).map((g) => [g.id, withGameArtwork(g)]));
   const gamepassById = new Map(gamepasses.map((g) => [g.id, g]));
 
   // .in() doesn't guarantee row order matches `ids`, so re-derive it from

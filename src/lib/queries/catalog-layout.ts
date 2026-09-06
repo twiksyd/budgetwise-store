@@ -1,4 +1,5 @@
 import "server-only";
+import { withGameArtwork } from "@/lib/game-artwork";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -134,7 +135,7 @@ export async function getCatalogLayoutData(): Promise<CatalogLayoutData> {
       id: game.id,
       name: game.name,
       category: game.category,
-      iconUrl: game.icon_url,
+      iconUrl: withGameArtwork(game).icon_url,
       sortOrder:
         presentation?.sort_order ??
         maxManualOrder +

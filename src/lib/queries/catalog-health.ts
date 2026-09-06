@@ -1,4 +1,5 @@
 import "server-only";
+import { withGameArtwork } from "@/lib/game-artwork";
 
 import universeIdsConfig from "@/config/roblox-universe-ids.json";
 import {
@@ -478,9 +479,9 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
     ),
   ]);
 
-  const rawGames = rawGamesResult.data;
+  const rawGames = rawGamesResult.data.map(withGameArtwork);
   const rawProducts = rawProductsResult.data;
-  const storeGames = storeGamesResult.data;
+  const storeGames = storeGamesResult.data.map(withGameArtwork);
   const storeProducts = storeProductsResult.data;
   const cacheRows = cacheResult.data;
   const overrides = overridesResult.data;
