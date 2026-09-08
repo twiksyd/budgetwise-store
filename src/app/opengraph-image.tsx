@@ -3,7 +3,7 @@ import { join } from "path";
 import { ImageResponse } from "next/og";
 import { siteConfig } from "@/config/site";
 
-export const alt = "BudgetWise - All about delivering value.";
+export const alt = "BudgetWise logo";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -18,12 +18,9 @@ export default function OpengraphImage() {
           width: "100%",
           height: "100%",
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "#f7f4fc",
-          borderTop: "10px solid #7535df",
-          color: "#221630",
+          background: "transparent",
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -34,12 +31,6 @@ export default function OpengraphImage() {
           height={siteConfig.logo.height}
           style={{ objectFit: "contain" }}
         />
-        <div style={{ display: "flex", marginTop: 40, fontSize: 36, color: "#675376" }}>
-          {siteConfig.slogan}
-        </div>
-        <div style={{ display: "flex", marginTop: 22, fontSize: 24, color: "#675376" }}>
-          {new URL(siteConfig.url).hostname}
-        </div>
       </div>
     ),
     { ...size },
