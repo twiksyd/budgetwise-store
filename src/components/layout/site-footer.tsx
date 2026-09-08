@@ -14,9 +14,6 @@ export function SiteFooter() {
           <div>
             <div className="flex flex-col items-start gap-2">
               <BrandMark className="h-16" />
-              <span className="text-muted-foreground text-[11px] leading-none font-normal">
-                {siteConfig.slogan}
-              </span>
             </div>
             <p className="text-muted-foreground mt-4 max-w-xs text-sm leading-relaxed">
               A digital marketplace for discounted in-game currency,

@@ -31,9 +31,6 @@ export function MobileNav() {
         <SheetHeader>
           <SheetTitle className="flex flex-col items-start gap-2">
             <BrandMark className="h-16" />
-            <span className="text-muted-foreground text-[10px] leading-none font-normal">
-              {siteConfig.slogan}
-            </span>
           </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-1 px-4">

@@ -13,9 +13,6 @@ export function SiteHeader() {
           <MobileNav />
           <Link href="/" className="flex flex-col items-center gap-0.5">
             <BrandMark className="h-12 sm:h-14" />
-            <span className="text-muted-foreground text-[9.5px] leading-none font-normal sm:text-[11px]">
-              {siteConfig.slogan}
-            </span>
           </Link>
         </div>
         <nav className="hidden items-center gap-10 text-sm sm:flex">

@@ -20,7 +20,7 @@ export default function OpengraphImage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "transparent",
+          background: "#ffffff",
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
