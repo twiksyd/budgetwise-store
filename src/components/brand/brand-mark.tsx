@@ -1,27 +1,23 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
 
-// The official BudgetWise icon mark (public/icons/NOBGLogo.png) — the "BW"
-// crown mark, transparent background, no wordmark baked in. Paired with a
-// real "BudgetWise" text label (and slogan) at each call site rather than
-// relying on image-baked text, so the slogan can live there too. Sized by
-// height with width auto-derived from the source's own content aspect
-// ratio so it's never stretched; object-contain only, never cropped.
-// Decorative (empty alt) — every call site pairs this with visible
-// "BudgetWise" text that carries the accessible name.
+// Full supplied wordmark; the image now carries the accessible brand name.
 export function BrandMark({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "relative inline-flex h-11 shrink-0 [aspect-ratio:1072/696]",
+        "relative inline-flex h-12 shrink-0",
         className,
       )}
+      style={{ aspectRatio: `${siteConfig.logo.width} / ${siteConfig.logo.height}` }}
     >
       <Image
-        src="/icons/NOBGLogo.png"
-        alt=""
+        src={siteConfig.logo.src}
+        alt={siteConfig.name}
         fill
-        sizes="100px"
+        sizes="(min-width: 640px) 160px, 140px"
+        quality={90}
         className="object-contain"
         priority
       />

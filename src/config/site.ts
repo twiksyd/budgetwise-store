@@ -1,5 +1,6 @@
 export const siteConfig = {
   name: "BudgetWise",
+  logo: { src: "/icons/budgetwise-logo.png", width: 483, height: 221 },
   // The permanent brand slogan — shown under the name in the navbar and
   // footer, not a rotating marketing headline (that's the hero copy).
   slogan: "All about delivering value.",
@@ -8,9 +9,8 @@ export const siteConfig = {
   // Shorter, slogan-led variant specifically for social share cards
   // (Open Graph / Twitter) — the main description above is tuned for
   // search snippets instead.
-  ogDescription:
-    "All about delivering value. Premium gamepasses and in-game currencies at competitive prices.",
-  url: "https://budgetwise.shop",
+  ogDescription: "All about delivering value.",
+  url: "https://budgetwiseshop.com",
   // m.me accepts a numeric Facebook Page ID directly, which is what this Page
   // uses since it hasn't claimed a custom username (its URL is profile.php?id=...).
   messengerPageId: "61589047545427",

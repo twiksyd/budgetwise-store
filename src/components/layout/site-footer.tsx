@@ -12,15 +12,10 @@ export function SiteFooter() {
       <div className="mx-auto max-w-6xl px-6 py-16">
         <div className="grid gap-12 sm:grid-cols-[1.3fr_1fr_1fr]">
           <div>
-            <div className="flex items-center gap-2.5">
-              <BrandMark className="h-9" />
-              <span className="flex flex-col justify-center gap-0.5">
-                <span className="font-heading text-base leading-none font-semibold tracking-tight">
-                  {siteConfig.name}
-                </span>
-                <span className="text-muted-foreground text-[11px] leading-none font-normal">
-                  {siteConfig.slogan}
-                </span>
+            <div className="flex flex-col items-start gap-2">
+              <BrandMark className="h-16" />
+              <span className="text-muted-foreground text-[11px] leading-none font-normal">
+                {siteConfig.slogan}
               </span>
             </div>
             <p className="text-muted-foreground mt-4 max-w-xs text-sm leading-relaxed">

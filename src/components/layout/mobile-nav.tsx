@@ -29,15 +29,10 @@ export function MobileNav() {
       </Button>
       <SheetContent side="left" className="w-2/3">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <BrandMark className="h-8" />
-            <span className="flex flex-col justify-center gap-0.5">
-              <span className="font-heading text-[14px] leading-none font-semibold tracking-tight">
-                {siteConfig.name}
-              </span>
-              <span className="text-muted-foreground text-[10px] leading-none font-normal">
-                {siteConfig.slogan}
-              </span>
+          <SheetTitle className="flex flex-col items-start gap-2">
+            <BrandMark className="h-16" />
+            <span className="text-muted-foreground text-[10px] leading-none font-normal">
+              {siteConfig.slogan}
             </span>
           </SheetTitle>
         </SheetHeader>

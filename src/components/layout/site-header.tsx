@@ -11,15 +11,10 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:h-20 sm:px-6">
         <div className="flex items-center gap-2.5 sm:gap-4">
           <MobileNav />
-          <Link href="/" className="flex items-center gap-2 sm:gap-2.5">
-            <BrandMark className="h-7 sm:h-10" />
-            <span className="flex flex-col justify-center gap-0.5">
-              <span className="font-heading text-sm leading-none font-semibold tracking-tight sm:text-base">
-                {siteConfig.name}
-              </span>
-              <span className="text-muted-foreground text-[9.5px] leading-none font-normal sm:text-[11px]">
-                {siteConfig.slogan}
-              </span>
+          <Link href="/" className="flex flex-col items-center gap-0.5">
+            <BrandMark className="h-12 sm:h-14" />
+            <span className="text-muted-foreground text-[9.5px] leading-none font-normal sm:text-[11px]">
+              {siteConfig.slogan}
             </span>
           </Link>
         </div>

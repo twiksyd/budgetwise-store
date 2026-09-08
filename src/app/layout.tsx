@@ -38,15 +38,15 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   openGraph: {
-    title: defaultTitle,
+    title: siteConfig.name,
     description: siteConfig.ogDescription,
     siteName: siteConfig.name,
-    url: siteConfig.url,
+    url: `${siteConfig.url}/`,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: defaultTitle,
+    title: siteConfig.name,
     description: siteConfig.ogDescription,
   },
 };

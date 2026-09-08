@@ -3,13 +3,13 @@
 import { useRef } from "react";
 import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
-import bannerSrc from "../../../public/icons/NOBGbanner-hero.webp";
+import bannerSrc from "../../../public/icons/budgetwise-logo.png";
 
 const BANNER_SRC = bannerSrc;
 
 // The official BudgetWise mark, transparent PNG, used as hero backdrop —
 // branding, not decoration. Blurred at 13px (~20% of Tailwind's 64px max
-// blur preset), slightly desaturated, and shown at reduced opacity so it
+// blur preset) and shown at reduced opacity so it
 // reads as a large soft brand watermark behind the content rather than
 // competing with it. Layering (back to front): banner -> dark overlay ->
 // soft purple glow -> hero content. Fades into the section below via a
@@ -39,9 +39,9 @@ export function HeroBanner() {
           alt=""
           fill
           priority
-          quality={62}
+          quality={90}
           sizes="100vw"
-          className="scale-150 object-contain opacity-80 blur-[13px] saturate-75 sm:scale-125"
+          className="object-contain opacity-80 blur-[13px]"
         />
       </motion.div>
 
