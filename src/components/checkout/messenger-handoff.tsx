@@ -84,16 +84,18 @@ export function MessengerHandoff({
         <Button
           size="lg"
           onClick={handleCopyAndOpenMessenger}
-          className="messenger-handoff-cta mt-4 h-12 w-full text-base font-semibold active:scale-[0.98] active:translate-y-0"
+          className="messenger-handoff-cta mt-4 h-auto min-h-12 w-full py-3 text-base leading-snug font-semibold whitespace-normal active:scale-[0.98] active:translate-y-0"
           disabled={!messengerLink}
         >
           <Send className="size-5" />
-          Buksan ang Messenger
+          <span className="min-w-0">
+            Click Here to Open Messenger and Send Your Order
+          </span>
         </Button>
 
         <p className="text-muted-foreground mt-2 text-center text-xs leading-relaxed">
-          I-click ito para buksan ang Messenger. I-check ang message at pindutin
-          lang po ang Send.
+          I-click ang purple button para mabuksan ang Messenger with your
+          ready-made order message. Huwag screenshot lang.
         </p>
 
         {copyFailed ? (
