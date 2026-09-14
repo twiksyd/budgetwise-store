@@ -8,6 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isRobuxPlusGame } from "@/config/robux-products";
 import { useCartStore } from "@/stores/cart-store";
+import { writePendingOrderClear } from "@/lib/pending-order-clear";
+import {
+  buildCheckoutSignature,
+  clearCheckoutAttempt,
+  resolveCheckoutAttempt,
+} from "@/lib/checkout-attempt";
 
 const CONTROL_CHARACTER_RE = /[\x00-\x1f\x7f]/;
 
@@ -20,7 +26,16 @@ type ViaPlusErrors = {
 export function CheckoutForm() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
+  const removeItem = useCartStore((state) => state.removeItem);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const robloxDisplayNameRef = useRef<HTMLInputElement>(null);
+  const age16Ref = useRef<HTMLInputElement>(null);
+  const verifiedAccountRef = useRef<HTMLInputElement>(null);
+  const errorRegionRef = useRef<HTMLDivElement>(null);
+  // Mirrors `isSubmitting` but reads/writes synchronously, so two submit
+  // events fired in the same tick (double Enter, a fast double-tap) can't
+  // both slip past the disabled-button check before React re-renders.
+  const isSubmittingRef = useRef(false);
   const hasViaPlus = items.some((item) => isRobuxPlusGame(item.gameId));
   const viaPlusRobuxAmount = items.reduce(
     (sum, item) =>
@@ -39,6 +54,13 @@ export function CheckoutForm() {
   const [viaPlusErrors, setViaPlusErrors] = useState<ViaPlusErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unavailableGamepassIds, setUnavailableGamepassIds] = useState<
+    string[] | null
+  >(null);
+
+  const unavailableItems = unavailableGamepassIds
+    ? items.filter((item) => unavailableGamepassIds.includes(item.gamepassId))
+    : [];
 
   // Focused after a beat so it lands once the page transition from the cart
   // drawer has settled, rather than yanking focus (and the keyboard, on
@@ -48,9 +70,36 @@ export function CheckoutForm() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Once the customer removes (or otherwise loses) every affected item, the
+  // recovery banner has nothing left to say — drop it instead of leaving a
+  // stale error on screen.
+  useEffect(() => {
+    if (!unavailableGamepassIds) return;
+    if (unavailableItems.length === 0) setUnavailableGamepassIds(null);
+  }, [unavailableGamepassIds, unavailableItems.length]);
+
+  // Move focus to whichever error just appeared so screen reader users land
+  // on it immediately instead of having to discover it silently.
+  useEffect(() => {
+    if (error || unavailableItems.length > 0) {
+      errorRegionRef.current?.focus();
+    }
+  }, [error, unavailableItems.length]);
+
+  function handleRemoveUnavailableItems() {
+    if (!unavailableGamepassIds) return;
+    for (const gamepassId of unavailableGamepassIds) {
+      removeItem(gamepassId);
+    }
+    setUnavailableGamepassIds(null);
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (isSubmittingRef.current) return;
+
     setError(null);
+    setUnavailableGamepassIds(null);
     setViaPlusErrors({});
 
     if (hasViaPlus) {
@@ -80,51 +129,92 @@ export function CheckoutForm() {
 
       if (Object.keys(nextViaPlusErrors).length > 0) {
         setViaPlusErrors(nextViaPlusErrors);
+        if (nextViaPlusErrors.robloxDisplayName) {
+          robloxDisplayNameRef.current?.focus();
+        } else if (nextViaPlusErrors.age16Confirmed) {
+          age16Ref.current?.focus();
+        } else if (nextViaPlusErrors.verifiedAccountConfirmed) {
+          verifiedAccountRef.current?.focus();
+        }
         return;
       }
     }
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     try {
+      const submittedItems = items.map((item) => ({
+        gamepassId: item.gamepassId,
+        quantity: item.quantity,
+      }));
+      const viaPlusDetails = hasViaPlus
+        ? {
+            robloxDisplayName,
+            age16Confirmed,
+            verifiedAccountConfirmed,
+          }
+        : undefined;
+
+      // Both credentials are generated once per checkout attempt and reused
+      // by every retry of it: the idempotency key so the server resolves a
+      // retry to the order the first attempt already created, and the view
+      // token so the success URL still opens that order.
+      const attempt = resolveCheckoutAttempt(
+        buildCheckoutSignature({
+          items: submittedItems,
+          contact: { name, robloxUsername },
+          viaPlus: viaPlusDetails,
+        }),
+      );
+
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((item) => ({
-            gamepassId: item.gamepassId,
-            quantity: item.quantity,
-          })),
+          items: submittedItems,
           contact: { name, robloxUsername },
-          viaPlus: hasViaPlus
-            ? {
-                robloxDisplayName,
-                age16Confirmed,
-                verifiedAccountConfirmed,
-              }
-            : undefined,
+          viaPlus: viaPlusDetails,
+          idempotencyKey: attempt.idempotencyKey,
+          viewToken: attempt.viewToken,
         }),
       });
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        if (response.status === 409) {
-          setError(
-            "One or more items in your cart are no longer available. Please review your cart and try again.",
-          );
+        if (
+          response.status === 409 &&
+          Array.isArray(body?.unavailableGamepassIds)
+        ) {
+          setUnavailableGamepassIds(body.unavailableGamepassIds);
         } else {
           setError(body?.error ?? "Something went wrong. Please try again.");
         }
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
         return;
       }
 
       const { orderNumber } = await response.json();
+      // This attempt is done: a later checkout of the same items is a new
+      // order, not a replay of this one.
+      clearCheckoutAttempt();
+      // Record exactly which items/quantities this order covers so the
+      // success page clears only those, once — see clear-cart-on-success.
+      writePendingOrderClear(orderNumber, submittedItems);
       // The cart is cleared on the success page itself, not here. Clearing it
       // while still on /checkout would race against navigation away.
-      router.push(`/checkout/success/${orderNumber}`);
+      // The order number names the order; the token is what authorises
+      // viewing it, so the slip URL carries both.
+      router.push(
+        `/checkout/success/${encodeURIComponent(orderNumber)}?t=${encodeURIComponent(attempt.viewToken)}`,
+      );
+      // isSubmitting intentionally stays true here: the order already
+      // exists server-side, so the button must stay locked until the
+      // navigation above actually lands, not reset while it's in flight.
     } catch {
       setError("Something went wrong. Please try again.");
-    } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   }
@@ -197,6 +287,7 @@ export function CheckoutForm() {
             <Label htmlFor="robloxDisplayName">Roblox Display Name</Label>
             <Input
               id="robloxDisplayName"
+              ref={robloxDisplayNameRef}
               className="h-11"
               value={robloxDisplayName}
               onChange={(e) => setRobloxDisplayName(e.target.value)}
@@ -231,6 +322,7 @@ export function CheckoutForm() {
             <label className="flex gap-3 text-sm leading-relaxed">
               <input
                 type="checkbox"
+                ref={age16Ref}
                 checked={age16Confirmed}
                 onChange={(event) =>
                   setAge16Confirmed(event.currentTarget.checked)
@@ -248,6 +340,7 @@ export function CheckoutForm() {
             <label className="flex gap-3 text-sm leading-relaxed">
               <input
                 type="checkbox"
+                ref={verifiedAccountRef}
                 checked={verifiedAccountConfirmed}
                 onChange={(event) =>
                   setVerifiedAccountConfirmed(event.currentTarget.checked)
@@ -265,7 +358,58 @@ export function CheckoutForm() {
         </section>
       )}
 
-      {error && <p className="text-destructive text-sm">{error}</p>}
+      {unavailableItems.length > 0 ? (
+        <div
+          ref={errorRegionRef}
+          tabIndex={-1}
+          role="alert"
+          aria-live="assertive"
+          className="border-destructive/30 bg-destructive/5 rounded-xl border p-3.5 text-sm outline-none"
+        >
+          <p className="text-destructive font-semibold">
+            {unavailableItems.length === 1
+              ? "1 item sa cart ninyo ay hindi na available:"
+              : `${unavailableItems.length} items sa cart ninyo ay hindi na available:`}
+          </p>
+          <ul className="text-destructive/90 mt-2 list-disc space-y-1 pl-5">
+            {unavailableItems.map((item) => (
+              <li key={item.gamepassId}>
+                {item.name} — {item.gameName}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={handleRemoveUnavailableItems}
+            >
+              Alisin ang mga item na ito
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/cart")}
+            >
+              Balikan ang Cart
+            </Button>
+          </div>
+        </div>
+      ) : (
+        error && (
+          <p
+            ref={errorRegionRef}
+            tabIndex={-1}
+            role="alert"
+            aria-live="assertive"
+            className="text-destructive text-sm outline-none"
+          >
+            {error}
+          </p>
+        )
+      )}
 
       <div className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 rounded-xl border px-3 py-2.5">
         <div className="flex gap-2.5">

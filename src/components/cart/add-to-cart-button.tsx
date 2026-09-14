@@ -10,6 +10,10 @@ import { getProductDisplayName } from "@/lib/product-display-name";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import { useUIStore } from "@/stores/ui-store";
+import {
+  MAX_DISTINCT_ORDER_ITEMS,
+  MAX_QUANTITY_PER_PRODUCT,
+} from "@/lib/validations/order";
 import type { StoreGamepass } from "@/types/database";
 
 const ADDED_STATE_MS = 1400;
@@ -36,9 +40,20 @@ export function AddToCartButton({
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
   const closeCart = useUIStore((state) => state.closeCart);
+  const cartQuantity = useCartStore(
+    (state) =>
+      state.items.find((i) => i.gamepassId === gamepass.id)?.quantity ?? 0,
+  );
+  const cartProductCount = useCartStore((state) => state.items.length);
   const [justAdded, setJustAdded] = useState(false);
   const revertTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const productName = getProductDisplayName(gamepass);
+
+  const isInCart = cartQuantity > 0;
+  const quantityLimitReached = isInCart && cartQuantity >= MAX_QUANTITY_PER_PRODUCT;
+  const productLimitReached =
+    !isInCart && cartProductCount >= MAX_DISTINCT_ORDER_ITEMS;
+  const cartLimitReached = quantityLimitReached || productLimitReached;
 
   useEffect(() => {
     return () => {
@@ -62,9 +77,9 @@ export function AddToCartButton({
           justAdded &&
             "bg-emerald-600 hover:bg-emerald-600 dark:bg-emerald-500 dark:hover:bg-emerald-500",
         )}
-        disabled={disabled}
+        disabled={disabled || cartLimitReached}
         onClick={() => {
-          addItem({
+          const result = addItem({
             gamepassId: gamepass.id,
             gameId,
             gameSlug,
@@ -74,6 +89,15 @@ export function AddToCartButton({
             robuxAmount: gamepass.robux_amount,
             price: gamepass.price,
           });
+
+          if (!result.ok) {
+            toast.error(
+              result.reason === "MAX_PRODUCTS"
+                ? `Puno na ang cart (max ${MAX_DISTINCT_ORDER_ITEMS} na magkakaibang item).`
+                : `Max na ${MAX_QUANTITY_PER_PRODUCT} pieces per item ang pwede.`,
+            );
+            return;
+          }
 
           setJustAdded(true);
           if (revertTimer.current) clearTimeout(revertTimer.current);
@@ -119,8 +143,15 @@ export function AddToCartButton({
               transition={{ duration: 0.15 }}
               className="inline-flex items-center gap-1.5"
             >
-              {!disabled && !label && <ShoppingBag className="size-4" />}
-              {label ?? "I-add sa Cart"}
+              {!disabled && !cartLimitReached && !label && (
+                <ShoppingBag className="size-4" />
+              )}
+              {label ??
+                (cartLimitReached
+                  ? quantityLimitReached
+                    ? "Max na sa Cart"
+                    : "Puno na ang Cart"
+                  : "I-add sa Cart")}
             </motion.span>
           )}
         </AnimatePresence>

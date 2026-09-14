@@ -9,15 +9,30 @@ import { OrderingProgress } from "@/components/ordering/ordering-progress";
 
 export const metadata: Metadata = {
   title: "Order confirmed",
+  // This page shows a customer's own details and its URL carries their
+  // viewing token — it should never end up in a search index.
+  robots: { index: false, follow: false },
 };
 
 type Props = {
   params: Promise<{ orderRef: string }>;
+  // `t` is the order's viewing token. Keeping it in the URL (rather than in
+  // a one-shot cookie or session) is what makes this link survive a refresh,
+  // Back/Forward, and the customer reopening it later.
+  searchParams: Promise<{ t?: string | string[] }>;
 };
 
-export default async function CheckoutSuccessPage({ params }: Props) {
+export default async function CheckoutSuccessPage({
+  params,
+  searchParams,
+}: Props) {
   const { orderRef } = await params;
-  const order = await getOrderConfirmation(orderRef);
+  const { t } = await searchParams;
+  const viewToken = Array.isArray(t) ? t[0] : t;
+
+  // A wrong or missing token is indistinguishable from an order that does
+  // not exist, so a guessed BW number reveals nothing either way.
+  const order = await getOrderConfirmation(orderRef, viewToken);
 
   if (!order) notFound();
 
@@ -26,7 +41,7 @@ export default async function CheckoutSuccessPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-5 sm:py-12">
-      <ClearCartOnSuccess />
+      <ClearCartOnSuccess orderNumber={order.orderNumber} />
       <OrderingProgress
         currentStep={4}
         compact

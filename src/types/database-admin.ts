@@ -6,6 +6,7 @@
 // generic select-string parser fails to resolve interface-declared shapes
 // through its conditional types and silently degrades every column to `never`.
 
+import type { OrderSnapshotLine } from "@/lib/order-snapshot.mjs";
 import type {
   GameAvailabilityStatus,
   ProductAvailabilityStatus,
@@ -297,6 +298,33 @@ type StoreOrderViaPlusDetailsInsert = {
   created_at?: string;
 };
 
+type StoreOrderSnapshotRow = {
+  order_number: string;
+  idempotency_key: string;
+  request_fingerprint: string;
+  view_token_hash: string;
+  buyer_name: string;
+  buyer_roblox_username: string;
+  total_amount: number;
+  created_at: string;
+};
+
+type StoreOrderLineSnapshotRow = {
+  id: string;
+  order_number: string;
+  line_index: number;
+  gamepass_id: string | null;
+  game_id: string | null;
+  product_name: string;
+  game_name: string;
+  robux_amount: number;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  is_via_plus: boolean;
+  created_at: string;
+};
+
 type StoreProductCardBackgroundRow = {
   gamepass_id: string;
   image_url: string;
@@ -430,6 +458,20 @@ export type AdminDatabase = {
         Update: never;
         Relationships: [];
       };
+      // Written only by the create_store_order RPC (migration 0019), which
+      // is what keeps one logical order atomic — hence Insert: never here.
+      store_order_snapshots: {
+        Row: StoreOrderSnapshotRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      store_order_line_snapshots: {
+        Row: StoreOrderLineSnapshotRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       store_product_card_backgrounds: {
         Row: StoreProductCardBackgroundRow;
         Insert: StoreProductCardBackgroundInsert;
@@ -478,6 +520,28 @@ export type AdminDatabase = {
       };
     };
     Functions: {
+      create_store_order: {
+        Args: {
+          p_idempotency_key: string;
+          p_request_fingerprint: string;
+          p_view_token_hash: string;
+          p_order_number: string;
+          p_buyer_name: string;
+          p_buyer_roblox_username: string;
+          p_total_amount: number;
+          p_lines: OrderSnapshotLine[];
+          p_via_plus: {
+            roblox_display_name: string;
+            age_16_confirmed: boolean;
+            verified_account_confirmed: boolean;
+            via_plus_robux_amount: number;
+          } | null;
+        };
+        Returns: {
+          order_number: string;
+          replayed: boolean;
+        };
+      };
       apply_product_artwork_override: {
         Args: {
           p_gamepass_id: string;

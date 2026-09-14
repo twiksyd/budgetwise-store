@@ -8,6 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "test:order-message": "node scripts/test-order-message.mjs",
+    "test:order-snapshot": "node scripts/test-order-snapshot.mjs",
+    "test:order-access": "node scripts/test-order-access.mjs",
+    "test:order-idempotency": "node scripts/test-order-idempotency.mjs",
+    "test:order-integrity": "node --test scripts/test-order-snapshot.mjs scripts/test-order-access.mjs scripts/test-order-idempotency.mjs",
     "db:backfill-icons": "node --env-file=.env.local scripts/backfill-game-icons.mjs",
     "sync:roblox-gamepasses": "node --env-file=.env.local scripts/sync-roblox-gamepasses.mjs"
   },

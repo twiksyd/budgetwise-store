@@ -1,48 +1,111 @@
 import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  MAX_DISTINCT_ORDER_ITEMS,
+  MAX_QUANTITY_PER_PRODUCT,
+} from "@/lib/validations/order";
 import type { CartItem } from "@/types/domain";
+
+// Mirrors the limits the order API already enforces (see
+// src/lib/validations/order.ts) so the cart UI can reject an invalid
+// add/increase before the customer ever reaches checkout.
+export type CartLimitReason = "MAX_PRODUCTS" | "MAX_QUANTITY";
+
+export interface CartActionResult {
+  ok: boolean;
+  reason?: CartLimitReason;
+}
 
 interface CartState {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
+  addItem: (
+    item: Omit<CartItem, "quantity">,
+    quantity?: number,
+  ) => CartActionResult;
   removeItem: (gamepassId: string) => void;
-  setQuantity: (gamepassId: string, quantity: number) => void;
+  setQuantity: (gamepassId: string, quantity: number) => CartActionResult;
+  removeOrderedItems: (
+    orderedItems: { gamepassId: string; quantity: number }[],
+  ) => void;
   clear: () => void;
 }
 
 export const useCartStore = create<CartState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       items: [],
-      addItem: (item, quantity = 1) =>
-        set((state) => {
-          const existing = state.items.find(
-            (i) => i.gamepassId === item.gamepassId,
-          );
-          if (existing) {
-            return {
-              items: state.items.map((i) =>
+      addItem: (item, quantity = 1) => {
+        const state = get();
+        const existing = state.items.find(
+          (i) => i.gamepassId === item.gamepassId,
+        );
+
+        if (!existing && state.items.length >= MAX_DISTINCT_ORDER_ITEMS) {
+          return { ok: false, reason: "MAX_PRODUCTS" };
+        }
+
+        const currentQuantity = existing?.quantity ?? 0;
+        if (currentQuantity >= MAX_QUANTITY_PER_PRODUCT) {
+          return { ok: false, reason: "MAX_QUANTITY" };
+        }
+
+        const nextQuantity = Math.min(
+          currentQuantity + quantity,
+          MAX_QUANTITY_PER_PRODUCT,
+        );
+
+        set({
+          items: existing
+            ? state.items.map((i) =>
                 i.gamepassId === item.gamepassId
-                  ? { ...i, quantity: i.quantity + quantity }
+                  ? { ...i, quantity: nextQuantity }
                   : i,
-              ),
-            };
-          }
-          return { items: [...state.items, { ...item, quantity }] };
-        }),
+              )
+            : [...state.items, { ...item, quantity: nextQuantity }],
+        });
+
+        return { ok: true };
+      },
       removeItem: (gamepassId) =>
         set((state) => ({
           items: state.items.filter((i) => i.gamepassId !== gamepassId),
         })),
-      setQuantity: (gamepassId, quantity) =>
+      setQuantity: (gamepassId, quantity) => {
+        if (quantity <= 0) {
+          set((state) => ({
+            items: state.items.filter((i) => i.gamepassId !== gamepassId),
+          }));
+          return { ok: true };
+        }
+
+        if (quantity > MAX_QUANTITY_PER_PRODUCT) {
+          return { ok: false, reason: "MAX_QUANTITY" };
+        }
+
         set((state) => ({
-          items:
-            quantity <= 0
-              ? state.items.filter((i) => i.gamepassId !== gamepassId)
-              : state.items.map((i) =>
-                  i.gamepassId === gamepassId ? { ...i, quantity } : i,
-                ),
+          items: state.items.map((i) =>
+            i.gamepassId === gamepassId ? { ...i, quantity } : i,
+          ),
+        }));
+        return { ok: true };
+      },
+      // Removes only the quantities that belonged to a specific submitted
+      // order, leaving anything the customer added afterward untouched.
+      removeOrderedItems: (orderedItems) =>
+        set((state) => ({
+          items: state.items.reduce<CartItem[]>((acc, item) => {
+            const ordered = orderedItems.find(
+              (o) => o.gamepassId === item.gamepassId,
+            );
+            if (!ordered) {
+              acc.push(item);
+              return acc;
+            }
+            const remaining = item.quantity - ordered.quantity;
+            if (remaining > 0) acc.push({ ...item, quantity: remaining });
+            return acc;
+          }, []),
         })),
       clear: () => set({ items: [] }),
     }),

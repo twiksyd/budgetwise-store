@@ -7,6 +7,15 @@ export const MAX_TOTAL_ORDER_UNITS =
 
 const CONTROL_CHARACTER_RE = /[\x00-\x1f\x7f]/;
 
+// 32 random bytes, base64url-encoded without padding — see
+// src/lib/checkout-attempt.ts (browser side) and src/lib/order-access.mjs
+// (server side). Both checkout credentials share that shape.
+const CHECKOUT_CREDENTIAL_RE = /^[A-Za-z0-9_-]{43}$/;
+
+const checkoutCredentialSchema = z
+  .string()
+  .regex(CHECKOUT_CREDENTIAL_RE, "Please refresh the page and try again.");
+
 const orderItemSchema = z
   .object({
     gamepassId: z.string().uuid(),
@@ -109,6 +118,11 @@ export const createOrderSchema = z.object({
     .max(MAX_DISTINCT_ORDER_ITEMS),
   contact: contactSchema,
   viaPlus: viaPlusSchema.optional(),
+  // Makes a retried checkout resolve to the order the first attempt already
+  // created, instead of creating a second one.
+  idempotencyKey: checkoutCredentialSchema,
+  // Becomes the order slip viewing credential; only its hash is stored.
+  viewToken: checkoutCredentialSchema,
 })
   .strict()
   .superRefine((value, context) => {
@@ -162,6 +176,8 @@ export const createOrderSchema = z.object({
     return {
       contact: value.contact,
       viaPlus: value.viaPlus,
+      idempotencyKey: value.idempotencyKey,
+      viewToken: value.viewToken,
       items: [...quantityByGamepassId.entries()].map(
         ([gamepassId, quantity]) => ({
           gamepassId,

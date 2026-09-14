@@ -14,6 +14,7 @@ type PublicOrderErrorCode =
   | "INVALID_ORDER"
   | "STORE_UNAVAILABLE"
   | "UNAVAILABLE_ITEMS"
+  | "IDEMPOTENCY_CONFLICT"
   | "ORDER_CREATE_FAILED";
 
 class RequestBodyTooLargeError extends Error {}
@@ -109,6 +110,16 @@ function validationMessage(
     return firstIssue.message;
   }
 
+  // Missing or malformed checkout credentials mean the page predates this
+  // build (a tab left open across a deploy), not anything the customer got
+  // wrong — a reload hands them a working checkout.
+  if (
+    firstPath.startsWith("idempotencyKey") ||
+    firstPath.startsWith("viewToken")
+  ) {
+    return "Please refresh the page and try again.";
+  }
+
   if (firstPath.startsWith("items")) {
     if (firstIssue?.code === "invalid_type") {
       return "Please review your cart and try again.";
@@ -198,6 +209,18 @@ export async function POST(request: Request) {
           "INVALID_ORDER",
           error.message,
           400,
+          requestId,
+          { reason: error.reason },
+        );
+      }
+
+      // Same idempotency key, different order contents: returning the
+      // earlier order would show the customer someone else's cart.
+      if (error.reason === "idempotency_conflict") {
+        return orderError(
+          "IDEMPOTENCY_CONFLICT",
+          error.message,
+          409,
           requestId,
           { reason: error.reason },
         );

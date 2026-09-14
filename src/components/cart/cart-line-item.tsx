@@ -2,14 +2,26 @@
 
 import Image from "next/image";
 import { Gamepad2, Minus, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/shared/price";
 import { useCartStore } from "@/stores/cart-store";
+import { MAX_QUANTITY_PER_PRODUCT } from "@/lib/validations/order";
 import type { CartItem } from "@/types/domain";
 
 export function CartLineItem({ item }: { item: CartItem }) {
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
+  const atQuantityLimit = item.quantity >= MAX_QUANTITY_PER_PRODUCT;
+
+  function handleIncrease() {
+    const result = setQuantity(item.gamepassId, item.quantity + 1);
+    if (!result.ok) {
+      toast.error(
+        `Max na ${MAX_QUANTITY_PER_PRODUCT} pieces per item ang pwede.`,
+      );
+    }
+  }
 
   return (
     <div className="surface-premium flex gap-3.5 rounded-2xl p-3.5">
@@ -64,7 +76,8 @@ export function CartLineItem({ item }: { item: CartItem }) {
             <Button
               variant="outline"
               size="icon-sm"
-              onClick={() => setQuantity(item.gamepassId, item.quantity + 1)}
+              onClick={handleIncrease}
+              disabled={atQuantityLimit}
               aria-label="Increase quantity"
             >
               <Plus className="size-3" />
@@ -76,6 +89,11 @@ export function CartLineItem({ item }: { item: CartItem }) {
             className="mr-0.5 mb-0.5 self-end"
           />
         </div>
+        {atQuantityLimit && (
+          <p className="text-muted-foreground mt-1.5 text-[11px]" role="status">
+            Max na dami: {MAX_QUANTITY_PER_PRODUCT} pieces per item.
+          </p>
+        )}
       </div>
     </div>
   );
