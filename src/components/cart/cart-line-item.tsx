@@ -7,12 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Price } from "@/components/shared/price";
 import { useCartStore } from "@/stores/cart-store";
 import { MAX_QUANTITY_PER_PRODUCT } from "@/lib/validations/order";
+import { cn } from "@/lib/utils";
 import type { CartItem } from "@/types/domain";
 
 export function CartLineItem({ item }: { item: CartItem }) {
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
-  const atQuantityLimit = item.quantity >= MAX_QUANTITY_PER_PRODUCT;
+  // A cart persisted from before this cap existed can already be over it —
+  // that's distinct from a customer having simply reached the cap normally.
+  const exceedsMax = item.quantity > MAX_QUANTITY_PER_PRODUCT;
+  const atCap = item.quantity === MAX_QUANTITY_PER_PRODUCT;
+  const increaseDisabled = item.quantity >= MAX_QUANTITY_PER_PRODUCT;
 
   function handleIncrease() {
     const result = setQuantity(item.gamepassId, item.quantity + 1);
@@ -24,7 +29,12 @@ export function CartLineItem({ item }: { item: CartItem }) {
   }
 
   return (
-    <div className="surface-premium flex gap-3.5 rounded-2xl p-3.5">
+    <div
+      className={cn(
+        "surface-premium flex gap-3.5 rounded-2xl p-3.5",
+        exceedsMax && "ring-destructive/50 ring-1",
+      )}
+    >
       <div className="bg-muted relative size-16 shrink-0 overflow-hidden rounded-xl">
         {item.gameIconUrl ? (
           <Image
@@ -77,7 +87,7 @@ export function CartLineItem({ item }: { item: CartItem }) {
               variant="outline"
               size="icon-sm"
               onClick={handleIncrease}
-              disabled={atQuantityLimit}
+              disabled={increaseDisabled}
               aria-label="Increase quantity"
             >
               <Plus className="size-3" />
@@ -89,10 +99,23 @@ export function CartLineItem({ item }: { item: CartItem }) {
             className="mr-0.5 mb-0.5 self-end"
           />
         </div>
-        {atQuantityLimit && (
-          <p className="text-muted-foreground mt-1.5 text-[11px]" role="status">
-            Max na dami: {MAX_QUANTITY_PER_PRODUCT} pieces per item.
+        {exceedsMax ? (
+          <p
+            className="text-destructive mt-1.5 text-[11px] font-medium"
+            role="alert"
+          >
+            Sobra sa max na {MAX_QUANTITY_PER_PRODUCT} pieces. Bawasan ang
+            dami para makapag-checkout.
           </p>
+        ) : (
+          atCap && (
+            <p
+              className="text-muted-foreground mt-1.5 text-[11px]"
+              role="status"
+            >
+              Max na dami: {MAX_QUANTITY_PER_PRODUCT} pieces per item.
+            </p>
+          )
         )}
       </div>
     </div>

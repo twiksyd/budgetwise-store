@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,11 @@ import { Label } from "@/components/ui/label";
 import { isRobuxPlusGame } from "@/config/robux-products";
 import { useCartStore } from "@/stores/cart-store";
 import { writePendingOrderClear } from "@/lib/pending-order-clear";
+import { findCartLimitViolations } from "@/lib/cart-limits";
+import {
+  MAX_DISTINCT_ORDER_ITEMS,
+  MAX_QUANTITY_PER_PRODUCT,
+} from "@/lib/validations/order";
 import {
   buildCheckoutSignature,
   clearCheckoutAttempt,
@@ -62,6 +67,16 @@ export function CheckoutForm() {
     ? items.filter((item) => unavailableGamepassIds.includes(item.gamepassId))
     : [];
 
+  // A cart persisted from before these caps existed (or before a cap was
+  // lowered) can already violate them. The server still enforces the same
+  // limits (see src/lib/validations/order.ts) — this just catches it here
+  // first so the customer gets a friendly, named message instead of a raw
+  // schema error from the API.
+  const cartLimitViolations = useMemo(
+    () => findCartLimitViolations(items),
+    [items],
+  );
+
   // Focused after a beat so it lands once the page transition from the cart
   // drawer has settled, rather than yanking focus (and the keyboard, on
   // mobile) mid-navigation.
@@ -81,10 +96,10 @@ export function CheckoutForm() {
   // Move focus to whichever error just appeared so screen reader users land
   // on it immediately instead of having to discover it silently.
   useEffect(() => {
-    if (error || unavailableItems.length > 0) {
+    if (error || unavailableItems.length > 0 || cartLimitViolations.hasViolations) {
       errorRegionRef.current?.focus();
     }
-  }, [error, unavailableItems.length]);
+  }, [error, unavailableItems.length, cartLimitViolations.hasViolations]);
 
   function handleRemoveUnavailableItems() {
     if (!unavailableGamepassIds) return;
@@ -97,6 +112,13 @@ export function CheckoutForm() {
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (isSubmittingRef.current) return;
+    // Defense in depth: the submit button is already disabled while this is
+    // true, but a disabled button doesn't stop an Enter-key form submit in
+    // every browser.
+    if (cartLimitViolations.hasViolations) {
+      errorRegionRef.current?.focus();
+      return;
+    }
 
     setError(null);
     setUnavailableGamepassIds(null);
@@ -358,7 +380,47 @@ export function CheckoutForm() {
         </section>
       )}
 
-      {unavailableItems.length > 0 ? (
+      {cartLimitViolations.hasViolations ? (
+        <div
+          ref={errorRegionRef}
+          tabIndex={-1}
+          role="alert"
+          aria-live="assertive"
+          className="border-destructive/30 bg-destructive/5 rounded-xl border p-3.5 text-sm outline-none"
+        >
+          <p className="text-destructive font-semibold">
+            Please fix your cart before continuing:
+          </p>
+          <ul className="text-destructive/90 mt-2 list-disc space-y-1 pl-5">
+            {cartLimitViolations.overQuantityItems.map((item) => (
+              <li key={item.gamepassId}>
+                {item.name} has a quantity of {item.quantity}. Maximum is{" "}
+                {MAX_QUANTITY_PER_PRODUCT} per item. Please reduce the
+                quantity in your cart before continuing.
+              </li>
+            ))}
+            {cartLimitViolations.overDistinctProducts && (
+              <li>
+                Your cart has {items.length} different products. Maximum is{" "}
+                {MAX_DISTINCT_ORDER_ITEMS} per order. Please remove{" "}
+                {cartLimitViolations.excessProductCount} item
+                {cartLimitViolations.excessProductCount === 1 ? "" : "s"}{" "}
+                before continuing.
+              </li>
+            )}
+          </ul>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/cart")}
+            >
+              Balikan ang Cart
+            </Button>
+          </div>
+        </div>
+      ) : unavailableItems.length > 0 ? (
         <div
           ref={errorRegionRef}
           tabIndex={-1}
@@ -430,7 +492,9 @@ export function CheckoutForm() {
         type="submit"
         size="lg"
         className="h-11"
-        disabled={isSubmitting || items.length === 0}
+        disabled={
+          isSubmitting || items.length === 0 || cartLimitViolations.hasViolations
+        }
       >
         {isSubmitting ? "Gumagawa ng Order Slip..." : "Gumawa ng Order Slip"}
       </Button>

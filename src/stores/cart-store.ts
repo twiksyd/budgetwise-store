@@ -79,7 +79,16 @@ export const useCartStore = create<CartState>()(
           return { ok: true };
         }
 
-        if (quantity > MAX_QUANTITY_PER_PRODUCT) {
+        const state = get();
+        const existing = state.items.find((i) => i.gamepassId === gamepassId);
+        // A cart persisted before this cap existed (or before it was
+        // lowered) can already hold a line above it. Only block requests
+        // that would INCREASE past the cap — a customer reducing 54 down
+        // toward 50 passes through 53, 52, 51 along the way, and every one
+        // of those is still "> 50" but must never be rejected, or they'd be
+        // stuck unable to fix the very thing checkout is blocking them on.
+        const isIncrease = !existing || quantity > existing.quantity;
+        if (isIncrease && quantity > MAX_QUANTITY_PER_PRODUCT) {
           return { ok: false, reason: "MAX_QUANTITY" };
         }
 

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { createOrderSchema } from "@/lib/validations/order";
+import {
+  createOrderSchema,
+  MAX_DISTINCT_ORDER_ITEMS,
+  MAX_QUANTITY_PER_PRODUCT,
+} from "@/lib/validations/order";
 import { createOrder, OrderCreationError } from "@/lib/queries/orders";
 
 // A legitimate checkout payload is small: 20 UUID line items plus contact
@@ -125,6 +129,25 @@ function validationMessage(
       return "Please review your cart and try again.";
     }
 
+    // A single cart line already over the per-product cap (e.g. a cart
+    // persisted from before this limit existed, or before it was lowered)
+    // fails the schema's own per-item constraint before the friendlier
+    // grouped-quantity check further down ever runs. That raw Zod message
+    // ("Too big: expected number to be <=50") is not customer-facing text.
+    if (firstPath.endsWith(".quantity")) {
+      return `One or more items in your cart exceed the maximum of ${MAX_QUANTITY_PER_PRODUCT} per product. Please reduce the quantity in your cart before continuing.`;
+    }
+
+    // Same idea for a cart holding more distinct products than currently
+    // allowed — the array's own min/max constraint also produces a raw
+    // Zod message ahead of any custom check.
+    if (
+      firstPath === "items" &&
+      (firstIssue?.code === "too_big" || firstIssue?.code === "too_small")
+    ) {
+      return `Your cart has too many different products. Please remove some — the maximum is ${MAX_DISTINCT_ORDER_ITEMS} per order.`;
+    }
+
     return firstIssue?.message || "Please review your cart and try again.";
   }
 
@@ -188,6 +211,13 @@ export async function POST(request: Request) {
   const parsed = createOrderSchema.safeParse(json);
 
   if (!parsed.success) {
+    // The customer only ever sees validationMessage()'s friendly text; the
+    // raw schema issues (e.g. "Too big: expected number to be <=50") are
+    // kept here for debugging.
+    console.warn("Order request failed validation", {
+      requestId,
+      issues: parsed.error.issues,
+    });
     return orderError(
       "INVALID_ORDER",
       validationMessage(parsed.error.issues),
