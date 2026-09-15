@@ -14,7 +14,10 @@
     "test:order-integrity": "node --test scripts/test-order-snapshot.mjs scripts/test-order-access.mjs scripts/test-order-idempotency.mjs",
     "db:backfill-icons": "node --env-file=.env.local scripts/backfill-game-icons.mjs",
     "db:backfill-icons-deterministic": "node --env-file=.env.local scripts/backfill-game-icons-deterministic.mjs",
-    "sync:roblox-gamepasses": "node --env-file=.env.local scripts/sync-roblox-gamepasses.mjs"
+    "sync:roblox-gamepasses": "node --env-file=.env.local scripts/sync-roblox-gamepasses.mjs",
+    "db:generate-roblox-identity-seed": "node --env-file=.env.local scripts/generate-roblox-identity-seed.mjs",
+    "db:check-roblox-identity-parity": "node --env-file=.env.local scripts/check-roblox-identity-parity.mjs",
+    "test:roblox-identity-parity": "node --test scripts/test-roblox-identity-parity.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
