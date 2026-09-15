@@ -49,10 +49,7 @@ export default async function RobuxViaLinkPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-6 sm:py-14">
-      <OrderingProgress
-        currentStep={2}
-        description="Piliin at i-add sa cart ang gamepasses o items na gusto ninyong bilhin."
-      />
+      <OrderingProgress currentStep={2} />
 
       <nav className="text-muted-foreground mt-5 flex items-center gap-1.5 text-xs sm:text-sm">
         <Link href="/games" className="hover:text-foreground transition-colors">

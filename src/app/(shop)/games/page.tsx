@@ -26,10 +26,7 @@ export default async function GamesPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10 sm:py-16">
-      <OrderingProgress
-        currentStep={1}
-        description="Piliin po ang game na gusto ninyong bilhan."
-      />
+      <OrderingProgress currentStep={1} />
 
       <h1 className="font-heading mt-6 text-3xl font-semibold tracking-tight sm:text-4xl">
         Pumili ng Game

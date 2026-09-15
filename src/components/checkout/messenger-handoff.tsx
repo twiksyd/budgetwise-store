@@ -94,8 +94,7 @@ export function MessengerHandoff({
         </Button>
 
         <p className="text-muted-foreground mt-2 text-center text-xs leading-relaxed">
-          I-click ang purple button para mabuksan ang Messenger with your
-          ready-made order message. Huwag screenshot lang.
+          Huwag lang po ito i-screenshot — kailangan talaga i-send.
         </p>
 
         {copyFailed ? (
@@ -121,15 +120,6 @@ export function MessengerHandoff({
               Hintayin muna ang reply at official payment instructions namin
               bago magsend ng payment.
             </p>
-            <p className="mt-1 text-sm leading-relaxed">
-              Huwag po munang magsend ng payment habang wala pa kaming official
-              payment instructions.
-            </p>
-            <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
-              Pag na-send niyo na po yung order slip, hintayin muna yung reply
-              namin. Kami po ang magsesend ng tamang payment details bago kayo
-              magbayad.
-            </p>
           </div>
         </div>
       </div>
@@ -141,6 +131,7 @@ export function MessengerHandoff({
 
 export function PreparedMessagePreview({ message }: { message: string }) {
   const previewRef = useRef<HTMLDivElement>(null);
+  const messageRef = useRef<HTMLPreElement>(null);
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -153,7 +144,19 @@ export function PreparedMessagePreview({ message }: { message: string }) {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Hindi nakopya. Piliin ang message preview manually.");
+      selectMessageText();
     }
+  }
+
+  function selectMessageText() {
+    const node = messageRef.current;
+    if (!node) return;
+    const selection = window.getSelection();
+    if (!selection) return;
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
   }
 
   return (
@@ -164,21 +167,34 @@ export function PreparedMessagePreview({ message }: { message: string }) {
             ITO ANG BUONG I-SEND SA MESSENGER
           </h2>
           <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-            Kopyahin at i-send po ang buong message sa ibaba.
+            Kopyahin at i-send po ang buong message sa ibaba. Kung walang
+            lumabas sa Messenger, gamitin ang Select All.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="border-border bg-background hover:bg-muted text-foreground inline-flex min-h-10 items-center justify-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors sm:shrink-0"
-        >
-          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-          Copy Order Message
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={selectMessageText}
+            className="border-border bg-background hover:bg-muted text-foreground inline-flex min-h-10 items-center justify-center rounded-full border px-3 text-xs font-semibold transition-colors"
+          >
+            Select All
+          </button>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="border-border bg-background hover:bg-muted text-foreground inline-flex min-h-10 items-center justify-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors"
+          >
+            {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            Copy Order Message
+          </button>
+        </div>
       </div>
 
-      <div className="bg-primary/5 border-primary/10 text-foreground mt-3 rounded-2xl border p-4">
-        <pre className="font-sans text-[13px] leading-relaxed whitespace-pre-wrap">
+      <div className="bg-primary/5 border-primary/10 text-foreground mt-3 max-w-full overflow-hidden rounded-2xl border p-4">
+        <pre
+          ref={messageRef}
+          className="font-sans text-[13px] leading-relaxed break-words whitespace-pre-wrap"
+        >
           {message}
         </pre>
       </div>

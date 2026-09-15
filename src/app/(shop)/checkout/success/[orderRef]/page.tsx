@@ -8,7 +8,7 @@ import { ClearCartOnSuccess } from "@/components/checkout/clear-cart-on-success"
 import { OrderingProgress } from "@/components/ordering/ordering-progress";
 
 export const metadata: Metadata = {
-  title: "Order confirmed",
+  title: "Order Slip Ready",
   // This page shows a customer's own details and its URL carries their
   // viewing token — it should never end up in a search index.
   robots: { index: false, follow: false },
@@ -42,11 +42,7 @@ export default async function CheckoutSuccessPage({
   return (
     <div className="mx-auto max-w-6xl px-6 py-5 sm:py-12">
       <ClearCartOnSuccess orderNumber={order.orderNumber} />
-      <OrderingProgress
-        currentStep={4}
-        compact
-        description="I-send ang buong order message sa Messenger para ma-review namin."
-      />
+      <OrderingProgress currentStep={4} compact />
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
         <MessengerHandoff

@@ -258,8 +258,7 @@ export function CheckoutForm() {
           maxLength={80}
         />
         <p className="text-muted-foreground text-xs leading-relaxed">
-          Ilagay ang exact name na ginagamit ninyo sa Facebook account na
-          ipangme-message sa amin.
+          Exact Facebook Name na gagamitin sa Messenger.
         </p>
       </div>
 
@@ -275,7 +274,7 @@ export function CheckoutForm() {
           maxLength={50}
         />
         <p className="text-muted-foreground text-xs leading-relaxed">
-          Ilagay ang exact Roblox username ninyo. Huwag po ang Display Name.
+          Exact Roblox Username — hindi Display Name.
         </p>
       </div>
 
@@ -473,20 +472,10 @@ export function CheckoutForm() {
         )
       )}
 
-      <div className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 rounded-xl border px-3 py-2.5">
-        <div className="flex gap-2.5">
-          <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" />
-          <div>
-            <p className="text-[11px] font-semibold tracking-wide uppercase">
-              Next step
-            </p>
-            <p className="mt-0.5 text-xs leading-relaxed">
-              Hindi pa po mase-send sa amin ang order pagkatapos nito. Ipapadala
-              pa ninyo ang buong Order Message sa Messenger.
-            </p>
-          </div>
-        </div>
-      </div>
+      <p className="text-muted-foreground flex items-center gap-1.5 text-xs leading-relaxed">
+        <ShieldAlert className="size-3.5 shrink-0" />
+        Susunod: i-send ang Order Message sa Messenger.
+      </p>
 
       <Button
         type="submit"

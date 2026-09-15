@@ -206,27 +206,6 @@ export default function HowOrderingWorksPage() {
         </div>
       </div>
 
-      <div className={`${highlightCard} mt-8 p-6 sm:p-7`}>
-        <div className="bg-primary/10 flex size-11 items-center justify-center rounded-xl">
-          <Info className="text-primary size-5" />
-        </div>
-        <p className="font-heading mt-4 text-base font-semibold">
-          When should I send my payment?
-        </p>
-        <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-          Please wait until a BudgetWise representative sends you the
-          official payment instructions through Messenger before making any
-          payment. This ensures your payment is sent to the correct account
-          and allows us to begin processing your order immediately after
-          payment verification.
-        </p>
-        <Taglish>
-          Huwag muna mag-send ng payment hangga&apos;t wala pa kaming
-          message. Pag na-send na namin yung payment details, saka ka lang
-          magbayad.
-        </Taglish>
-      </div>
-
       <Link
         href="/gamepass-tutorial"
         className="surface-premium surface-premium-hover mt-8 flex items-center gap-3.5 rounded-2xl p-5 transition-transform active:scale-[0.99] sm:p-6"
