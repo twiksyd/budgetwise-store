@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-15T00:00:00.000Z",
+  "title": "Design System: BudgetWise",
+  "extensions": {
+    "colorMeta": {
+      "deep-electric-violet": {
+        "role": "primary",
+        "displayName": "Deep Electric Violet",
+        "canonical": "oklch(0.5 0.223 291)",
+        "tonalRamp": [
+          "oklch(0.18 0.12 291)",
+          "oklch(0.27 0.16 291)",
+          "oklch(0.36 0.19 291)",
+          "oklch(0.44 0.21 291)",
+          "oklch(0.5 0.223 291)",
+          "oklch(0.6 0.2 291)",
+          "oklch(0.74 0.14 291)",
+          "oklch(0.88 0.07 291)"
+        ]
+      },
+      "honor-gold": {
+        "role": "secondary",
+        "displayName": "Honor Gold",
+        "canonical": "oklch(0.8 0.14 83)",
+        "tonalRamp": [
+          "oklch(0.24 0.05 70)",
+          "oklch(0.35 0.08 75)",
+          "oklch(0.46 0.1 78)",
+          "oklch(0.58 0.12 80)",
+          "oklch(0.7 0.13 82)",
+          "oklch(0.8 0.14 83)",
+          "oklch(0.88 0.09 84)",
+          "oklch(0.95 0.04 85)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": ["oklch(0.145 0.006 291)", "oklch(0.28 0.006 291)", "oklch(0.42 0.004 291)", "oklch(0.56 0 0)", "oklch(0.7 0 0)", "oklch(0.84 0 0)", "oklch(0.92 0 0)", "oklch(1 0 0)"]
+      },
+      "cloud": {
+        "role": "neutral",
+        "displayName": "Cloud",
+        "canonical": "oklch(0.97 0 0)",
+        "tonalRamp": ["oklch(0.205 0 0)", "oklch(0.33 0 0)", "oklch(0.46 0 0)", "oklch(0.6 0 0)", "oklch(0.75 0 0)", "oklch(0.88 0 0)", "oklch(0.94 0 0)", "oklch(0.97 0 0)"]
+      },
+      "alert-red": {
+        "role": "destructive",
+        "displayName": "Alert Red",
+        "canonical": "oklch(0.577 0.245 27.325)",
+        "tonalRamp": [
+          "oklch(0.22 0.1 27)",
+          "oklch(0.32 0.15 27)",
+          "oklch(0.42 0.19 27)",
+          "oklch(0.5 0.22 27.3)",
+          "oklch(0.577 0.245 27.325)",
+          "oklch(0.65 0.22 25)",
+          "oklch(0.77 0.16 24)",
+          "oklch(0.9 0.08 23)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headline only — 'Buy gamepasses. Skip overpriced stores.'" },
+      "headline": { "displayName": "Headline", "purpose": "Page-level h1s across marketing and shop pages." },
+      "title": { "displayName": "Title", "purpose": "Card titles — product and game names." },
+      "body": { "displayName": "Body", "purpose": "Paragraph copy; Taglish captions share this family at a smaller size." },
+      "label": { "displayName": "Label", "purpose": "Eyebrow text on status badges and section labels." }
+    },
+    "shadows": [
+      { "name": "card-rest", "value": "0 1px 2px rgba(0,0,0,0.04), 0 16px 40px -12px rgba(0,0,0,0.12)", "purpose": "Default ambient elevation for every surface-premium card." },
+      { "name": "card-hover", "value": "0 1px 2px rgba(0,0,0,0.06), 0 24px 48px -12px color-mix(in oklch, var(--color-primary) 18%, rgba(0,0,0,0.75))", "purpose": "Card hover/lift state — shadow tinted with brand violet." },
+      { "name": "button-hover-glow", "value": "0 10px 28px -10px color-mix(in oklch, var(--color-primary) 55%, transparent)", "purpose": "Primary button hover glow." }
+    ],
+    "motion": [
+      { "name": "hero-stagger", "value": "staggerChildren 0.09s, delayChildren 0.05s, ease easeOut 0.6s", "purpose": "Hero content entrance." },
+      { "name": "card-lift", "value": "transform .3s ease-out, box-shadow .3s ease-out", "purpose": "Card hover lift (-2px translateY)." },
+      { "name": "shimmer-sweep", "value": "skewed gradient sweep, ~3s ease-in-out infinite, disabled under prefers-reduced-motion", "purpose": "Reserved for the Messenger handoff CTA and the Robux Plus preorder badge only." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The only button variant carrying the brand fill — the default call to action.",
+      "html": "<button class=\"ds-btn-primary\">Add to Cart</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 44px; padding: 0 14px; border-radius: 14px; border: none; background: var(--color-primary, oklch(0.5 0.223 291)); color: var(--color-primary-foreground, #fff); font-family: var(--font-sans, ui-sans-serif); font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color .2s ease, box-shadow .2s ease, transform .1s ease; } .ds-btn-primary:hover { background-color: color-mix(in oklch, var(--color-primary, oklch(0.5 0.223 291)) 90%, transparent); box-shadow: 0 10px 28px -10px color-mix(in oklch, var(--color-primary, oklch(0.5 0.223 291)) 55%, transparent); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring, oklch(0.55 0.2 291)) 50%, transparent); } .ds-btn-primary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action — hairline border, no resting fill, keeps violet reserved for the primary action.",
+      "html": "<button class=\"ds-btn-outline\">Paano Umorder</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 44px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--color-border, oklch(0.922 0 0)); background: var(--color-background, #fff); color: var(--color-foreground, oklch(0.145 0 0)); font-family: var(--font-sans, ui-sans-serif); font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color .2s ease; } .ds-btn-outline:hover { background: var(--color-muted, oklch(0.97 0 0)); } .ds-btn-outline:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring, oklch(0.55 0.2 291)) 50%, transparent); }"
+    },
+    {
+      "name": "Product Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The surface-premium treatment: soft ambient shadow, hairline ring, violet-tinted lift on hover.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card-title\">100 Robux</p><p class=\"ds-card-sub\">Currency Pack</p><span class=\"ds-card-price\"><span class=\"ds-card-price-symbol\">₱</span>75</span></div>",
+      "css": ".ds-card { position: relative; border-radius: 25px; background: var(--color-card, #fff); color: var(--color-foreground, oklch(0.145 0 0)); box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 16px 40px -12px rgba(0,0,0,0.12); border: 1px solid color-mix(in oklch, var(--color-foreground, #000) 6%, transparent); padding: 14px; transition: transform .3s ease-out, box-shadow .3s ease-out; font-family: var(--font-sans, ui-sans-serif); } .ds-card:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 24px 48px -12px color-mix(in oklch, var(--color-primary, oklch(0.5 0.223 291)) 18%, rgba(0,0,0,0.75)); } .ds-card-title { font-family: var(--font-heading, Manrope); font-size: 18px; font-weight: 600; margin: 0; } .ds-card-sub { color: var(--color-muted-foreground, oklch(0.556 0 0)); font-size: 12px; font-weight: 500; margin: 4px 0 0; } .ds-card-price { display: inline-flex; align-items: baseline; margin-top: 10px; font-family: var(--font-heading, Manrope); color: var(--color-primary, oklch(0.5 0.223 291)); font-weight: 800; letter-spacing: -0.03em; font-size: 1.75rem; font-variant-numeric: tabular-nums; } .ds-card-price-symbol { font-size: 0.72em; font-weight: 700; margin-right: 0.06em; transform: translateY(-0.03em); }"
+    },
+    {
+      "name": "Badge — Default",
+      "kind": "chip",
+      "refersTo": "badge-primary",
+      "description": "Standard status/merchandising badge — violet fill, full capsule.",
+      "html": "<span class=\"ds-badge\">Most Popular</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 9999px; background: var(--color-primary, oklch(0.5 0.223 291)); color: var(--color-primary-foreground, #fff); font-family: var(--font-sans, ui-sans-serif); font-size: 12px; font-weight: 500; white-space: nowrap; }"
+    },
+    {
+      "name": "Badge — Best Value (Gold)",
+      "kind": "chip",
+      "refersTo": "badge-gold",
+      "description": "The one exception to the single-accent rule — Honor Gold is reserved exclusively for this badge.",
+      "html": "<span class=\"ds-badge-gold\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M5 16 3 5l5.5 4L12 3l3.5 6L21 5l-2 11H5Zm0 2h14v2H5v-2Z\"/></svg>Best Value</span>",
+      "css": ".ds-badge-gold { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 9999px; background: var(--color-gold, oklch(0.8 0.14 83)); color: var(--color-gold-foreground, oklch(0.28 0.06 70)); font-family: var(--font-sans, ui-sans-serif); font-size: 12px; font-weight: 500; white-space: nowrap; } .ds-badge-gold svg { width: 12px; height: 12px; flex-shrink: 0; }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Text field used across checkout and admin forms — hairline border, violet focus ring.",
+      "html": "<input class=\"ds-input\" placeholder=\"Roblox username\" />",
+      "css": ".ds-input { height: 32px; width: 100%; box-sizing: border-box; border-radius: 14px; border: 1px solid var(--color-input, oklch(0.922 0 0)); background: transparent; padding: 4px 10px; font-size: 16px; font-family: var(--font-sans, ui-sans-serif); color: var(--color-foreground, oklch(0.145 0 0)); } .ds-input::placeholder { color: var(--color-muted-foreground, oklch(0.556 0 0)); } .ds-input:focus-visible { outline: none; border-color: var(--color-ring, oklch(0.55 0.2 291)); box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring, oklch(0.55 0.2 291)) 50%, transparent); }"
+    },
+    {
+      "name": "Nav Link",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Header navigation link — animated underline grows on hover instead of a background or color change.",
+      "html": "<a class=\"ds-nav-link\" href=\"#\">Games</a>",
+      "css": ".ds-nav-link { color: var(--color-muted-foreground, oklch(0.556 0 0)); font-family: var(--font-sans, ui-sans-serif); font-size: 14px; text-decoration: none; padding-bottom: 2px; background-image: linear-gradient(currentColor, currentColor); background-position: 0% 100%; background-repeat: no-repeat; background-size: 0% 1px; transition: background-size .3s ease-out, color .3s ease-out; } .ds-nav-link:hover { color: var(--color-foreground, oklch(0.145 0 0)); background-size: 100% 1px; }"
+    },
+    {
+      "name": "Price",
+      "kind": "custom",
+      "refersTo": "price",
+      "description": "The signature price treatment used everywhere a price appears — deliberately the loudest text on the card.",
+      "html": "<span class=\"ds-price\"><span class=\"ds-price-symbol\">₱</span><span class=\"ds-price-value\">299</span></span>",
+      "css": ".ds-price { display: inline-flex; align-items: baseline; font-family: var(--font-heading, Manrope); color: var(--color-primary, oklch(0.5 0.223 291)); font-weight: 800; letter-spacing: -0.03em; font-size: 1.75rem; line-height: 0.92; font-variant-numeric: tabular-nums; white-space: nowrap; } .ds-price-symbol { font-size: 0.72em; font-weight: 700; margin-right: 0.06em; letter-spacing: -0.015em; transform: translateY(-0.03em); display: inline-block; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Violet Exchange",
+    "overview": "BudgetWise reads as a polished digital trading counter for game items: price-first, trustworthy, fast, and restrained. One signature color, Deep Electric Violet, carries the brand across every surface — from the price of every item to the primary call to action to the header's focus ring. Honor Gold appears in exactly one place, the Best Value signal, so its rarity keeps doing the work of \"this one's worth noticing\" instead of decorating.\n\nThe mood is polished, approachable, and quietly confident, with just enough warmth to feel right for a young gaming audience rather than corporate. Today's implementation leans into that with rounded cards, soft ambient shadows, a glass-blurred header, and an animated shimmer sweep on the Messenger CTA and the \"Best Value\" badge — a storefront working hard to look and feel more trustworthy than the resale-market norm. The stated direction for future refinement is to keep that trustworthy, tactile confidence while pulling back on decoration: crisper edges, fewer competing glows, less visual noise, without losing the \"premium, not sterile\" feeling that makes a budget-priced reseller credible.",
+    "keyCharacteristics": [
+      "One brand color (violet) does almost all the color work; gold is a single, non-repeatable signal.",
+      "Cards and surfaces read as \"expensive\" through soft shadow and gentle lift, not through heavy borders or bright fills.",
+      "Manrope (headings, prices) paired with Geist Sans (body) — a confident geometric display voice over a quiet, legible body voice.",
+      "Generous corner rounding (14–25px on primary surfaces) throughout; nothing sharp-cornered by default.",
+      "Motion is purposeful and sparse: a staggered hero entrance, a hover lift on cards, a shimmer sweep reserved for the two moments that most need attention."
+    ],
+    "rules": [
+      { "name": "The One Signal Rule", "body": "Honor Gold appears in exactly one role (Best Value) at a time. Do not introduce a second gold usage; its scarcity is what makes it legible as \"this one is different.\"", "section": "colors" },
+      { "name": "The Single-Accent Rule", "body": "Outside of status colors (destructive red) and the one gold exception, every accent moment — links, focus, prices, primary buttons, active nav — is the same Deep Electric Violet. Don't introduce a second general-purpose brand hue.", "section": "colors" },
+      { "name": "The Price Voice Rule", "body": "Every price on the site uses the same extrabold, tabular-numeral treatment in the primary violet — a price should be instantly recognizable as a price before it's read, never styled as plain body or heading text.", "section": "typography" },
+      { "name": "The Tinted Shadow Rule", "body": "Where a shadow signals interactivity (button hover, card hover), mix in the brand violet rather than using a neutral gray shadow — depth and brand identity are the same visual event, not two separate systems.", "section": "elevation" },
+      { "name": "The Restraint Direction", "body": "New decorative elevation (extra glow layers, additional blur surfaces, stacked gradients) needs a real reason tied to a specific important moment — it is not the default treatment for an arbitrary new card or section.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep Deep Electric Violet as the only general-purpose accent — prices, primary actions, focus states, and links all share it so the brand reads as one deliberate color, not a palette.",
+      "Do keep Honor Gold to exactly one meaning (Best Value) across the whole product.",
+      "Do tint interactive shadows with the brand violet (color-mix(in oklch, var(--primary) …)) rather than reaching for neutral gray shadows.",
+      "Do pair a Taglish caption with new English customer-facing copy, styled per the Taglish Caption component.",
+      "Do keep corners generously rounded (14px minimum on any primary surface) — nothing in this system should read as sharp-cornered."
+    ],
+    "donts": [
+      "Don't add a second brand hue or a second use for Honor Gold — scarcity is the point of both rules.",
+      "Don't stack additional glow, blur, or gradient decoration onto a surface by default; reserve shimmer/glow treatments for moments that already carry one rather than extending the pattern to new elements.",
+      "Don't give a secondary/outline/ghost button a colored resting fill — the primary button must stay the only \"this is the action\" signal on a given screen.",
+      "Don't treat the manual Messenger/GCash order flow's current mechanics as a permanent brand feature to visually reinforce — it is today's implementation, not the system's identity."
+    ]
+  }
+}

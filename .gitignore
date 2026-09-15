@@ -40,6 +40,15 @@ yarn-error.log*
 # claude code
 .claude
 
+# agent tool installs (local skill/binary caches, machine-specific)
+.agents
+.codex
+
+# impeccable local/generated state
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+.impeccable/critique/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
