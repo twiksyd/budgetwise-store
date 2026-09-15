@@ -19,8 +19,7 @@ export function PopularGames({ games }: { games: StoreGame[] }) {
         className="flex items-end justify-between gap-4"
       >
         <div>
-          <p className="text-primary text-sm font-medium">Popular games</p>
-          <h2 className="font-heading mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
             Jump back into what you play.
           </h2>
         </div>

@@ -21,7 +21,7 @@ export function ReviewCard({ review }: { review: Review }) {
               className={cn(
                 "size-3.5",
                 i < review.rating
-                  ? "fill-gold text-gold"
+                  ? "fill-foreground text-foreground"
                   : "text-muted-foreground/25",
               )}
             />

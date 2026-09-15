@@ -23,8 +23,7 @@ export function FaqPreview() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="text-center"
       >
-        <p className="text-primary text-sm font-medium">FAQ</p>
-        <h2 className="font-heading mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
           Common questions
         </h2>
       </motion.div>

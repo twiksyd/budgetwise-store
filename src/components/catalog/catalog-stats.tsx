@@ -23,7 +23,7 @@ export function CatalogStats({
   ];
 
   return (
-    <div className="text-muted-foreground flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px]">
+    <div className="text-muted-foreground flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs">
       {stats.map(({ icon: Icon, text }) => (
         <span key={text} className="inline-flex items-center gap-1.5">
           <Icon className="size-3.5" />

@@ -167,7 +167,7 @@ export function GamesExplorer({
       )}
 
       <h2 className="font-heading mt-8 text-xl font-semibold tracking-tight sm:mt-12 sm:text-2xl">
-        🎮 Games
+        Games
       </h2>
 
       {filtered.length === 0 ? (

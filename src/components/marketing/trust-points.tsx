@@ -37,39 +37,34 @@ const item: Variants = {
 export function TrustPoints() {
   return (
     <section className="mx-auto max-w-6xl px-6 pt-4 pb-16 sm:pb-28">
-      <motion.div
+      <motion.h2
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="mx-auto max-w-xl text-center"
+        className="font-heading max-w-sm text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
       >
-        <p className="text-primary text-sm font-medium">Why BudgetWise</p>
-        <h2 className="font-heading mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-          Built like a real storefront, not a middleman.
-        </h2>
-      </motion.div>
+        Built like a real storefront, not a middleman.
+      </motion.h2>
 
       <motion.div
         variants={container}
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-80px" }}
-        className="mt-8 grid gap-5 sm:mt-14 sm:grid-cols-3"
+        className="divide-border/70 border-border/70 mt-8 grid divide-y border-t sm:mt-12 sm:grid-cols-3 sm:divide-x sm:divide-y-0"
       >
         {trustPoints.map(({ icon: Icon, title, description }) => (
           <motion.div
             key={title}
             variants={item}
-            className="surface-premium surface-premium-hover rounded-2xl p-7"
+            className="py-5 sm:px-7 sm:py-0 sm:first:pl-0 sm:last:pr-0"
           >
-            <div className="bg-primary/10 flex size-10 items-center justify-center rounded-xl">
-              <Icon className="text-primary size-5" />
-            </div>
-            <h3 className="font-heading mt-5 text-base font-semibold">
+            <Icon className="text-primary size-5" />
+            <h3 className="font-heading mt-3 text-base font-semibold">
               {title}
             </h3>
-            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+            <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
               {description}
             </p>
           </motion.div>

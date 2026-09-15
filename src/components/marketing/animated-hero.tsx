@@ -68,7 +68,7 @@ export function AnimatedHero() {
         <motion.div
           variants={item}
           className={cn(
-            "mb-5 flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-[13px] font-semibold sm:mb-8 sm:text-sm",
+            "mb-5 flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-xs font-semibold sm:mb-8 sm:text-sm",
             badge.className,
           )}
         >
@@ -105,7 +105,7 @@ export function AnimatedHero() {
         >
           <Button size="lg" asChild className="h-11 px-7 text-[15px] sm:h-12">
             <Link href="/games">
-              Umorder Na
+              {status === "open" ? "Umorder Na" : "Tingnan ang Games"}
               <ArrowRight className="size-4" />
             </Link>
           </Button>

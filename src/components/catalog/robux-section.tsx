@@ -71,7 +71,8 @@ function RobuxOptionCard({ option }: { option: RobuxOption }) {
             {option.description}
           </p>
           {option.isPreorder && (
-            <p className="mt-2 rounded-lg border border-red-500/20 bg-red-500/8 px-2.5 py-1.5 text-[11px] font-bold leading-snug text-red-800 uppercase dark:text-red-200">
+            <p className="text-destructive mt-2 flex items-start gap-1.5 text-[11px] leading-snug font-bold uppercase">
+              <Clock className="mt-0.5 size-3 shrink-0" />
               NOT INSTANT - refund if not delivered within 8 hours after
               confirmed payment.
             </p>
@@ -166,10 +167,9 @@ export function RobuxSection({
     <section className={cn(className)}>
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-primary text-sm font-medium">Robux</p>
           <h2
             className={cn(
-              "font-heading mt-2 font-semibold tracking-tight",
+              "font-heading font-semibold tracking-tight",
               compact ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl",
             )}
           >

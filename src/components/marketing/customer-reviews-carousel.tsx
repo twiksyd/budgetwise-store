@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion as useReducedMotionQuery } from "framer-motion";
 import useEmblaCarousel from "embla-carousel-react";
 import AutoScroll from "embla-carousel-auto-scroll";
 import { ArrowUpRight } from "lucide-react";
@@ -20,15 +20,19 @@ export function CustomerReviewsCarousel({
   initialReviews: Review[];
 }) {
   const [visibleReviews, setVisibleReviews] = useState(initialReviews);
+  const reduceMotion = Boolean(useReducedMotionQuery());
   const plugins = useMemo(
-    () => [
-      AutoScroll({
-        speed: 0.7,
-        stopOnMouseEnter: true,
-        stopOnInteraction: false,
-      }),
-    ],
-    [],
+    () =>
+      reduceMotion
+        ? []
+        : [
+            AutoScroll({
+              speed: 0.7,
+              stopOnMouseEnter: true,
+              stopOnInteraction: false,
+            }),
+          ],
+    [reduceMotion],
   );
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, align: "start" },
@@ -91,7 +95,6 @@ export function CustomerReviewsCarousel({
         transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
         className="relative mt-8 sm:mt-14"
       >
-        <div className="hero-glow pointer-events-none absolute -inset-x-6 -inset-y-10 -z-10 rounded-[2.5rem]" />
         <div
           ref={emblaRef}
           className="min-h-[218px] overflow-hidden sm:min-h-[242px] sm:[mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)] sm:[-webkit-mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]"

@@ -115,12 +115,6 @@ export function GamepassCard({
           {displayBadge && <ProductBadge kind={displayBadge} />}
         </div>
 
-        {featured && !isUnavailable && (
-          <p className="text-gold-foreground dark:text-gold relative z-10 mt-1.5 text-xs font-medium">
-            Most value for the price
-          </p>
-        )}
-
         <div className="relative z-10 mt-3 flex items-end justify-between gap-3">
           <Price amount={gamepass.price} />
           <div className="w-[9.25rem] max-w-[58%] shrink-0">
@@ -185,12 +179,6 @@ export function GamepassCard({
           <h3 className="font-heading mt-1.5 text-[15px] leading-snug font-semibold text-balance">
             {productName}
           </h3>
-
-          {featured && !isUnavailable && (
-            <p className="text-gold-foreground dark:text-gold mt-1.5 text-xs font-medium">
-              Most customers choose this
-            </p>
-          )}
         </div>
       </div>
 
