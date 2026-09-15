@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdmin } from "@/lib/auth/admin";
 import { getArtworkReconciliationData } from "@/lib/queries/artwork-reconciliation";
 import { ArtworkReconciliationManager } from "@/components/admin/artwork-reconciliation-manager";
 
@@ -8,6 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default async function ArtworkRecoveryPage() {
+  // Must run before any privileged read: the layout guard renders in
+  // parallel with this page and cannot stop its data from streaming.
+  await requireAdmin();
   const { orphans, allProducts } = await getArtworkReconciliationData();
 
   return (

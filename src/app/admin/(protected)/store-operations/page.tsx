@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdmin } from "@/lib/auth/admin";
 import { getStoreSettingsForAdmin } from "@/lib/store-status";
 import {
   getAllGamesForAdmin,
@@ -15,6 +16,9 @@ export const metadata: Metadata = {
 };
 
 export default async function StoreOperationsPage() {
+  // Must run before any privileged read: the layout guard renders in
+  // parallel with this page and cannot stop its data from streaming.
+  await requireAdmin();
   const [settings, games, gamepasses] = await Promise.all([
     getStoreSettingsForAdmin(),
     getAllGamesForAdmin(),

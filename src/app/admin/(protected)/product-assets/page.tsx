@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdmin } from "@/lib/auth/admin";
 import { getProductAssetsForAdmin } from "@/lib/queries/admin-product-assets";
 import { ProductAssetsManager } from "@/components/admin/product-assets-manager";
 
@@ -8,6 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default async function ProductAssetsPage() {
+  // Must run before any privileged read: the layout guard renders in
+  // parallel with this page and cannot stop its data from streaming.
+  await requireAdmin();
   const assets = await getProductAssetsForAdmin();
 
   return (
