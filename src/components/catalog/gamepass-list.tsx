@@ -1,8 +1,16 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { motion, type Variants } from "framer-motion";
 import { GamepassCard } from "@/components/catalog/gamepass-card";
 import type { ProductBadgeValue } from "@/components/catalog/product-badge";
+import {
+  BackToCategoriesButton,
+  ProductDiscoveryBar,
+  ProductSearchEmptyState,
+  useScrolledPast,
+  useSectionScrollSpy,
+} from "@/components/catalog/product-discovery-bar";
 import { getBestValueId, getConfiguredBadge } from "@/lib/merchandising";
 import type { ProductArtworkSource } from "@/lib/product-artwork-source";
 import type { ProductCardAccentSettings } from "@/lib/product-card-accent";
@@ -12,6 +20,11 @@ import {
   PRODUCT_CATEGORY_LABELS,
   type ProductCategory,
 } from "@/lib/product-category";
+import {
+  filterSectionsBySearch,
+  normalizeSearchText,
+  sectionAnchorId,
+} from "@/lib/product-search";
 import { cn } from "@/lib/utils";
 import type { StoreGamepass } from "@/types/database";
 
@@ -70,16 +83,65 @@ export function GamepassList({
     ),
   );
   const sections = groupByCategory(gamepasses);
+  const [query, setQuery] = useState("");
+  const normalizedQuery = normalizeSearchText(query);
+
+  const filteredSections = useMemo(
+    () => filterSectionsBySearch(sections, normalizedQuery),
+    [sections, normalizedQuery],
+  );
+
+  const sectionIds = useMemo(
+    () => sections.map(({ category }) => sectionAnchorId(gameSlug, category)),
+    [sections, gameSlug],
+  );
+  const activeId = useSectionScrollSpy(sectionIds);
+
+  const categories = useMemo(
+    () =>
+      (normalizedQuery ? filteredSections : sections).map(({ category, items }) => ({
+        id: sectionAnchorId(gameSlug, category),
+        label: PRODUCT_CATEGORY_LABELS[category],
+        count: items.length,
+      })),
+    [filteredSections, sections, normalizedQuery, gameSlug],
+  );
+
+  const showSearch = gamepasses.length > 6;
+  const discoveryBarId = `${gameSlug}-product-discovery`;
+  const showBackToCategories =
+    useScrolledPast(discoveryBarId) && sections.length > 2;
 
   return (
-    <div className="mt-7 flex flex-col gap-8 sm:mt-12 sm:gap-14">
-      {sections.map(({ category, items }, index) => {
+    <div className="mt-7">
+      {(showSearch || sections.length > 1) && (
+        <div id={discoveryBarId} className="mb-8 sm:mb-12">
+          <ProductDiscoveryBar
+            query={query}
+            onQueryChange={setQuery}
+            showSearch={showSearch}
+            categories={categories}
+            activeId={activeId}
+            searchInputId={`${gameSlug}-product-search`}
+          />
+        </div>
+      )}
+
+      {filteredSections.length === 0 ? (
+        <ProductSearchEmptyState onClear={() => setQuery("")} />
+      ) : (
+      <div className="flex flex-col gap-8 sm:gap-14">
+      {filteredSections.map(({ category, items }, index) => {
         const SectionIcon = PRODUCT_CATEGORY_ICONS[category];
 
         return (
           <section
             key={category}
-            className={cn(index > 0 && "border-border/60 border-t pt-8 sm:pt-10")}
+            id={sectionAnchorId(gameSlug, category)}
+            className={cn(
+              "scroll-mt-24",
+              index > 0 && "border-border/60 border-t pt-8 sm:pt-10",
+            )}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-3">
@@ -155,6 +217,10 @@ export function GamepassList({
           </section>
         );
       })}
+      </div>
+      )}
+
+      <BackToCategoriesButton targetId={discoveryBarId} show={showBackToCategories} />
     </div>
   );
 }

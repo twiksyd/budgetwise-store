@@ -103,30 +103,15 @@ export function GamesExplorer({
 
   return (
     <div>
-      <CatalogStats
-        gameCount={games.length}
-        productCount={Object.values(productCounts).reduce((a, b) => a + b, 0)}
-      />
-
-      {robuxGames.length > 0 && (
-        <RobuxSection
-          games={robuxGames}
-          productCounts={robuxProductCounts}
-          className="mt-8 sm:mt-10"
-        />
-      )}
-
-      {featuredGames.length > 0 && (
-        <div className="mt-8 sm:mt-10">
-          <FeaturedGames games={featuredGames} productCounts={productCounts} />
-        </div>
-      )}
-
-      <div className="sticky top-[72px] z-30 -mx-6 mt-8 bg-background/85 px-6 py-3 backdrop-blur-md sm:static sm:mx-0 sm:mt-12 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+      <div className="sticky top-[72px] z-30 -mx-6 bg-background/85 px-6 py-3 backdrop-blur-md sm:static sm:mx-0 sm:mt-2 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="relative w-full sm:max-w-xs">
+            <label htmlFor="games-search" className="sr-only">
+              Search Roblox games
+            </label>
             <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
             <Input
+              id="games-search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search Roblox games..."
@@ -159,6 +144,27 @@ export function GamesExplorer({
           )}
         </div>
       </div>
+
+      <div className="mt-5">
+        <CatalogStats
+          gameCount={games.length}
+          productCount={Object.values(productCounts).reduce((a, b) => a + b, 0)}
+        />
+      </div>
+
+      {robuxGames.length > 0 && (
+        <RobuxSection
+          games={robuxGames}
+          productCounts={robuxProductCounts}
+          className="mt-8 sm:mt-10"
+        />
+      )}
+
+      {featuredGames.length > 0 && (
+        <div className="mt-8 sm:mt-10">
+          <FeaturedGames games={featuredGames} productCounts={productCounts} />
+        </div>
+      )}
 
       <h2 className="font-heading mt-8 text-xl font-semibold tracking-tight sm:mt-12 sm:text-2xl">
         🎮 Games

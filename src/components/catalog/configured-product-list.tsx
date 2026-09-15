@@ -1,14 +1,27 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { motion, type Variants } from "framer-motion";
 import { Gamepad2 } from "lucide-react";
 import { GamepassCard } from "@/components/catalog/gamepass-card";
 import type { ProductBadgeValue } from "@/components/catalog/product-badge";
+import {
+  BackToCategoriesButton,
+  ProductDiscoveryBar,
+  ProductSearchEmptyState,
+  useScrolledPast,
+  useSectionScrollSpy,
+} from "@/components/catalog/product-discovery-bar";
 import type { ProductCardAccentSettings } from "@/lib/product-card-accent";
 import type { ProductArtworkSource } from "@/lib/product-artwork-source";
 import type { ConfiguredProductSection } from "@/lib/queries/product-layout";
 import { getBestValueId, getConfiguredBadge } from "@/lib/merchandising";
 import { getProductCategory } from "@/lib/product-category";
+import {
+  filterSectionsBySearch,
+  normalizeSearchText,
+  sectionAnchorId,
+} from "@/lib/product-search";
 import { cn } from "@/lib/utils";
 
 const container: Variants = {
@@ -44,9 +57,59 @@ export function ConfiguredProductList({
   cardBackgroundUrls?: Map<string, string>;
   accentSettings?: ProductCardAccentSettings;
 }) {
+  const [query, setQuery] = useState("");
+  const normalizedQuery = normalizeSearchText(query);
+  const totalItemCount = useMemo(
+    () => sections.reduce((sum, s) => sum + s.items.length, 0),
+    [sections],
+  );
+
+  const filteredSections = useMemo(
+    () => filterSectionsBySearch(sections, normalizedQuery),
+    [sections, normalizedQuery],
+  );
+
+  const sectionIds = useMemo(
+    () => sections.map((s) => sectionAnchorId(gameSlug, s.id ?? "uncategorized")),
+    [sections, gameSlug],
+  );
+  const activeId = useSectionScrollSpy(sectionIds);
+
+  const categories = useMemo(
+    () =>
+      (normalizedQuery ? filteredSections : sections).map((s) => ({
+        id: sectionAnchorId(gameSlug, s.id ?? "uncategorized"),
+        label: s.name,
+        count: s.items.length,
+      })),
+    [filteredSections, sections, normalizedQuery, gameSlug],
+  );
+
+  const showSearch = totalItemCount > 6;
+  const discoveryBarId = `${gameSlug}-product-discovery`;
+  const showBackToCategories =
+    useScrolledPast(discoveryBarId) && sections.length > 2;
+
   return (
-    <div className="mt-7 flex flex-col gap-8 sm:mt-12 sm:gap-14">
-      {sections.map((section, index) => {
+    <div className="mt-7">
+      {(showSearch || sections.length > 1) && (
+        <div id={discoveryBarId} className="mb-8 sm:mb-12">
+          <ProductDiscoveryBar
+            query={query}
+            onQueryChange={setQuery}
+            showSearch={showSearch}
+            categories={categories}
+            activeId={activeId}
+            searchInputId={`${gameSlug}-product-search`}
+          />
+        </div>
+      )}
+
+      {filteredSections.length === 0 ? (
+        <ProductSearchEmptyState onClear={() => setQuery("")} />
+      ) : (
+        <div className="flex flex-col gap-8 sm:gap-14">
+          {filteredSections.map((section, index) => {
         const bestValueId = getBestValueId(
           section.items.filter(
             (i) =>
@@ -58,7 +121,11 @@ export function ConfiguredProductList({
         return (
           <section
             key={section.id ?? "uncategorized"}
-            className={cn(index > 0 && "border-border/60 border-t pt-8 sm:pt-10")}
+            id={sectionAnchorId(gameSlug, section.id ?? "uncategorized")}
+            className={cn(
+              "scroll-mt-24",
+              index > 0 && "border-border/60 border-t pt-8 sm:pt-10",
+            )}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-3">
@@ -116,7 +183,11 @@ export function ConfiguredProductList({
             </motion.div>
           </section>
         );
-      })}
+          })}
+        </div>
+      )}
+
+      <BackToCategoriesButton targetId={discoveryBarId} show={showBackToCategories} />
     </div>
   );
 }

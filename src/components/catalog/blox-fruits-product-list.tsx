@@ -1,9 +1,17 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { motion, type Variants } from "framer-motion";
 import { Gamepad2, Sparkles, Zap, type LucideIcon } from "lucide-react";
 import { GamepassCard } from "@/components/catalog/gamepass-card";
 import type { ProductBadgeValue } from "@/components/catalog/product-badge";
+import {
+  BackToCategoriesButton,
+  ProductDiscoveryBar,
+  ProductSearchEmptyState,
+  useScrolledPast,
+  useSectionScrollSpy,
+} from "@/components/catalog/product-discovery-bar";
 import {
   BLOX_FRUITS_SECTION_LABELS,
   type BloxFruitsSection,
@@ -12,6 +20,11 @@ import type { ProductCardAccentSettings } from "@/lib/product-card-accent";
 import type { ProductArtworkSource } from "@/lib/product-artwork-source";
 import { groupBloxFruitsProducts } from "@/lib/blox-fruits";
 import { getConfiguredBadge, getBestValueId } from "@/lib/merchandising";
+import {
+  filterSectionsBySearch,
+  normalizeSearchText,
+  sectionAnchorId,
+} from "@/lib/product-search";
 import { cn } from "@/lib/utils";
 import type { StoreGamepass } from "@/types/database";
 
@@ -61,10 +74,55 @@ export function BloxFruitsProductList({
   accentSettings?: ProductCardAccentSettings;
 }) {
   const sections = groupBloxFruitsProducts(gamepasses);
+  const [query, setQuery] = useState("");
+  const normalizedQuery = normalizeSearchText(query);
+
+  const filteredSections = useMemo(
+    () => filterSectionsBySearch(sections, normalizedQuery),
+    [sections, normalizedQuery],
+  );
+
+  const sectionIds = useMemo(
+    () => sections.map(({ section }) => sectionAnchorId(gameSlug, section)),
+    [sections, gameSlug],
+  );
+  const activeId = useSectionScrollSpy(sectionIds);
+
+  const categories = useMemo(
+    () =>
+      (normalizedQuery ? filteredSections : sections).map(({ section, items }) => ({
+        id: sectionAnchorId(gameSlug, section),
+        label: BLOX_FRUITS_SECTION_LABELS[section],
+        count: items.length,
+      })),
+    [filteredSections, sections, normalizedQuery, gameSlug],
+  );
+
+  const showSearch = gamepasses.length > 6;
+  const discoveryBarId = `${gameSlug}-product-discovery`;
+  const showBackToCategories =
+    useScrolledPast(discoveryBarId) && sections.length > 2;
 
   return (
-    <div className="mt-7 flex flex-col gap-8 sm:mt-12 sm:gap-14">
-      {sections.map(({ section, items }, index) => {
+    <div className="mt-7">
+      {(showSearch || sections.length > 1) && (
+        <div id={discoveryBarId} className="mb-8 sm:mb-12">
+          <ProductDiscoveryBar
+            query={query}
+            onQueryChange={setQuery}
+            showSearch={showSearch}
+            categories={categories}
+            activeId={activeId}
+            searchInputId={`${gameSlug}-product-search`}
+          />
+        </div>
+      )}
+
+      {filteredSections.length === 0 ? (
+        <ProductSearchEmptyState onClear={() => setQuery("")} />
+      ) : (
+      <div className="flex flex-col gap-8 sm:gap-14">
+      {filteredSections.map(({ section, items }, index) => {
         const SectionIcon = SECTION_ICONS[section];
         // Best value is computed per section, not across the whole game —
         // comparing an EXP boost's Robux-per-peso against a Permanent
@@ -81,7 +139,11 @@ export function BloxFruitsProductList({
         return (
           <section
             key={section}
-            className={cn(index > 0 && "border-border/60 border-t pt-8 sm:pt-10")}
+            id={sectionAnchorId(gameSlug, section)}
+            className={cn(
+              "scroll-mt-24",
+              index > 0 && "border-border/60 border-t pt-8 sm:pt-10",
+            )}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-3">
@@ -141,6 +203,10 @@ export function BloxFruitsProductList({
           </section>
         );
       })}
+      </div>
+      )}
+
+      <BackToCategoriesButton targetId={discoveryBarId} show={showBackToCategories} />
     </div>
   );
 }

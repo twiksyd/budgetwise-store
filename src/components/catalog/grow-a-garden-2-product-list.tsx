@@ -1,9 +1,17 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { motion, type Variants } from "framer-motion";
 import { Egg } from "lucide-react";
 import { GamepassCard } from "@/components/catalog/gamepass-card";
 import type { ProductBadgeValue } from "@/components/catalog/product-badge";
+import {
+  BackToCategoriesButton,
+  ProductDiscoveryBar,
+  ProductSearchEmptyState,
+  useScrolledPast,
+  useSectionScrollSpy,
+} from "@/components/catalog/product-discovery-bar";
 import { isFallEggProduct } from "@/config/grow-a-garden-2";
 import type { ProductCardAccentSettings } from "@/lib/product-card-accent";
 import type { ProductArtworkSource } from "@/lib/product-artwork-source";
@@ -14,8 +22,15 @@ import {
   PRODUCT_CATEGORY_LABELS,
   type ProductCategory,
 } from "@/lib/product-category";
+import {
+  filterSectionsBySearch,
+  normalizeSearchText,
+  sectionAnchorId,
+} from "@/lib/product-search";
 import { cn } from "@/lib/utils";
 import type { StoreGamepass } from "@/types/database";
+
+const FALL_EGG_KEY = "fall-egg";
 
 const container: Variants = {
   hidden: {},
@@ -129,15 +144,81 @@ export function GrowAGarden2ProductList({
   const fallEggItems = gamepasses.filter((g) => isFallEggProduct(g.name));
   const rest = gamepasses.filter((g) => !isFallEggProduct(g.name));
   const restSections = groupByCategory(rest);
+  const [query, setQuery] = useState("");
+  const normalizedQuery = normalizeSearchText(query);
+
+  const sections = useMemo(
+    () => [
+      ...restSections.map((s) => ({
+        key: s.category as string,
+        label: PRODUCT_CATEGORY_LABELS[s.category],
+        items: s.items,
+      })),
+      ...(fallEggItems.length > 0
+        ? [{ key: FALL_EGG_KEY, label: "Fall Egg", items: fallEggItems }]
+        : []),
+    ],
+    [restSections, fallEggItems],
+  );
+
+  const filteredSections = useMemo(
+    () => filterSectionsBySearch(sections, normalizedQuery),
+    [sections, normalizedQuery],
+  );
+  const visibleRestSections = filteredSections.filter((s) => s.key !== FALL_EGG_KEY);
+  const visibleFallEgg = filteredSections.find((s) => s.key === FALL_EGG_KEY);
+
+  const sectionIds = useMemo(
+    () => sections.map((s) => sectionAnchorId(gameSlug, s.key)),
+    [sections, gameSlug],
+  );
+  const activeId = useSectionScrollSpy(sectionIds);
+
+  const categories = useMemo(
+    () =>
+      (normalizedQuery ? filteredSections : sections).map((s) => ({
+        id: sectionAnchorId(gameSlug, s.key),
+        label: s.label,
+        count: s.items.length,
+      })),
+    [filteredSections, sections, normalizedQuery, gameSlug],
+  );
+
+  const showSearch = gamepasses.length > 6;
+  const discoveryBarId = `${gameSlug}-product-discovery`;
+  const showBackToCategories =
+    useScrolledPast(discoveryBarId) && sections.length > 2;
 
   return (
-    <div className="mt-7 flex flex-col gap-8 sm:mt-12 sm:gap-14">
-      {restSections.map(({ category, items }, index) => {
+    <div className="mt-7">
+      {(showSearch || sections.length > 1) && (
+        <div id={discoveryBarId} className="mb-8 sm:mb-12">
+          <ProductDiscoveryBar
+            query={query}
+            onQueryChange={setQuery}
+            showSearch={showSearch}
+            categories={categories}
+            activeId={activeId}
+            searchInputId={`${gameSlug}-product-search`}
+          />
+        </div>
+      )}
+
+      {filteredSections.length === 0 ? (
+        <ProductSearchEmptyState onClear={() => setQuery("")} />
+      ) : (
+      <div className="flex flex-col gap-8 sm:gap-14">
+      {visibleRestSections.map(({ key, items }, index) => {
+        const category = key as ProductCategory;
         const SectionIcon = PRODUCT_CATEGORY_ICONS[category];
         return (
           <section
             key={category}
-            className={cn(index > 0 && "border-border/60 border-t pt-8 sm:pt-10")}
+            id={sectionAnchorId(gameSlug, category)}
+            className={cn(
+              "scroll-mt-24",
+              index > 0 && "border-border/60 border-t pt-8 sm:pt-10",
+            )}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-3">
@@ -172,9 +253,13 @@ export function GrowAGarden2ProductList({
         );
       })}
 
-      {fallEggItems.length > 0 && (
+      {visibleFallEgg && (
         <section
-          className={cn(restSections.length > 0 && "border-border/60 border-t pt-8 sm:pt-10")}
+          id={sectionAnchorId(gameSlug, FALL_EGG_KEY)}
+          className={cn(
+            "scroll-mt-24",
+            visibleRestSections.length > 0 && "border-border/60 border-t pt-8 sm:pt-10",
+          )}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3">
@@ -191,12 +276,13 @@ export function GrowAGarden2ProductList({
               </div>
             </div>
             <p className="bg-muted text-muted-foreground shrink-0 rounded-full px-3 py-1 text-xs font-medium">
-              {fallEggItems.length} option{fallEggItems.length === 1 ? "" : "s"}
+              {visibleFallEgg.items.length} option
+              {visibleFallEgg.items.length === 1 ? "" : "s"}
             </p>
           </div>
 
           <ProductGrid
-            items={fallEggItems}
+            items={visibleFallEgg.items}
             gameId={gameId}
             gameSlug={gameSlug}
             gameName={gameName}
@@ -210,6 +296,10 @@ export function GrowAGarden2ProductList({
           />
         </section>
       )}
+      </div>
+      )}
+
+      <BackToCategoriesButton targetId={discoveryBarId} show={showBackToCategories} />
     </div>
   );
 }
