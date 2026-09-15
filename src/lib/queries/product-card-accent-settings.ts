@@ -122,3 +122,17 @@ export async function getProductCardAccentSettingsForGame(
   const settings = await getProductCardAccentSettingsMap([gameId]);
   return settings.get(gameId) ?? getDefaultProductCardAccentSettings();
 }
+
+// Decorative — a failure here should render a card with no accent, not
+// break the page. Use on customer-facing catalog pages instead of the
+// throwing version above.
+export async function getProductCardAccentSettingsForGameSafe(
+  gameId: string,
+): Promise<ProductCardAccentSettingsWithMeta> {
+  try {
+    return await getProductCardAccentSettingsForGame(gameId);
+  } catch (error) {
+    console.error("Failed to load product card accent settings", error);
+    return getDefaultProductCardAccentSettings();
+  }
+}

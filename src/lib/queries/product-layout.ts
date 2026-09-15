@@ -142,3 +142,19 @@ export async function getProductLayoutForGame(
 
   return { sections: configuredSections };
 }
+
+// Store-owned presentation metadata (custom sections/ordering) — a failure
+// here should fall back to the default per-game product list rendering
+// (null), not break the page. Use on customer-facing catalog pages instead
+// of the throwing version above.
+export async function getProductLayoutForGameSafe(
+  gameId: string,
+  gamepasses: StoreGamepass[],
+): Promise<ConfiguredProductLayout | null> {
+  try {
+    return await getProductLayoutForGame(gameId, gamepasses);
+  } catch (error) {
+    console.error("Failed to load product layout", error);
+    return null;
+  }
+}

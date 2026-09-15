@@ -204,6 +204,23 @@ export async function getProductArtworkMap(
   return artwork;
 }
 
+// Product artwork is a decorative Store enhancement, not purchasable data —
+// a broken override table or a stale Roblox icon cache must never take down
+// a game page. Callers that render customer-facing catalog pages should use
+// this instead of getProductArtworkMap() directly; callers still exist that
+// want a hard failure (e.g. the admin catalog layout editor).
+export async function getProductArtworkMapSafe(
+  productsOrIds: Array<string | ProductArtworkLookupProduct>,
+  options: { includeRoblox?: boolean } = {},
+): Promise<Map<string, ProductArtwork>> {
+  try {
+    return await getProductArtworkMap(productsOrIds, options);
+  } catch (error) {
+    console.error("Failed to load product artwork", error);
+    return new Map();
+  }
+}
+
 export function getProductArtworkUrlMap(
   artwork: Map<string, ProductArtwork>,
 ): Map<string, string> {

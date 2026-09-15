@@ -12,10 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { robuxViaLinkGameIds, robuxViaLinkTile } from "@/config/robux-via-link";
 import { getGamepassesByGameId } from "@/lib/queries/catalog";
 import {
-  getProductArtworkMap,
+  getProductArtworkMapSafe,
   getProductArtworkUrlMap,
 } from "@/lib/queries/product-artwork";
-import { getProductCardBackgroundUrlMap } from "@/lib/queries/product-card-backgrounds";
+import { getProductCardBackgroundUrlMapSafe } from "@/lib/queries/product-card-backgrounds";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
 
 export const revalidate = 60;
@@ -38,15 +38,14 @@ export default async function RobuxViaLinkPage() {
   ]);
 
   const orderingDisabled = storeStatus !== "open";
-  const productArtworkUrls = getProductArtworkUrlMap(
-    await getProductArtworkMap(
-      [...coveredTax, ...notCoveredTax].map((gamepass) => gamepass.id),
-      { includeRoblox: false },
-    ),
+  const allGamepassIds = [...coveredTax, ...notCoveredTax].map(
+    (gamepass) => gamepass.id,
   );
-  const productCardBackgroundUrls = await getProductCardBackgroundUrlMap(
-    [...coveredTax, ...notCoveredTax].map((gamepass) => gamepass.id),
-  );
+  const [productArtwork, productCardBackgroundUrls] = await Promise.all([
+    getProductArtworkMapSafe(allGamepassIds, { includeRoblox: false }),
+    getProductCardBackgroundUrlMapSafe(allGamepassIds),
+  ]);
+  const productArtworkUrls = getProductArtworkUrlMap(productArtwork);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-6 sm:py-14">

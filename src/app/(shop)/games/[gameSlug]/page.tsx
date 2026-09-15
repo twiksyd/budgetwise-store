@@ -15,11 +15,11 @@ import {
   getGamepassesByGameId,
 } from "@/lib/queries/catalog";
 import {
-  getProductArtworkMap,
+  getProductArtworkMapSafe,
   getProductArtworkUrlMap,
 } from "@/lib/queries/product-artwork";
-import { getProductCardAccentSettingsForGame } from "@/lib/queries/product-card-accent-settings";
-import { getProductCardBackgroundUrlMap } from "@/lib/queries/product-card-backgrounds";
+import { getProductCardAccentSettingsForGameSafe } from "@/lib/queries/product-card-accent-settings";
+import { getProductCardBackgroundUrlMapSafe } from "@/lib/queries/product-card-backgrounds";
 import { GamepassList } from "@/components/catalog/gamepass-list";
 import { BloxFruitsProductList } from "@/components/catalog/blox-fruits-product-list";
 import { GrowAGarden2ProductList } from "@/components/catalog/grow-a-garden-2-product-list";
@@ -35,7 +35,7 @@ import { BLOX_FRUITS_GAME_ID } from "@/config/blox-fruits";
 import { GROW_A_GARDEN_2_GAME_ID } from "@/config/grow-a-garden-2";
 import { isRobuxPlusGame, robuxPlusPresentation } from "@/config/robux-products";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
-import { getProductLayoutForGame } from "@/lib/queries/product-layout";
+import { getProductLayoutForGameSafe } from "@/lib/queries/product-layout";
 
 export const revalidate = 60;
 
@@ -95,19 +95,25 @@ export default async function GameDetailPage({ params }: Props) {
     storeStatusPromise,
   ]);
 
-  const productArtwork = await getProductArtworkMap(gamepasses, {
-    includeRoblox: Boolean(robloxUniverseIds[game.id]),
-  });
+  // These are all Store-owned presentation reads with no dependency on one
+  // another, so they run concurrently. Each has its own safe fallback (see
+  // the *Safe query wrappers) — a failure in any of them must not stop this
+  // page from rendering purchasable catalog data.
+  const [productArtwork, productCardBackgroundUrls, productCardAccentSettings, productLayout] =
+    await Promise.all([
+      getProductArtworkMapSafe(gamepasses, {
+        includeRoblox: Boolean(robloxUniverseIds[game.id]),
+      }),
+      getProductCardBackgroundUrlMapSafe(
+        gamepasses.map((gamepass) => gamepass.id),
+      ),
+      getProductCardAccentSettingsForGameSafe(game.id),
+      getProductLayoutForGameSafe(game.id, gamepasses),
+    ]);
   const productArtworkUrls = getProductArtworkUrlMap(productArtwork);
   const productArtworkSources = new Map(
     [...productArtwork.entries()].map(([id, artwork]) => [id, artwork.source]),
   );
-  const productCardBackgroundUrls = await getProductCardBackgroundUrlMap(
-    gamepasses.map((gamepass) => gamepass.id),
-  );
-  const productCardAccentSettings =
-    await getProductCardAccentSettingsForGame(game.id);
-  const productLayout = await getProductLayoutForGame(game.id, gamepasses);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-6 sm:py-14">
