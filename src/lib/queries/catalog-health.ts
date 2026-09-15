@@ -500,6 +500,9 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
   }));
 
   const rawGameById = new Map(rawGames.map((game) => [game.id, game]));
+  const rawIconUrlByGameId = new Map(
+    rawGamesResult.data.map((game) => [game.id, game.icon_url]),
+  );
   const storeGameById = new Map(storeGames.map((game) => [game.id, game]));
   const rawProductById = new Map(rawProducts.map((product) => [product.id, product]));
   const storeProductById = new Map(
@@ -612,6 +615,37 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
             "Game cards depend on thumbnails for recognition and trust during browsing.",
           recommendedAction:
             "Review the game thumbnail in XOB or the source catalog data.",
+          relatedLinks: relatedProductLinks({ productId: null, gameHref }),
+          detectedAt: null,
+        }),
+      );
+    }
+
+    if (
+      !hasUsableUrl(rawIconUrlByGameId.get(game.id)) &&
+      !universeIds[game.id] &&
+      !robuxViaLinkSourceGameIds.has(game.id) &&
+      game.availability_status !== "hidden"
+    ) {
+      issues.push(
+        makeIssue({
+          severity: "warning",
+          type: "Missing Roblox artwork mapping",
+          gameId: game.id,
+          gameName: game.name,
+          gameAvailability: game.availability_status,
+          productId: null,
+          productName: null,
+          productAvailability: "not_available",
+          artworkSource: "not_available",
+          robloxMatchStatus: "not_available",
+          configurationStatus,
+          currentState:
+            "The source game has no icon URL and no configured Roblox universe ID, so automatic artwork resolution has nothing to resolve against.",
+          whyItMatters:
+            "New games only receive automatic Roblox artwork once a trusted universe ID mapping exists — without one, the deterministic resolver skips the game entirely and it falls back to a placeholder.",
+          recommendedAction:
+            "Add a verified universe ID for this game to src/config/roblox-universe-ids.json, then run the deterministic icon resolver.",
           relatedLinks: relatedProductLinks({ productId: null, gameHref }),
           detectedAt: null,
         }),

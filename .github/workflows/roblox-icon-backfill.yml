@@ -1,0 +1,50 @@
+name: Deterministic Roblox icon backfill
+
+# Runs the automation-safe game-icon resolver on a schedule so newly-added
+# games with a trusted universeId mapping (src/config/roblox-universe-ids.json)
+# eventually get games.icon_url populated without a human running
+# `npm run db:backfill-icons-deterministic` by hand.
+#
+# This workflow runs scripts/backfill-game-icons-deterministic.mjs only.
+# That script has no import path to the fuzzy Roblox search helpers in
+# scripts/lib/roblox-icon-resolver.mjs — see that file's module comment.
+# Never point this workflow at scripts/backfill-game-icons.mjs (the manual,
+# human-triggered fuzzy-discovery tool).
+on:
+  schedule:
+    # 07:17 UTC daily — low traffic, off the top of the hour to avoid
+    # GitHub Actions' scheduling congestion window. Artwork resolution has
+    # no latency requirement, so a daily cadence is more than sufficient.
+    - cron: "17 7 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run deterministic Roblox icon resolver
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/backfill-game-icons-deterministic.mjs

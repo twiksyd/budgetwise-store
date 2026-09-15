@@ -19,7 +19,10 @@ import universeIds from "./roblox-universe-ids.json";
 //
 // Every entry currently in roblox-universe-ids.json was confirmed this way,
 // each with at least 2-3 (usually 5+) exact product-name overlaps against
-// the live Roblox game pass list — never on name-similarity alone.
+// the live Roblox game pass list — never on name-similarity alone. The one
+// exception is Karinderya (84372024-ee1c-43a0-bbfb-6227c43039d3), whose
+// universe (10648820673) and place (116497287371701) IDs were confirmed
+// directly by the store owner rather than by product-list cross-reference.
 //
 // Deliberately NOT configured — needs manual follow-up, don't guess:
 //   - Build a ring farm (c1855e24-3f0b-4f18-b97f-508f51df2f3f) — the one

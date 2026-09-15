@@ -1,13 +1,22 @@
-// One-time (re-runnable) maintenance script: fills in games.icon_url by
-// matching each game's name against Roblox's public search, using the
-// official game icon as the source image. Only touches rows where
-// icon_url is currently null, and only when it finds a confident exact
-// name match — anything ambiguous is skipped and reported, not guessed.
+// Manual, human-triggered game-icon discovery workflow (re-runnable).
+//
+// Tries each game's configured universeId first (src/config/roblox-universe-ids.json),
+// then falls back to fuzzy-matching the game's name against Roblox's public
+// search when no mapping exists. That fuzzy fallback makes this workflow
+// unsafe for unattended automation — a wrong guess would confidently
+// display the wrong game's official artwork. Run it by hand, review the
+// "Needs manual review" output, and add a verified mapping to
+// roblox-universe-ids.json for anything real before re-running.
+//
+// For unattended/automated resolution (cron, admin action, scheduled
+// worker), use backfill-game-icons-deterministic.mjs instead — it only
+// resolves games with an explicit mapping and never guesses.
 //
 // Run with: node --env-file=.env.local scripts/backfill-game-icons.mjs
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { fetchIconUrl, findConfidentMatch } from "./lib/roblox-icon-resolver.mjs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,69 +26,6 @@ const supabase = createClient(
 const configuredUniverseIds = JSON.parse(
   readFileSync(join(process.cwd(), "src/config/roblox-universe-ids.json"), "utf8"),
 );
-
-function normalize(name) {
-  return name
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, "") // strip emojis/symbols, keep letters/numbers
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-async function searchRoblox(query) {
-  const sessionId = crypto.randomUUID();
-  const url = `https://apis.roblox.com/search-api/omni-search?searchQuery=${encodeURIComponent(query)}&sessionId=${sessionId}&pageToken=&verticalType=game`;
-  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-  const data = await res.json();
-
-  const results = [];
-  for (const group of data.searchResults ?? []) {
-    for (const content of group.contents ?? []) {
-      if (content.contentType === "Game" && content.universeId) {
-        results.push({ universeId: content.universeId, name: content.name });
-      }
-    }
-  }
-  return results;
-}
-
-async function fetchIconUrl(universeId) {
-  const url = `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=Png&isCircular=false`;
-  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!res.ok) throw new Error(`Icon fetch failed: ${res.status}`);
-  const data = await res.json();
-  return data.data?.[0]?.imageUrl ?? null;
-}
-
-async function findConfidentMatch(name, aliases) {
-  const targets = [name, ...(aliases ?? [])].map(normalize);
-  const results = await searchRoblox(name);
-
-  for (const result of results) {
-    const candidate = normalize(result.name);
-    if (targets.includes(candidate)) return result;
-  }
-
-  // Roblox listings often wrap the real title in event/update decoration
-  // ("Anime Vanguards: Extermination Event Pt. 2", "Welcome to Bloxburg").
-  // Fall back to a substring match on the no-space form, but only when
-  // exactly one result qualifies and the target isn't so short it'd match
-  // almost anything.
-  const despacedTargets = targets
-    .map((t) => t.replace(/\s+/g, ""))
-    .filter((t) => t.length >= 6);
-
-  if (despacedTargets.length > 0) {
-    const substringMatches = results.filter((result) => {
-      const candidate = normalize(result.name).replace(/\s+/g, "");
-      return despacedTargets.some((t) => candidate.includes(t));
-    });
-    if (substringMatches.length === 1) return substringMatches[0];
-  }
-
-  return null;
-}
 
 async function resolveGameIcon(game) {
   const configuredUniverseId = configuredUniverseIds[game.id];
