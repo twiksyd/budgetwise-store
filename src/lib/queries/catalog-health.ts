@@ -1,11 +1,15 @@
 import "server-only";
 import { withGameArtwork } from "@/lib/game-artwork";
 
-import universeIdsConfig from "@/config/roblox-universe-ids.json";
 import {
   isRobuxViaLinkSourceGame,
   robuxViaLinkGameIds,
 } from "@/config/robux-via-link";
+import { getRobloxIdentitySafe } from "@/lib/queries/roblox-identity";
+import {
+  classifyGameRobloxIdentity,
+  type RobloxIdentityHealthClassification,
+} from "@/lib/roblox-identity-core.mjs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type {
   GameAvailabilityStatus,
@@ -34,10 +38,15 @@ export type CatalogHealthMatchStatus =
   | "no_sync_record"
   | "not_available";
 
+// not_roblox / needs_review / unreviewed only appear with
+// ROBLOX_IDENTITY_SOURCE=db; json mode keeps the original four.
 export type CatalogHealthConfigStatus =
   | "configured"
   | "not_configured"
   | "special_store_route"
+  | "not_roblox"
+  | "needs_review"
+  | "unreviewed"
   | "not_available";
 
 export interface CatalogHealthMetric {
@@ -419,7 +428,6 @@ function metric(
 
 export async function getCatalogHealthData(): Promise<CatalogHealthData> {
   const supabase = createAdminClient();
-  const universeIds = universeIdsConfig as Record<string, number>;
 
   const [
     rawGamesResult,
@@ -428,6 +436,7 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
     storeProductsResult,
     cacheResult,
     overridesResult,
+    identityResult,
   ] = await Promise.all([
     safeSelect<RawGame>(
       "XOB games",
@@ -477,6 +486,7 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
           "gamepass_id, source, manual_kind, icon_url, storage_path, original_url, content_type, file_size_bytes, updated_at",
         ),
     ),
+    getRobloxIdentitySafe(),
   ]);
 
   const rawGames = rawGamesResult.data.map(withGameArtwork);
@@ -498,6 +508,11 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
     ok: !result.error,
     message: result.error,
   }));
+  sourceStatus.push({
+    source: `Roblox identity (${identityResult.source ?? "invalid source"})`,
+    ok: identityResult.ok,
+    message: identityResult.ok ? null : identityResult.error,
+  });
 
   const rawGameById = new Map(rawGames.map((game) => [game.id, game]));
   const rawIconUrlByGameId = new Map(
@@ -537,6 +552,23 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
     gameHrefById.set(gameId, "/games/robux-via-link");
   }
 
+  // Null when the configured identity source could not be read: identity
+  // checks are then skipped (never guessed, never taken from the other source).
+  const identity = identityResult.identity;
+  const identityByGameId = new Map<string, RobloxIdentityHealthClassification>();
+  const classifyGame = (gameId: string) => {
+    let classification = identityByGameId.get(gameId);
+    if (!classification) {
+      classification = classifyGameRobloxIdentity(identity, {
+        gameId,
+        gameHidden: rawGameById.get(gameId)?.availability_status === "hidden",
+        specialStoreRoute: robuxViaLinkSourceGameIds.has(gameId),
+      });
+      identityByGameId.set(gameId, classification);
+    }
+    return classification;
+  };
+
   const productHealth: CatalogHealthProduct[] = rawProducts.map((product) => {
     const rawGame = rawGameById.get(product.game_id);
     const storeProduct = storeProductById.get(product.id);
@@ -545,11 +577,7 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
       cache: cacheByProductId.get(product.id),
     });
     const configurationStatus: CatalogHealthConfigStatus =
-      robuxViaLinkSourceGameIds.has(product.game_id)
-        ? "special_store_route"
-        : universeIds[product.game_id]
-          ? "configured"
-          : "not_configured";
+      classifyGame(product.game_id).configurationStatus;
 
     return {
       productId: product.id,
@@ -578,6 +606,31 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
 
   const issues: CatalogHealthIssue[] = [];
 
+  if (!identityResult.ok) {
+    issues.push(
+      makeIssue({
+        severity: "warning",
+        type: "Roblox identity unavailable",
+        gameId: null,
+        gameName: null,
+        gameAvailability: "not_available",
+        productId: null,
+        productName: null,
+        productAvailability: "not_available",
+        artworkSource: "not_available",
+        robloxMatchStatus: "not_available",
+        configurationStatus: "not_available",
+        currentState: `Roblox identity could not be read (source: ${identityResult.source ?? "invalid ROBLOX_IDENTITY_SOURCE"}): ${identityResult.error}`,
+        whyItMatters:
+          "Roblox configuration checks are skipped instead of guessed, and Roblox write jobs refuse to run until identity can be read.",
+        recommendedAction:
+          "Check ROBLOX_IDENTITY_SOURCE and read access to public.game_roblox_identity. Do not switch sources to work around it without a passing parity check.",
+        relatedLinks: [],
+        detectedAt: null,
+      }),
+    );
+  }
+
   for (const game of rawGames) {
     const publicGame = storeGameById.get(game.id);
     const rawGameProducts = rawProductsByGameId.get(game.id) ?? [];
@@ -589,12 +642,9 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
       (product) => product.availability_status === "available",
     );
     const gameHref = gameHrefById.get(game.id) ?? null;
+    const gameIdentity = classifyGame(game.id);
     const configurationStatus: CatalogHealthConfigStatus =
-      robuxViaLinkSourceGameIds.has(game.id)
-        ? "special_store_route"
-        : universeIds[game.id]
-          ? "configured"
-          : "not_configured";
+      gameIdentity.configurationStatus;
 
     if (!hasUsableUrl(game.icon_url) && game.availability_status !== "hidden") {
       issues.push(
@@ -623,8 +673,7 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
 
     if (
       !hasUsableUrl(rawIconUrlByGameId.get(game.id)) &&
-      !universeIds[game.id] &&
-      !robuxViaLinkSourceGameIds.has(game.id) &&
+      gameIdentity.legacyMappingChecks &&
       game.availability_status !== "hidden"
     ) {
       issues.push(
@@ -707,9 +756,43 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
       );
     }
 
+    if (gameIdentity.identityIssue) {
+      const needsReview = gameIdentity.identityIssue === "needs_review";
+      issues.push(
+        makeIssue({
+          severity: "warning",
+          type: needsReview
+            ? "Roblox identity needs review"
+            : "Roblox identity not reviewed",
+          gameId: game.id,
+          gameName: game.name,
+          gameAvailability: game.availability_status,
+          productId: null,
+          productName: null,
+          productAvailability: "not_available",
+          artworkSource: "not_available",
+          robloxMatchStatus: "not_available",
+          configurationStatus,
+          currentState: needsReview
+            ? "XOB marks this game's Roblox identity as needs_review, so no universe ID is trusted for it."
+            : "This game has no Roblox identity row in XOB.",
+          whyItMatters:
+            "Automatic Roblox artwork, icon resolution, and Game Pass sync only run for games with a verified Roblox identity.",
+          recommendedAction: needsReview
+            ? "Resolve the game's Roblox identity in XOB (verify its universe or mark it not_roblox), then run the deterministic icon resolver."
+            : "Review this game's Roblox identity in XOB: verify its universe, or mark it not_roblox or needs_review.",
+          relatedLinks: relatedProductLinks({
+            productId: null,
+            gameHref,
+            includeRobloxSync: true,
+          }),
+          detectedAt: null,
+        }),
+      );
+    }
+
     if (
-      !universeIds[game.id] &&
-      !robuxViaLinkSourceGameIds.has(game.id) &&
+      gameIdentity.legacyMappingChecks &&
       (publicGame || visibleProducts.length > 0)
     ) {
       issues.push(
@@ -752,12 +835,9 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
     const isPublicProduct = Boolean(storeProduct);
     const isActiveProduct = product.is_active && product.availability_status !== "hidden";
     const gameHref = gameHrefById.get(product.game_id) ?? null;
+    const productIdentity = classifyGame(product.game_id);
     const configurationStatus: CatalogHealthConfigStatus =
-      robuxViaLinkSourceGameIds.has(product.game_id)
-        ? "special_store_route"
-        : universeIds[product.game_id]
-          ? "configured"
-          : "not_configured";
+      productIdentity.configurationStatus;
 
     if (!rawGame) {
       issues.push(
@@ -1143,7 +1223,7 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
             detectedAt: artwork.detectedAt,
           }),
         );
-      } else if (artwork.matchStatus === "no_sync_record" && configurationStatus !== "special_store_route") {
+      } else if (artwork.matchStatus === "no_sync_record" && !productIdentity.skipSyncDiagnostics) {
         issues.push(
           makeIssue({
             severity: "information",
@@ -1161,7 +1241,9 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
             whyItMatters:
               "This can be normal for games not configured for sync, but it explains why official artwork is absent.",
             recommendedAction:
-              "If this product should sync, confirm the parent game has a universe ID and run the offline sync.",
+              identity?.source === "db"
+                ? "If this product should sync, confirm the parent game has a verified Roblox identity in XOB and run the offline sync."
+                : "If this product should sync, confirm the parent game has a universe ID and run the offline sync.",
             relatedLinks: relatedProductLinks({
               productId: product.id,
               gameHref,
@@ -1195,9 +1277,13 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
           productAvailability: storeProduct.availability_status,
           artworkSource: "not_available",
           robloxMatchStatus: "not_available",
-          configurationStatus: universeIds[storeProduct.game_id]
-            ? "configured"
-            : "not_configured",
+          // json mode keeps this check's original rule (no special route).
+          configurationStatus:
+            identity?.source === "json"
+              ? identity.isVerified(storeProduct.game_id)
+                ? "configured"
+                : "not_configured"
+              : classifyGame(storeProduct.game_id).configurationStatus,
           currentState:
             "store_gamepasses returned a product that was not found in the source gamepasses table.",
           whyItMatters:
@@ -1403,12 +1489,9 @@ export async function getCatalogHealthData(): Promise<CatalogHealthData> {
         (product) => product.availability_status === "available",
       ).length,
       thumbnailPresent: hasUsableUrl(game.icon_url),
-      configurationStatus: (robuxViaLinkSourceGameIds.has(game.id)
-        ? "special_store_route"
-        : universeIds[game.id]
-          ? "configured"
-          : "not_configured") as CatalogHealthConfigStatus,
-      universeId: universeIds[game.id] ?? null,
+      configurationStatus: classifyGame(game.id)
+        .configurationStatus as CatalogHealthConfigStatus,
+      universeId: classifyGame(game.id).universeId,
       latestSyncAt: latestDate(
         cacheForGame.map((cache) => cache.last_verified_at ?? cache.synced_at),
       ),

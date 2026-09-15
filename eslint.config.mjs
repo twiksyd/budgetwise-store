@@ -12,6 +12,29 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
+    // Roblox identity is read through the shared loader so
+    // ROBLOX_IDENTITY_SOURCE (json | db) applies everywhere.
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/config/roblox-universe-ids.ts",
+      "src/lib/queries/roblox-identity.ts",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/roblox-universe-ids", "**/roblox-universe-ids.json"],
+              message:
+                "Read Roblox identity through @/lib/queries/roblox-identity instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     ignores: [
       "node_modules/**",
       ".next/**",

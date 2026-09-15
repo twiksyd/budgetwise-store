@@ -30,7 +30,7 @@ import {
   RobuxPlusPageGate,
   RobuxPlusPreorderReminder,
 } from "@/components/catalog/robux-plus-acknowledgement";
-import { robloxUniverseIds } from "@/config/roblox-universe-ids";
+import { getRobloxIdentitySafe } from "@/lib/queries/roblox-identity";
 import { BLOX_FRUITS_GAME_ID } from "@/config/blox-fruits";
 import { GROW_A_GARDEN_2_GAME_ID } from "@/config/grow-a-garden-2";
 import { isRobuxPlusGame, robuxPlusPresentation } from "@/config/robux-products";
@@ -90,9 +90,10 @@ export default async function GameDetailPage({ params }: Props) {
     ? robuxPlusPresentation.displayName
     : game.name;
 
-  const [gamepasses, { status: storeStatus }] = await Promise.all([
+  const [gamepasses, { status: storeStatus }, robloxIdentity] = await Promise.all([
     getGamepassesByGameId(game.id),
     storeStatusPromise,
+    getRobloxIdentitySafe(),
   ]);
 
   // These are all Store-owned presentation reads with no dependency on one
@@ -101,8 +102,13 @@ export default async function GameDetailPage({ params }: Props) {
   // page from rendering purchasable catalog data.
   const [productArtwork, productCardBackgroundUrls, productCardAccentSettings, productLayout] =
     await Promise.all([
+      // If Roblox identity cannot be read, keep already-cached artwork for
+      // these exact products; only the identity-based fallback is skipped.
       getProductArtworkMapSafe(gamepasses, {
-        includeRoblox: Boolean(robloxUniverseIds[game.id]),
+        includeRoblox: robloxIdentity.ok
+          ? robloxIdentity.identity.isVerified(game.id)
+          : true,
+        identity: robloxIdentity.identity,
       }),
       getProductCardBackgroundUrlMapSafe(
         gamepasses.map((gamepass) => gamepass.id),

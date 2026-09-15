@@ -1,6 +1,10 @@
 import "server-only";
-import { robloxUniverseIds } from "@/config/roblox-universe-ids";
 import type { ProductArtworkSource } from "@/lib/product-artwork-source";
+import {
+  getRobloxIdentity,
+  getRobloxIdentitySafe,
+  type RobloxIdentity,
+} from "@/lib/queries/roblox-identity";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface ProductArtwork {
@@ -37,9 +41,17 @@ function isProductInput(
   return typeof input !== "string";
 }
 
+export interface ProductArtworkOptions {
+  includeRoblox?: boolean;
+  // Verified Roblox identity for the universe-name fallback below. Omitted:
+  // loaded strictly (a failure throws). null: identity is unavailable, so the
+  // fallback is skipped while override and by-product cache artwork still apply.
+  identity?: RobloxIdentity | null;
+}
+
 export async function getProductArtworkMap(
   productsOrIds: Array<string | ProductArtworkLookupProduct>,
-  options: { includeRoblox?: boolean } = {},
+  options: ProductArtworkOptions = {},
 ): Promise<Map<string, ProductArtwork>> {
   const ids = [
     ...new Set(
@@ -108,7 +120,13 @@ export async function getProductArtworkMap(
     }
 
     const idsMissingRobloxArtwork = ids.filter((id) => !artwork.has(id));
-    if (idsMissingRobloxArtwork.length > 0) {
+    const identity =
+      idsMissingRobloxArtwork.length === 0
+        ? null
+        : options.identity !== undefined
+          ? options.identity
+          : await getRobloxIdentity();
+    if (identity && idsMissingRobloxArtwork.length > 0) {
       const missingMetadataIds = idsMissingRobloxArtwork.filter(
         (id) => !productMetadataById.has(id),
       );
@@ -129,12 +147,12 @@ export async function getProductArtworkMap(
         .map((id) => productMetadataById.get(id))
         .filter(
           (product): product is ProductArtworkLookupProduct =>
-            product !== undefined && Boolean(robloxUniverseIds[product.game_id]),
+            product !== undefined && identity.isVerified(product.game_id),
         );
       const universeIds = [
         ...new Set(
           productsMissingArtwork.map(
-            (product) => robloxUniverseIds[product.game_id],
+            (product) => identity.getVerifiedUniverseId(product.game_id)!,
           ),
         ),
       ];
@@ -171,7 +189,7 @@ export async function getProductArtworkMap(
         for (const product of productsMissingArtwork) {
           if (artwork.has(product.id)) continue;
 
-          const universeId = robloxUniverseIds[product.game_id];
+          const universeId = identity.getVerifiedUniverseId(product.game_id);
           const normalizedName = normalizeRobloxProductName(product.name);
           const candidates =
             rowsByUniverseAndName.get(`${universeId}:${normalizedName}`) ?? [];
@@ -211,10 +229,16 @@ export async function getProductArtworkMap(
 // want a hard failure (e.g. the admin catalog layout editor).
 export async function getProductArtworkMapSafe(
   productsOrIds: Array<string | ProductArtworkLookupProduct>,
-  options: { includeRoblox?: boolean } = {},
+  options: ProductArtworkOptions = {},
 ): Promise<Map<string, ProductArtwork>> {
   try {
-    return await getProductArtworkMap(productsOrIds, options);
+    // An identity outage must not discard override and cache artwork, so
+    // resolve it without throwing and pass null (skip the fallback) on failure.
+    const identity =
+      options.identity !== undefined || options.includeRoblox === false
+        ? options.identity
+        : (await getRobloxIdentitySafe()).identity;
+    return await getProductArtworkMap(productsOrIds, { ...options, identity });
   } catch (error) {
     console.error("Failed to load product artwork", error);
     return new Map();

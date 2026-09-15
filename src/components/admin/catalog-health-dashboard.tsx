@@ -72,6 +72,9 @@ const configLabels: Record<CatalogHealthConfigStatus, string> = {
   configured: "Configured",
   not_configured: "Not configured",
   special_store_route: "Special Store route",
+  not_roblox: "Not Roblox",
+  needs_review: "Identity needs review",
+  unreviewed: "Identity not reviewed",
   not_available: "Not available",
 };
 
@@ -97,6 +100,9 @@ const badgeClasses: Record<string, string> = {
   configured: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   not_configured: "bg-muted text-muted-foreground",
   special_store_route: "bg-primary/10 text-primary",
+  not_roblox: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
+  needs_review: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  unreviewed: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
 };
 
 function formatNumber(value: number) {

@@ -1,27 +1,27 @@
-// Offline sync: fetches official Roblox Game Pass artwork for every
-// configured game in src/config/roblox-universe-ids.json, caches it, and
-// detects/reports what changed since the last run. Never run automatically
-// by the storefront — this is a manual/maintenance operation. Run it:
-//   - once, after adding a new entry to roblox-universe-ids.json
-//   - to pick up new products added to an already-configured game
+// Offline sync: fetches official Roblox Game Pass artwork for every game with
+// a verified Roblox identity, caches it, and detects/reports what changed
+// since the last run. The identity source is ROBLOX_IDENTITY_SOURCE (json =
+// src/config/roblox-universe-ids.json, the default; db =
+// public.game_roblox_identity verified rows). Never run automatically by the
+// storefront — this is a manual/maintenance operation. Run it:
+//   - once, after a game's Roblox identity is verified
+//   - to pick up new products added to an already-verified game
 //   - as a manual refresh (e.g. a game's gamepasses changed on Roblox)
+//
+// Identity is loaded before any Roblox fetch or cache write. If the source is
+// invalid or cannot be read, the sync stops with nothing written and never
+// falls back to the other source. This script never writes Roblox identity.
 //
 // Run with: node --env-file=.env.local scripts/sync-roblox-gamepasses.mjs
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const repoRoot = join(__dirname, "..");
+import {
+  describeRobloxIdentity,
+  loadRobloxIdentityForScript,
+} from "./lib/roblox-identity-source.mjs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
-);
-
-const universeIds = JSON.parse(
-  readFileSync(join(repoRoot, "src/config/roblox-universe-ids.json"), "utf8"),
 );
 
 // How long an ambiguous match stays silent in the report before it's
@@ -397,9 +397,12 @@ async function syncGame(gameId, universeId) {
 }
 
 async function main() {
-  const entries = Object.entries(universeIds);
+  const identity = await loadRobloxIdentityForScript({ supabase });
+  console.log(describeRobloxIdentity(identity));
+
+  const entries = Object.entries(identity.verifiedUniverseIds());
   if (entries.length === 0) {
-    console.log("No games configured in roblox-universe-ids.json — nothing to sync.");
+    console.log("No verified Roblox identities — nothing to sync.");
     return;
   }
 
@@ -415,4 +418,9 @@ async function main() {
   }
 }
 
-main();
+main().catch((err) => {
+  // Per-game failures are handled inside the loop, so this is a failure to
+  // load identity: nothing has been fetched or written.
+  console.error(`Roblox sync stopped: ${err instanceof Error ? err.message : String(err)}`);
+  process.exitCode = 1;
+});

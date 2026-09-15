@@ -1,13 +1,21 @@
 name: Deterministic Roblox icon backfill
 
 # Runs the automation-safe game-icon resolver on a schedule so newly-added
-# games with a trusted universeId mapping (src/config/roblox-universe-ids.json)
-# eventually get games.icon_url populated without a human running
-# `npm run db:backfill-icons-deterministic` by hand.
+# games with a verified Roblox identity eventually get games.icon_url
+# populated without a human running `npm run db:backfill-icons-deterministic`
+# by hand.
+#
+# Identity source: the ROBLOX_IDENTITY_SOURCE repository variable (json or
+# db; unset means json). An invalid value fails the resolver step.
+#
+# Transition/bake gate: before any icon write, the JSON config and XOB's
+# verified public.game_roblox_identity rows must agree exactly. If the parity
+# check fails (exit 1) or cannot run (exit 2), the job stops and the resolver
+# never runs.
 #
 # This workflow runs scripts/backfill-game-icons-deterministic.mjs only.
-# That script has no import path to the fuzzy Roblox search helpers in
-# scripts/lib/roblox-icon-resolver.mjs — see that file's module comment.
+# That script never calls the fuzzy Roblox search helpers in
+# scripts/lib/roblox-icon-resolver.mjs (see scripts/test-roblox-identity.mjs).
 # Never point this workflow at scripts/backfill-game-icons.mjs (the manual,
 # human-triggered fuzzy-discovery tool).
 on:
@@ -43,8 +51,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check Roblox identity parity (JSON vs XOB)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run db:check-roblox-identity-parity
+
       - name: Run deterministic Roblox icon resolver
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ROBLOX_IDENTITY_SOURCE: ${{ vars.ROBLOX_IDENTITY_SOURCE || 'json' }}
         run: node scripts/backfill-game-icons-deterministic.mjs

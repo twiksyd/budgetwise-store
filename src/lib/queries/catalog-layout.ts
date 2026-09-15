@@ -12,7 +12,7 @@ import {
   getProductCardAccentSettingsMap,
 } from "@/lib/queries/product-card-accent-settings";
 import type { ProductCardAccentSettingsWithMeta } from "@/lib/product-card-accent";
-import { robloxUniverseIds } from "@/config/roblox-universe-ids";
+import { getRobloxIdentity } from "@/lib/queries/roblox-identity";
 import type { GameAvailabilityStatus } from "@/types/store-operations";
 import type { ProductAvailabilityStatus } from "@/types/store-operations";
 
@@ -220,10 +220,14 @@ async function getCatalogProductLayoutData(
       (row) => [row.gamepass_id, row.display_name],
     ),
   );
+  // Admin editor: an unreadable identity source fails loudly, like the other
+  // queries here.
+  const identity = await getRobloxIdentity();
   const productArtwork = await getProductArtworkMap(productRows, {
     includeRoblox: productRows.some((product) =>
-      Boolean(robloxUniverseIds[product.game_id]),
+      identity.isVerified(product.game_id),
     ),
+    identity,
   });
   const [cardBackgroundUrls, accentSettings] = await Promise.all([
     getProductCardBackgroundUrlMap(productRows.map((product) => product.id)),

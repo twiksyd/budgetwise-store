@@ -1,8 +1,8 @@
 // Shared Roblox game-icon resolution helpers.
 //
 // fetchIconUrl / resolveDeterministic only ever act on a game that already
-// has an explicit, human-verified universeId mapping
-// (src/config/roblox-universe-ids.json) — they never guess a game's
+// has a verified Roblox identity (the universeIds record comes from
+// scripts/lib/roblox-identity-source.mjs, verified entries only) — they never guess a game's
 // identity, which makes them safe to call from unattended automation (a
 // cron job, an admin maintenance action, another scheduled worker).
 //

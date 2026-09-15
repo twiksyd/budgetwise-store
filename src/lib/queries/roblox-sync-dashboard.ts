@@ -1,5 +1,9 @@
 import "server-only";
-import universeIdsConfig from "@/config/roblox-universe-ids.json";
+import {
+  getRobloxIdentity,
+  type RobloxIdentity,
+  type RobloxIdentitySource,
+} from "@/lib/queries/roblox-identity";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type MatchStatus = "matched" | "no_match" | "ambiguous" | "no_sync_record";
@@ -8,9 +12,16 @@ export type RenderedArtworkSource =
   | "roblox_cache"
   | "forced_placeholder"
   | "placeholder";
-export type GameConfigurationStatus =
+// json mode only ever reports configured / not_configured. db mode reports
+// the identity status instead of not_configured.
+export type IdentityConfigurationStatus =
   | "configured"
   | "not_configured"
+  | "not_roblox"
+  | "needs_review"
+  | "unreviewed";
+export type GameConfigurationStatus =
+  | IdentityConfigurationStatus
   | "no_products"
   | "no_cache_activity";
 
@@ -100,7 +111,7 @@ export interface RobloxMatchReviewItem {
   gameId: string;
   gameName: string;
   universeId: number | null;
-  configurationStatus: "configured" | "not_configured";
+  configurationStatus: IdentityConfigurationStatus;
   matchStatus: MatchStatus;
   cachedSource: "roblox" | "manual" | null;
   matchedRobloxPassName: string | null;
@@ -113,6 +124,7 @@ export interface RobloxMatchReviewItem {
 }
 
 export interface RobloxSyncDashboardData {
+  identitySource: RobloxIdentitySource;
   summary: RobloxSyncSummary;
   coverage: RobloxSyncCoverageGame[];
   latestWindow: LatestSyncWindow | null;
@@ -138,6 +150,16 @@ type SyncLogRow = {
   no_match_count: number;
   details: unknown;
 };
+
+function identityConfigurationStatus(
+  identity: RobloxIdentity,
+  gameId: string,
+): IdentityConfigurationStatus {
+  if (identity.isVerified(gameId)) return "configured";
+  if (identity.source === "json") return "not_configured";
+  const status = identity.getStatus(gameId);
+  return status === "verified" ? "configured" : status;
+}
 
 function maxDate(values: Array<string | null | undefined>) {
   return values
@@ -228,7 +250,6 @@ function inferLatestWindow(logs: SyncLogRow[]): LatestSyncWindow | null {
 
 export async function getRobloxSyncDashboardData(): Promise<RobloxSyncDashboardData> {
   const supabase = createAdminClient();
-  const universeIds = universeIdsConfig as Record<string, number>;
 
   const [
     gamesResult,
@@ -236,6 +257,7 @@ export async function getRobloxSyncDashboardData(): Promise<RobloxSyncDashboardD
     cacheResult,
     overridesResult,
     logsResult,
+    identity,
   ] = await Promise.all([
     supabase
       .from("store_games")
@@ -251,6 +273,7 @@ export async function getRobloxSyncDashboardData(): Promise<RobloxSyncDashboardD
       .select("*")
       .order("synced_at", { ascending: false })
       .limit(200),
+    getRobloxIdentity(),
   ]);
 
   if (gamesResult.error) throw gamesResult.error;
@@ -309,12 +332,11 @@ export async function getRobloxSyncDashboardData(): Promise<RobloxSyncDashboardD
   const coverage = games.map((game) => {
     const gameProducts = productsByGameId.get(game.id) ?? [];
     const gameCache = cacheByGameId.get(game.id) ?? [];
-    const universeId = universeIds[game.id] ?? null;
+    const universeId = identity.getVerifiedUniverseId(game.id);
     const productCount = gameProducts.length;
     const cacheRowCount = gameCache.length;
-    let configurationStatus: GameConfigurationStatus = universeId
-      ? "configured"
-      : "not_configured";
+    let configurationStatus: GameConfigurationStatus =
+      identityConfigurationStatus(identity, game.id);
     if (productCount === 0) configurationStatus = "no_products";
     else if (universeId && cacheRowCount === 0) configurationStatus = "no_cache_activity";
 
@@ -385,7 +407,7 @@ export async function getRobloxSyncDashboardData(): Promise<RobloxSyncDashboardD
     const game = gameById.get(product.game_id);
     const cache = cacheByProductId.get(product.id);
     const override = overrideByProductId.get(product.id);
-    const universeId = universeIds[product.game_id] ?? null;
+    const universeId = identity.getVerifiedUniverseId(product.game_id);
 
     let matchStatus: MatchStatus = "no_sync_record";
     if (cache?.status === "matched") matchStatus = "matched";
@@ -405,9 +427,7 @@ export async function getRobloxSyncDashboardData(): Promise<RobloxSyncDashboardD
       gameId: product.game_id,
       gameName: game?.name ?? "Missing game",
       universeId,
-      configurationStatus: universeId
-        ? ("configured" as const)
-        : ("not_configured" as const),
+      configurationStatus: identityConfigurationStatus(identity, product.game_id),
       matchStatus,
       cachedSource: cache?.source ?? null,
       matchedRobloxPassName: cache?.matched_name ?? null,
@@ -427,12 +447,11 @@ export async function getRobloxSyncDashboardData(): Promise<RobloxSyncDashboardD
   ].sort((a, b) => a.label.localeCompare(b.label));
 
   return {
+    identitySource: identity.source,
     summary: {
       storeGames: games.length,
-      configuredSyncGames: Object.keys(universeIds).filter((id) =>
-        games.some((game) => game.id === id),
-      ).length,
-      gamesWithoutUniverseConfig: games.filter((game) => !universeIds[game.id]).length,
+      configuredSyncGames: games.filter((game) => identity.isVerified(game.id)).length,
+      gamesWithoutUniverseConfig: games.filter((game) => !identity.isVerified(game.id)).length,
       storefrontProducts: products.length,
       cacheRecords: cacheRows.length,
       matched,

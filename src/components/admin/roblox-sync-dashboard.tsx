@@ -41,6 +41,9 @@ const artworkLabels: Record<RenderedArtworkSource, string> = {
 const configurationLabels: Record<GameConfigurationStatus | "with_issues", string> = {
   configured: "Configured",
   not_configured: "Not configured",
+  not_roblox: "Not Roblox",
+  needs_review: "Identity needs review",
+  unreviewed: "Identity not reviewed",
   no_products: "No products",
   no_cache_activity: "No cache activity",
   with_issues: "With issues",
@@ -57,6 +60,9 @@ const badgeClassNames: Record<string, string> = {
   placeholder: "bg-muted text-muted-foreground",
   configured: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   not_configured: "bg-muted text-muted-foreground",
+  not_roblox: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
+  needs_review: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  unreviewed: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   no_products: "bg-muted text-muted-foreground",
   no_cache_activity: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
 };
@@ -185,6 +191,8 @@ export function RobloxSyncDashboard({ data }: { data: RobloxSyncDashboardData })
           game.ambiguousCount > 0 ||
           game.noSyncRecordCount > 0 ||
           game.configurationStatus === "not_configured" ||
+          game.configurationStatus === "needs_review" ||
+          game.configurationStatus === "unreviewed" ||
           game.configurationStatus === "no_cache_activity"
         );
       }
@@ -283,6 +291,7 @@ export function RobloxSyncDashboard({ data }: { data: RobloxSyncDashboardData })
         </div>
         <div className="bg-muted/70 text-muted-foreground rounded-2xl px-3 py-2 text-xs">
           To run the offline sync: <code className="text-foreground">pnpm sync:roblox-gamepasses</code>
+          {" · "}Roblox identity source: <code className="text-foreground">{data.identitySource}</code>
         </div>
       </div>
 
@@ -340,6 +349,9 @@ export function RobloxSyncDashboard({ data }: { data: RobloxSyncDashboardData })
             <SelectItem value="all">All config</SelectItem>
             <SelectItem value="configured">Configured</SelectItem>
             <SelectItem value="not_configured">Not configured</SelectItem>
+            <SelectItem value="not_roblox">Not Roblox</SelectItem>
+            <SelectItem value="needs_review">Identity needs review</SelectItem>
+            <SelectItem value="unreviewed">Identity not reviewed</SelectItem>
             <SelectItem value="with_issues">With issues</SelectItem>
             <SelectItem value="no_products">No products</SelectItem>
             <SelectItem value="no_cache_activity">No cache activity</SelectItem>
@@ -504,7 +516,7 @@ export function RobloxSyncDashboard({ data }: { data: RobloxSyncDashboardData })
                 )}
                 {item.matchStatus === "no_sync_record" && (
                   <p className="text-muted-foreground mt-1 text-xs">
-                    No cache row exists. Parent game is {item.configurationStatus === "configured" ? "configured" : "not configured"}.
+                    No cache row exists. Parent game: {configurationLabels[item.configurationStatus].toLowerCase()}.
                   </p>
                 )}
               </div>
