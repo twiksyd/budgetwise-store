@@ -442,22 +442,27 @@ test("parity checker exits 0 on parity and 1 on drift", () => {
   assert.match(drift.stdout, /Parity FAILED/);
 });
 
-test("daily workflow gates the deterministic resolver on the parity check", () => {
+test("daily workflow gates the deterministic resolver on the DB preflight, not JSON parity", () => {
   const workflow = readFileSync(".github/workflows/roblox-icon-backfill.yml", "utf8");
   const runLines = workflow.split("\n").filter((line) => /^\s*run:/.test(line)).map((line) => line.trim());
-  const parityIndex = runLines.indexOf("run: npm run db:check-roblox-identity-parity");
+  const preflightIndex = runLines.indexOf("run: npm run db:check-roblox-identity-db-preflight");
   const resolverIndex = runLines.indexOf("run: node scripts/backfill-game-icons-deterministic.mjs");
 
-  assert.notEqual(parityIndex, -1);
+  assert.notEqual(preflightIndex, -1);
   assert.notEqual(resolverIndex, -1);
-  assert.ok(parityIndex < resolverIndex, "parity must run before the resolver");
+  assert.ok(preflightIndex < resolverIndex, "DB preflight must run before the resolver");
+  assert.equal(
+    runLines.some((line) => line === "run: npm run db:check-roblox-identity-parity"),
+    false,
+    "JSON parity must no longer gate the daily resolver",
+  );
   assert.equal(runLines.some((line) => /backfill-game-icons\.mjs|sync-roblox-gamepasses/.test(line)), false);
   assert.doesNotMatch(workflow, /continue-on-error|if:\s*\$?\{?\{?\s*always\(\)/);
   assert.match(workflow, /ROBLOX_IDENTITY_SOURCE: \$\{\{ vars\.ROBLOX_IDENTITY_SOURCE \|\| 'json' \}\}/);
 
   // CI has no .env.local, so the npm script must tolerate its absence.
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
-  assert.match(pkg.scripts["db:check-roblox-identity-parity"], /--env-file-if-exists=\.env\.local/);
+  assert.match(pkg.scripts["db:check-roblox-identity-db-preflight"], /--env-file-if-exists=\.env\.local/);
 });
 
 // ---------------------------------------------------------------------------

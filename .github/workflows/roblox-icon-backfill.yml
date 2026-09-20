@@ -6,12 +6,20 @@ name: Deterministic Roblox icon backfill
 # by hand.
 #
 # Identity source: the ROBLOX_IDENTITY_SOURCE repository variable (json or
-# db; unset means json). An invalid value fails the resolver step.
+# db; unset means json). Production is db: public.game_roblox_identity is
+# authoritative, and a game verified in XOB becomes eligible for icon
+# resolution on its own, no matching edit to the legacy JSON config required.
+# An invalid ROBLOX_IDENTITY_SOURCE value fails the resolver step.
 #
-# Transition/bake gate: before any icon write, the JSON config and XOB's
-# verified public.game_roblox_identity rows must agree exactly. If the parity
-# check fails (exit 1) or cannot run (exit 2), the job stops and the resolver
-# never runs.
+# Preflight: before any icon write, the DB preflight step validates
+# public.game_roblox_identity in isolation (loads cleanly, valid statuses,
+# valid + non-duplicate verified universe ids). It no longer compares against
+# src/config/roblox-universe-ids.json -- that exact-parity requirement was
+# the old transition/bake gate and blocked newly-verified games until someone
+# hand-edited the JSON file too. If the preflight fails (exit 1) or cannot
+# run (exit 2), the job stops and the resolver never runs. When
+# ROBLOX_IDENTITY_SOURCE is "json" (emergency rollback), the preflight is a
+# no-op and the resolver reads the JSON file as before.
 #
 # This workflow runs scripts/backfill-game-icons-deterministic.mjs only.
 # That script never calls the fuzzy Roblox search helpers in
@@ -51,11 +59,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check Roblox identity parity (JSON vs XOB)
+      - name: Check Roblox identity DB preflight
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run db:check-roblox-identity-parity
+          ROBLOX_IDENTITY_SOURCE: ${{ vars.ROBLOX_IDENTITY_SOURCE || 'json' }}
+        run: npm run db:check-roblox-identity-db-preflight
 
       - name: Run deterministic Roblox icon resolver
         env:
