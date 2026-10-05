@@ -1,9 +1,10 @@
--- Adds "Run a Sari Sari store" (and its 12 gamepasses) to the shared XOB /
+-- Adds "Run a Sari Sari store" (and its 13 gamepasses) to the shared XOB /
 -- BudgetWise database. The Store has no write path for games or gamepasses:
 -- both live in XOB-owned tables (public.games / public.gamepasses) and the
 -- storefront only reads them through the store_games / store_gamepasses
 -- views. Inserting here makes the game appear on both XOB and BudgetWise.
 --
+-- Prices reflect the revised list (current as of the last edit to this file).
 -- Run once in the Supabase SQL editor. Safe to re-run: it skips if a game
 -- with this name already exists. Columns not listed take their table defaults.
 --
@@ -45,23 +46,24 @@ begin
   insert into public.gamepasses
     (user_id, game_id, name, robux_amount, your_price, your_cost, is_active, availability_status)
   values
-    (v_owner, v_game, 'VIP',                    225,  89, 65.25, true, 'available'),
-    (v_owner, v_game, 'Fast Checkout Permit',   405, 145, 117.45, true, 'available'),
-    (v_owner, v_game, 'Fast Load Permit',       405, 145, 117.45, true, 'available'),
-    (v_owner, v_game, 'Auto Trash Permit',      135,  55,  39.15, true, 'available'),
-    (v_owner, v_game, 'Starter Pack',            90,  35,  26.10, true, 'available'),
-    (v_owner, v_game, 'More Colors & Textures',  45,  19,  13.05, true, 'available'),
-    (v_owner, v_game, '2x Cash',                 90,  35,  26.10, true, 'available'),
-    (v_owner, v_game, '2x Luck',                 45,  19,  13.05, true, 'available'),
-    (v_owner, v_game, 'Ultra Luck',              90,  35,  26.10, true, 'available'),
-    (v_owner, v_game, '500 Pesos',               23,   9,   6.67, true, 'available'),
-    (v_owner, v_game, '2,500 Pesos',             90,  35,  26.10, true, 'available'),
-    (v_owner, v_game, '7500 Pesos',             225,  89,  65.25, true, 'available');
+    (v_owner, v_game, 'VIP',                    249,  99,  72.21, true, 'available'),
+    (v_owner, v_game, 'Fast Checkout Permit',   449, 159, 130.21, true, 'available'),
+    (v_owner, v_game, 'Fast Load Permit',       449, 159, 130.21, true, 'available'),
+    (v_owner, v_game, 'Auto Trash Permit',      149,  59,  43.21, true, 'available'),
+    (v_owner, v_game, 'Starter Pack',            99,  39,  28.71, true, 'available'),
+    (v_owner, v_game, 'More Colors & Textures',  49,  19,  14.21, true, 'available'),
+    (v_owner, v_game, '2x Cash',                 99,  39,  28.71, true, 'available'),
+    (v_owner, v_game, '2x Luck',                 49,  19,  14.21, true, 'available'),
+    (v_owner, v_game, 'Ultra Luck',              99,  39,  28.71, true, 'available'),
+    (v_owner, v_game, '500 Pesos',               25,   9,   7.25, true, 'available'),
+    (v_owner, v_game, '2,500 Pesos',             99,  39,  28.71, true, 'available'),
+    (v_owner, v_game, '7500 Pesos',             249,  99,  72.21, true, 'available'),
+    (v_owner, v_game, '25,000 pesos',           699, 249, 202.71, true, 'available');
 end $$;
 
 commit;
 
--- Verify (should return the game once and 12 rows):
+-- Verify (should return the game once and 13 rows):
 -- select * from public.store_games where slug = 'run-a-sari-sari-store';
 -- select name, robux_amount, price from public.store_gamepasses
 --   where game_id = (select id from public.store_games where slug = 'run-a-sari-sari-store')
