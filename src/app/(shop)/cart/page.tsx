@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { CartItems } from "@/components/cart/cart-items";
 import { CartSummary } from "@/components/cart/cart-summary";
 import { OrderingProgress } from "@/components/ordering/ordering-progress";
-import { MessengerHelpLink } from "@/components/ordering/messenger-help-link";
+import { SupportHelpLink } from "@/components/ordering/support-help-link";
 import { useCartStore, selectCartSubtotal } from "@/stores/cart-store";
 
 export default function CartPage() {
@@ -33,7 +33,7 @@ export default function CartPage() {
             action={{ label: "Pumili ng Game", href: "/games" }}
           />
           <div className="mt-5 flex justify-center">
-            <MessengerHelpLink />
+            <SupportHelpLink />
           </div>
         </div>
       ) : (
