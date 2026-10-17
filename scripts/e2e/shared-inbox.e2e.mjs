@@ -15,6 +15,7 @@ import { PASSWORD, USERS, seed } from "./seed-local.mjs";
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3100";
 const ORDER_A = "BW-E2EAAA";
 const ORDER_B = "BW-E2EBBB";
+const ORDER_MULTI = "BW-E2ECCC"; // one Via Link line, quantity 3
 const T = { timeout: 30_000 };
 
 let browser;
@@ -244,10 +245,10 @@ describe("shared inbox, three admins + customers, real realtime", { concurrency:
 
   test("gamepass link: customer saves it structurally; Robert's panel updates live", async () => {
     const { page } = people.custa;
-    await page.getByLabel(/Gamepass link for/).fill("javascript:alert(1)");
+    await page.getByRole("textbox", { name: "Gamepass Link", exact: true }).fill("javascript:alert(1)");
     await page.getByRole("button", { name: "Save link" }).click();
     await page.getByRole("alert").filter({ hasText: "Paste the link" }).waitFor(T);
-    await page.getByLabel(/Gamepass link for/).fill("roblox.com/game-pass/123456789/My-Pass?ref=x");
+    await page.getByRole("textbox", { name: "Gamepass Link", exact: true }).fill("roblox.com/game-pass/123456789/My-Pass?ref=x");
     await page.getByRole("button", { name: "Save link" }).click();
     await page.getByText("https://www.roblox.com/game-pass/123456789").waitFor(T);
     const panel = people.robert.page.getByRole("complementary", { name: "Order details" });
@@ -372,5 +373,41 @@ describe("shared inbox, three admins + customers, real realtime", { concurrency:
     await page.getByRole("button", { name: /1 new message/ }).waitFor(T);
     await page.getByRole("button", { name: /1 new message/ }).click();
     await page.getByText("arrived while scrolled up").waitFor(T);
+  });
+
+  test("quantity 3 Via Link: three numbered fields, each saved on its own, admin sees each unit", async () => {
+    const admin = people.robert.page;
+    await admin.goto(`/admin/orders/${ORDER_MULTI}`);
+    const panel = admin.getByRole("complementary", { name: "Order details" });
+    for (const n of [1, 2, 3]) await panel.getByText(`Gamepass Link ${n} of 3`).waitFor(T);
+
+    const { page } = people.custa;
+    await page.goto(`/orders/${ORDER_MULTI}`);
+    await page.getByRole("heading", { name: "Gamepass Links" }).waitFor(T);
+    await page.getByText("We need 3 gamepass links for this order").waitFor(T);
+    const field = (n) => page.getByRole("group", { name: `Gamepass Link ${n}`, exact: true });
+    for (const n of [1, 2, 3]) await field(n).getByLabel(`Gamepass Link ${n}`, { exact: true }).waitFor(T);
+
+    for (const bad of ["https://www.roblox.com.evil.com/game-pass/1", "https://evil.com/game-pass/1", "not a link"]) {
+      await field(1).getByLabel("Gamepass Link 1", { exact: true }).fill(bad);
+      await field(1).getByRole("button", { name: "Save link" }).click();
+      await field(1).getByRole("alert").waitFor(T);
+    }
+
+    await field(2).getByLabel("Gamepass Link 2", { exact: true }).fill("https://www.roblox.com/game-pass/222222");
+    await field(2).getByRole("button", { name: "Save link" }).click();
+    await field(2).getByText("https://www.roblox.com/game-pass/222222").waitFor(T);
+    // The other two are still open and empty.
+    assert.equal(await field(1).getByText("Submitted").count(), 0);
+    assert.equal(await field(3).getByText("Submitted").count(), 0);
+
+    await panel.getByText("https://www.roblox.com/game-pass/222222").waitFor(T);
+    assert.equal(await panel.getByText("Waiting for customer").count(), 2, "units 1 and 3 still waiting");
+
+    const stored = JSON.parse((await api(page, `/api/order-chat/${ORDER_MULTI}/fulfillment`, {})).text);
+    assert.deepEqual(
+      stored.slots.map((slot) => [slot.unitIndex, slot.status, slot.value]),
+      [[0, "waiting", null], [1, "provided", "https://www.roblox.com/game-pass/222222"], [2, "waiting", null]],
+    );
   });
 });

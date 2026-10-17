@@ -94,6 +94,9 @@ export async function seed() {
     line(1, "11111111-1111-1111-1111-111111111111", "Blox Fruits", "Mastery", 450, 2, 125),
     line(2, VIA_LINK_GAME, "Robux (Via Link)", "1,000 Robux", 1000, 1, 1000),
   ]);
+  await createOrder("BW-E2ECCC", ids.custa, "Juan Dela Cruz", "Juan123", [
+    line(0, VIA_LINK_GAME, "Robux (Via Link)", "500 Robux", 500, 3, 500),
+  ]);
   await createOrder("BW-E2EBBB", ids.custb, "Maria Santos", "mariaRBX", [
     line(0, "22222222-2222-2222-2222-222222222222", "Grow a Garden", "VIP", 200, 1, 99),
   ]);

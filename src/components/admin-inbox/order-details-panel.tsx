@@ -176,7 +176,7 @@ function FulfillmentSlot({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(slot.value ?? "");
   const [saving, setSaving] = useState(false);
-  const label = slot.unitCount > 1 ? `${slot.label} (unit ${slot.unitIndex + 1} of ${slot.unitCount})` : slot.label;
+  const label = slot.unitCount > 1 ? `${slot.label} ${slot.unitIndex + 1} of ${slot.unitCount}` : slot.label;
 
   async function save() {
     setSaving(true);

@@ -37,6 +37,16 @@ export function GamepassLinkCard({
 }) {
   if (slots.length === 0) return null;
   const waiting = slots.filter((slot) => slot.status === "waiting").length;
+  const needsSeveral = slots.length > 1;
+
+  // One group per order line; a line bought several times gets one numbered
+  // field per unit ("Gamepass Link 1", "Gamepass Link 2", ...).
+  const lines: CustomerSlot[][] = [];
+  for (const slot of slots) {
+    const group = lines.find((items) => items[0].lineIndex === slot.lineIndex);
+    if (group) group.push(slot);
+    else lines.push([slot]);
+  }
 
   return (
     <section className="surface-premium rounded-2xl p-4 sm:p-5" aria-label="Gamepass link">
@@ -45,20 +55,38 @@ export function GamepassLinkCard({
           <Link2 className="text-primary size-4" />
         </div>
         <div className="min-w-0">
-          <h2 className="font-heading text-base font-semibold">Gamepass Link</h2>
+          <h2 className="font-heading text-base font-semibold">{needsSeveral ? "Gamepass Links" : "Gamepass Link"}</h2>
           <p className="text-muted-foreground mt-0.5 text-sm">
             {waiting === 0
-              ? "Submitted — our team can see it with your order."
-              : "Paste the link to the Roblox gamepass you created for this order."}
+              ? needsSeveral
+                ? "All submitted — our team can see them with your order."
+                : "Submitted — our team can see it with your order."
+              : needsSeveral
+                ? `We need ${slots.length} gamepass links for this order — one for each item. Paste each link in its own box.`
+                : "Paste the link to the Roblox gamepass you created for this order."}
           </p>
           {waiting > 0 && (
-            <Taglish>I-paste dito ang link ng gamepass na ginawa mo. Makikita agad ito ng team namin.</Taglish>
+            <Taglish>
+              {needsSeveral
+                ? `Kailangan namin ng ${slots.length} gamepass link — isa bawat item. I-paste ang bawat link sa sarili niyang box.`
+                : "I-paste dito ang link ng gamepass na ginawa mo. Makikita agad ito ng team namin."}
+            </Taglish>
           )}
         </div>
       </div>
-      <div className="mt-4 space-y-3">
-        {slots.map((slot) => (
-          <SlotRow key={`${slot.lineIndex}-${slot.unitIndex}`} orderNumber={orderNumber} slot={slot} onSlotsChange={onSlotsChange} />
+      <div className="mt-4 space-y-4">
+        {lines.map((group) => (
+          <div key={group[0].lineIndex} className="space-y-2">
+            {(lines.length > 1 || group[0].unitCount > 1) && (
+              <p className="text-muted-foreground text-xs font-semibold">
+                {group[0].productName}
+                {group[0].unitCount > 1 && ` × ${group[0].unitCount}`}
+              </p>
+            )}
+            {group.map((slot) => (
+              <SlotRow key={`${slot.lineIndex}-${slot.unitIndex}`} orderNumber={orderNumber} slot={slot} onSlotsChange={onSlotsChange} />
+            ))}
+          </div>
         ))}
       </div>
     </section>
@@ -78,7 +106,8 @@ function SlotRow({
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const title = `${slot.productName}${slot.unitCount > 1 ? ` — gamepass ${slot.unitIndex + 1} of ${slot.unitCount}` : ""}`;
+  const title = slot.unitCount > 1 ? `Gamepass Link ${slot.unitIndex + 1}` : "Gamepass Link";
+  const inputId = `gamepass-${slot.lineIndex}-${slot.unitIndex}`;
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -106,8 +135,14 @@ function SlotRow({
   }
 
   return (
-    <div className="border-border/60 bg-background rounded-xl border p-3">
-      <p className="text-xs font-semibold">{title}</p>
+    <div role="group" aria-label={title} className="border-border/60 bg-background rounded-xl border p-3">
+      {editing || !slot.value ? (
+        <label htmlFor={inputId} className="text-xs font-semibold">
+          {title}
+        </label>
+      ) : (
+        <p className="text-xs font-semibold">{title}</p>
+      )}
       {!editing && slot.value ? (
         <div className="mt-2">
           <p className="text-primary inline-flex items-center gap-1 text-xs font-semibold">
@@ -127,12 +162,12 @@ function SlotRow({
       ) : (
         <form onSubmit={save} className="mt-2 space-y-2">
           <input
+            id={inputId}
             value={value}
             onChange={(event) => setValue(event.target.value)}
             inputMode="url"
             autoComplete="off"
             placeholder="https://www.roblox.com/game-pass/123456789"
-            aria-label={`Gamepass link for ${title}`}
             aria-invalid={Boolean(error)}
             className="border-input bg-muted/30 h-11 w-full rounded-lg border px-3 text-base sm:text-sm"
           />

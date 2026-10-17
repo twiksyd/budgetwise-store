@@ -13,8 +13,7 @@ export const FULFILLMENT_FIELDS = Object.freeze({
     label: "Gamepass Link",
     // The cart allows quantity > 1 for Via Link items and nothing in the
     // app says whether two units mean one gamepass or two, so each unit has
-    // its own slot. Switch to "per_line" here if one link per line is right;
-    // the schema already supports both.
+    // its own slot (confirmed by the store owner: one link per unit).
     cardinality: "per_unit",
     appliesToLine: (line) => isRobuxViaLinkGameId(line.gameId),
     parse(input) {
