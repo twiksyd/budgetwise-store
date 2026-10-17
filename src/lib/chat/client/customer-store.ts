@@ -6,7 +6,6 @@ import { createConversationLoader } from "@/lib/chat/conversation-loader.mjs";
 import type { SummaryLine } from "@/lib/chat/order-summary.mjs";
 import type { CustomerSlot } from "@/components/order-chat/gamepass-link-card";
 import { fetchJson, RequestError } from "@/lib/chat/client/fetch-json";
-import { debugLog } from "@/lib/chat/client/debug";
 
 // The customer's side of the app keeps its data here, OUTSIDE any page
 // component, the same way the admin inbox does: My Orders and every chat
@@ -90,13 +89,9 @@ const missingSignal = createSignal();
 const missing = new Set<string>();
 
 async function customerFetch<T>(url: string): Promise<T> {
-  const startedAt = performance.now();
   try {
-    const body = await fetchJson<T>(url);
-    debugLog("api", url, "ok", `${Math.round(performance.now() - startedAt)}ms`);
-    return body;
+    return await fetchJson<T>(url);
   } catch (error) {
-    debugLog("api", url, "failed", `${Math.round(performance.now() - startedAt)}ms`, error instanceof RequestError ? error.status : error);
     if (error instanceof RequestError && error.status === 401) window.location.assign(loginPath());
     if (error instanceof RequestError && error.status === 404) {
       const match = /\/api\/order-chat\/([^/?]+)/.exec(url);

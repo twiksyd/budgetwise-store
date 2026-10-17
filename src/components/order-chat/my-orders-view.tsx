@@ -17,7 +17,6 @@ import {
   warmChat,
   type MyOrderCard,
 } from "@/lib/chat/client/customer-store";
-import { debugLog } from "@/lib/chat/client/debug";
 import { badgeText, orderOpenSection } from "@/lib/chat/order-summary.mjs";
 import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
@@ -46,14 +45,12 @@ export function MyOrdersView() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
-    debugLog("orders", "My Orders mounted", { cachedActive: open?.rows.length ?? null, cachedCompleted: completed?.rows.length ?? null });
     if (!hasSessionCookie()) {
       router.replace(loginPath());
       return;
     }
     void loadOrdersSection("open");
     void loadOrdersSection("completed");
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- logs what was cached at mount only
   }, [router]);
 
   // Every server-confirmed change to this customer's chats (new reply,

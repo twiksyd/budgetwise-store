@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useRealtimeChannel } from "@/lib/chat/client/use-realtime-channel";
 import { fetchJson, RequestError } from "@/lib/chat/client/fetch-json";
 import { hasOrdersSection, hasSessionCookie, loadOrdersSection, recordPathname } from "@/lib/chat/client/customer-store";
-import { debugLog } from "@/lib/chat/client/debug";
 import { pickConversation, relevantConversations } from "@/lib/chat/order-summary.mjs";
 
 export interface CustomerConversation {
@@ -128,18 +127,6 @@ export function CustomerMessagesProvider({ children }: { children: React.ReactNo
   // competing with every tap.
   const hadCookie = useRef<boolean | null>(null);
   useEffect(() => {
-    // Diagnostics only (off unless bw:debug is set): taps and full page loads.
-    const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
-    debugLog("nav", "document load", navigation?.type, location.pathname);
-    const onTap = (event: PointerEvent) => {
-      const link = (event.target as Element | null)?.closest?.("a[href], button");
-      if (link) debugLog("nav", "tap", link.getAttribute("href") ?? link.getAttribute("aria-label") ?? link.textContent?.slice(0, 30));
-    };
-    document.addEventListener("pointerdown", onTap, { capture: true });
-    return () => document.removeEventListener("pointerdown", onTap, { capture: true });
-  }, []);
-  useEffect(() => {
-    debugLog("nav", "pathname", pathname);
     if (pathname) recordPathname(pathname);
     const cookie = hasSessionCookie();
     const changed = hadCookie.current !== cookie;
