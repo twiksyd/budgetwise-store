@@ -20,6 +20,11 @@
 
 begin;
 
+-- Hold new message writes (reads continue) until COMMIT, so no message can
+-- slip in between the backfill below and the trigger that takes over from
+-- it. Checkout/chat sends wait for the second or so this migration takes.
+lock table public.store_order_messages in share row exclusive mode;
+
 -- ===========================================================================
 -- 1. Admin identity
 --
