@@ -9,7 +9,6 @@ import { RouteTransitionShell } from "@/components/layout/route-transition-shell
 import { StoreStatusBanner } from "@/components/shared/store-status-banner";
 import { CustomerMessagesProvider } from "@/components/customer-messages/customer-messages-provider";
 import { FloatingMessageButton } from "@/components/customer-messages/floating-message-button";
-import { MessengerSheet } from "@/components/customer-messages/messenger-sheet";
 import type { StoreStatus } from "@/types/store-operations";
 
 // The /admin surface renders its own shell (see
@@ -54,12 +53,18 @@ export function StorefrontChrome({
       <div className={isMessengerPage ? "hidden sm:contents" : "contents"}>
         <SiteHeader />
       </div>
-      <RouteTransitionShell>{children}</RouteTransitionShell>
+      {isMessengerPage ? (
+        // Not inside the animated wrapper: its transform would turn the
+        // chat's full-screen `position: fixed` into "fixed to the wrapper",
+        // leaving the page underneath scrollable and visible.
+        <main className="bg-background relative flex-1">{children}</main>
+      ) : (
+        <RouteTransitionShell>{children}</RouteTransitionShell>
+      )}
       {!isMessengerPage && <SiteFooter />}
       <CartDrawer />
       {showFloatingCartButton && <FloatingCartButton />}
       {showFloatingMessages && <FloatingMessageButton />}
-      <MessengerSheet />
     </CustomerMessagesProvider>
   );
 }

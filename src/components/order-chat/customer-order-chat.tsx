@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Link2, ShieldCheck, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Link2, SearchX, ShieldCheck } from "lucide-react";
 import { ChatThread } from "@/components/chat/chat-thread";
 import { Composer } from "@/components/chat/composer";
 import { ConnectionBadge } from "@/components/chat/connection-badge";
@@ -12,103 +13,75 @@ import { formatOrderStatus } from "@/components/order-chat/order-status-badge";
 import { useCustomerMessages } from "@/components/customer-messages/customer-messages-provider";
 import { useChatThread } from "@/lib/chat/client/use-chat-thread";
 import { useRealtimeChannel } from "@/lib/chat/client/use-realtime-channel";
-import { fetchJson } from "@/lib/chat/client/fetch-json";
+import {
+  cameFrom,
+  customerChatCache,
+  customerChatLoader,
+  readReceipts,
+  useOrderMissing,
+  type CustomerChatDetails,
+} from "@/lib/chat/client/customer-store";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
-import type { SummaryLine } from "@/lib/chat/order-summary.mjs";
 import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
+export type { CustomerOrderSummaryData } from "@/lib/chat/client/customer-store";
+
 type Cursor = { at: string | null; messageId: string | null };
 
-export interface CustomerOrderSummaryData {
-  orderNumber: string;
-  conversationId: string | null;
-  totalAmount: number;
-  createdAt: string;
-  buyerName: string;
-  robloxUsername: string;
-  status: string;
-  state: "active" | "done";
-  paymentSent: boolean;
-  itemCount: number;
-  summary: string;
-  lines: SummaryLine[];
-}
-
-export interface CustomerConversationInitial {
-  summary: CustomerOrderSummaryData;
-  messages: ChatMessageDto[];
-  hasOlder: boolean;
-  adminRead: Cursor;
-  ownRead: Cursor;
-  slots: CustomerSlot[];
-}
-
+const MY_ORDERS = "/account/orders";
 const EVENTS = ["message", "seen", "fulfillment", "state"] as const;
 // Mobile networks drop and recover constantly; only a drop that lasts
 // this long is worth telling the customer about.
-const CONNECTION_GRACE_MS = 4000;
+const CONNECTION_GRACE_MS = 8000;
+const NO_CURSOR: Cursor = { at: null, messageId: null };
 
 /**
  * The customer's conversation with BudgetWise about one order, laid out
  * like Messenger: compact header, compact notice, the order pinned as a
  * small summary, then the conversation itself filling the screen, and the
- * composer fixed at the bottom. Used full-screen on the order page and
- * inside the floating messenger panel.
+ * composer fixed at the bottom.
+ *
+ * Data comes from the tab-wide customer cache: a chat opened before paints
+ * its messages and summary immediately, and both refresh in parallel in
+ * the background. Nothing here waits for realtime.
  */
-export function CustomerOrderChat({
-  orderNumber,
-  variant,
-  initial,
-  welcome = false,
-  onClose,
-  headerAction,
-}: {
-  orderNumber: string;
-  variant: "page" | "sheet";
-  initial?: CustomerConversationInitial;
-  welcome?: boolean;
-  onClose?: () => void;
-  headerAction?: React.ReactNode;
-}) {
+export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
+  const router = useRouter();
   const messages = useCustomerMessages();
-  const thread = useChatThread({
-    orderNumber,
-    viewer: "customer",
-    initialMessages: initial?.messages,
-    initialHasOlder: initial?.hasOlder,
-  });
-  const [summary, setSummary] = useState<CustomerOrderSummaryData | null>(initial?.summary ?? null);
-  const [adminRead, setAdminRead] = useState<Cursor>(initial?.adminRead ?? { at: null, messageId: null });
-  const [slots, setSlots] = useState<CustomerSlot[]>(initial?.slots ?? []);
-  const ownRead = useRef<Cursor>(initial?.ownRead ?? { at: null, messageId: null });
+  const cache = customerChatCache;
+  const loader = customerChatLoader;
+  const thread = useChatThread({ orderNumber, viewer: "customer", cache, loader });
+  const getEntry = useCallback(() => cache.get(orderNumber), [cache, orderNumber]);
+  const entry = useSyncExternalStore(cache.subscribe, getEntry, getEntry);
+  const details: CustomerChatDetails | null = entry?.details ?? null;
+  const summary = details?.summary ?? null;
+  const adminRead = details?.adminRead ?? NO_CURSOR;
+  const slots = details?.slots ?? [];
+  const missing = useOrderMissing(orderNumber);
 
-  const loadSummary = useCallback(async () => {
-    try {
-      const body = await fetchJson<{
-        summary: CustomerOrderSummaryData;
-        adminRead: Cursor;
-        ownRead: Cursor;
-        slots: CustomerSlot[];
-      }>(`/api/order-chat/${encodeURIComponent(orderNumber)}/summary`);
-      setSummary(body.summary);
-      setAdminRead(body.adminRead);
-      setSlots(body.slots);
-      if (!ownRead.current.messageId) ownRead.current = body.ownRead;
-    } catch {
-      // keep what is on screen; the next event or resync tries again
-    }
-  }, [orderNumber]);
-
+  // Thread + summary requested at the same time; cached data stays on screen.
   useEffect(() => {
-    if (!initial) void loadSummary();
-  }, [initial, loadSummary]);
+    loader.open(orderNumber);
+    return () => {
+      if (cache.pinned === orderNumber) cache.pin(null);
+    };
+  }, [cache, loader, orderNumber]);
 
-  const refreshSlots = useCallback(() => {
-    void fetchJson<{ slots: CustomerSlot[] }>(`/api/order-chat/${encodeURIComponent(orderNumber)}/fulfillment`)
-      .then((body) => setSlots(body.slots))
-      .catch(() => undefined);
-  }, [orderNumber]);
+  const patchDetails = useCallback(
+    (patch: Partial<CustomerChatDetails>) => {
+      const current = cache.get(orderNumber)?.details;
+      if (current) cache.setDetailsLocal(orderNumber, { ...current, ...patch });
+    },
+    [cache, orderNumber],
+  );
+  const reloadDetails = useCallback(() => {
+    void loader.ensureDetails(orderNumber, { force: true });
+  }, [loader, orderNumber]);
+
+  // The read position the thread opens at: captured once, when first known.
+  const ownRead = useRef<Cursor | null>(null);
+  if (!ownRead.current && details) ownRead.current = details.ownRead;
 
   const { fetchNewer } = thread;
   const status = useRealtimeChannel({
@@ -117,20 +90,34 @@ export function CustomerOrderChat({
     onEvent: (event, payload) => {
       if (event === "message") void fetchNewer();
       if (event === "seen") {
-        setAdminRead({
-          at: (payload.admin_read_at as string | null) ?? null,
-          messageId: (payload.admin_read_message_id as string | null) ?? null,
+        patchDetails({
+          adminRead: {
+            at: (payload.admin_read_at as string | null) ?? null,
+            messageId: (payload.admin_read_message_id as string | null) ?? null,
+          },
         });
       }
-      if (event === "fulfillment") refreshSlots();
-      // The event only says "it changed"; the state shown always comes from the server.
-      if (event === "state") void loadSummary();
+      // The events only say "it changed"; what is shown always comes from the server.
+      if (event === "fulfillment" || event === "state") reloadDetails();
     },
     onResync: () => {
       void fetchNewer();
-      void loadSummary();
+      reloadDetails();
     },
   });
+
+  // No conversation yet (nothing to subscribe to): the account-wide topic
+  // still says when something changed for this customer.
+  const version = messages?.version ?? 0;
+  const seenVersion = useRef(version);
+  useEffect(() => {
+    if (version === seenVersion.current) return;
+    seenVersion.current = version;
+    if (!summary?.conversationId) {
+      reloadDetails();
+      void fetchNewer();
+    }
+  }, [version, summary?.conversationId, reloadDetails, fetchNewer]);
 
   const paymentSent = useMemo(
     () => Boolean(summary?.paymentSent) || thread.state.messages.some((message) => message.kind === "payment"),
@@ -146,13 +133,21 @@ export function CustomerOrderChat({
   const refreshBadges = messages?.refresh;
   const onReadUpTo = useCallback(
     (messageId: string) => {
+      // Already recorded (or on its way) from an earlier visit: nothing to send.
+      if (readReceipts.get(orderNumber) === messageId) return;
+      if (cache.get(orderNumber)?.details?.ownRead.messageId === messageId) return;
+      readReceipts.set(orderNumber, messageId);
+      // Fire-and-forget: never blocks scrolling or leaving the chat.
       void markRead(messageId).then((result) => {
+        if (result === "failed" && readReceipts.get(orderNumber) === messageId) readReceipts.delete(orderNumber);
+        if (result !== "ok") return;
+        patchDetails({ ownRead: { at: new Date().toISOString(), messageId } });
         // Badges everywhere (floating button, My Orders) re-read the
         // server's count — never a client-side guess.
-        if (result === "ok") refreshBadges?.();
+        refreshBadges?.();
       });
     },
-    [markRead, refreshBadges],
+    [cache, orderNumber, markRead, refreshBadges, patchDetails],
   );
 
   const slip = useMemo(
@@ -164,30 +159,32 @@ export function CustomerOrderChat({
     [orderNumber, summary?.robloxUsername, summary?.totalAmount],
   );
 
+  // Back: straight back to the My Orders screen this chat was opened from
+  // (instant, from memory); otherwise forward to My Orders.
+  const goBack = (event: React.MouseEvent) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    event.preventDefault();
+    if (cameFrom() === MY_ORDERS) router.back();
+    else router.push(MY_ORDERS);
+  };
+
+  const welcome = useWelcome(orderNumber, messages?.signedIn ? messages.conversations.length : null);
+
   const completed = summary?.state === "done";
   const statusText = completed ? "Completed" : summary ? formatOrderStatus(summary.status) : "";
 
   return (
-    <div className="bg-background flex h-full min-h-0 flex-col" data-variant={variant}>
+    <div className="bg-background flex h-full min-h-0 flex-col">
       <header className="border-border/60 bg-background/95 sticky top-0 z-10 flex items-center gap-2 border-b px-2 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur sm:px-3">
-        {variant === "page" ? (
-          <Link
-            href="/account/orders"
-            className="hover:bg-muted inline-flex size-11 shrink-0 items-center justify-center rounded-full"
-            aria-label="Back to My Orders"
-          >
-            <ArrowLeft className="size-5" />
-          </Link>
-        ) : (
-          <button
-            type="button"
-            onClick={onClose}
-            className="hover:bg-muted inline-flex size-11 shrink-0 items-center justify-center rounded-full"
-            aria-label="Close messages"
-          >
-            <X className="size-5" />
-          </button>
-        )}
+        <Link
+          href={MY_ORDERS}
+          onClick={goBack}
+          className="hover:bg-muted active:bg-muted inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-75"
+          aria-label="Back to My Orders"
+          data-testid="chat-back"
+        >
+          <ArrowLeft className="size-5" />
+        </Link>
         <div className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold">
           BW
         </div>
@@ -210,51 +207,58 @@ export function CustomerOrderChat({
             {summary && ` · ${formatPrice(summary.totalAmount)}`}
           </p>
         </div>
-        {headerAction}
-        {variant === "sheet" && (
-          <Link
-            href={`/orders/${encodeURIComponent(orderNumber)}`}
-            onClick={onClose}
-            className="text-primary hidden shrink-0 px-1 text-xs font-semibold min-[380px]:inline"
-          >
-            View full order
-          </Link>
-        )}
       </header>
 
-      <OrderNotice completed={completed} paymentSent={paymentSent} />
+      {missing && !summary ? (
+        <OrderUnavailable />
+      ) : (
+        <>
+          {summary && <OrderNotice completed={completed} paymentSent={paymentSent} />}
 
-      {summary && summary.lines.length > 0 && (
-        <OrderSummaryStrip lines={summary.lines} itemCount={summary.itemCount} total={summary.totalAmount} />
+          {summary && summary.lines.length > 0 && (
+            <OrderSummaryStrip lines={summary.lines} itemCount={summary.itemCount} total={summary.totalAmount} />
+          )}
+
+          {slots.length > 0 && (
+            <GamepassSection orderNumber={orderNumber} slots={slots} onSlotsChange={(next) => patchDetails({ slots: next })} />
+          )}
+
+          {welcome.show && <WelcomeCard onDismiss={welcome.dismiss} />}
+
+          <ChatThread
+            state={thread.state}
+            orderNumber={orderNumber}
+            slip={slip}
+            isOwnSide={isOwnSide}
+            isMine={isOwnSide}
+            senderLabelFor={senderLabelFor}
+            otherSideReadCursor={adminRead}
+            initialReadCursor={ownRead.current ?? NO_CURSOR}
+            onLoadOlder={() => void thread.loadOlder()}
+            loadError={thread.loadError}
+            onReload={() => void thread.reload()}
+            onRetry={thread.retry}
+            onDiscard={thread.discard}
+            onReadUpTo={onReadUpTo}
+            emptyState={<p className="text-muted-foreground py-10 text-center text-sm">Say hi to BudgetWise!</p>}
+          />
+
+          <Composer placeholder="Type a message…" onSendText={thread.sendText} onSendImages={thread.sendAlbum} />
+        </>
       )}
+    </div>
+  );
+}
 
-      {slots.length > 0 && <GamepassSection orderNumber={orderNumber} slots={slots} onSlotsChange={setSlots} />}
-
-      {welcome && <WelcomeCard orderNumber={orderNumber} />}
-
-      <ChatThread
-        state={thread.state}
-        orderNumber={orderNumber}
-        slip={slip}
-        isOwnSide={isOwnSide}
-        isMine={isOwnSide}
-        senderLabelFor={senderLabelFor}
-        otherSideReadCursor={adminRead}
-        initialReadCursor={ownRead.current}
-        onLoadOlder={() => void thread.loadOlder()}
-        loadError={thread.loadError}
-        onReload={() => void thread.reload()}
-        onRetry={thread.retry}
-        onDiscard={thread.discard}
-        onReadUpTo={onReadUpTo}
-        emptyState={<p className="text-muted-foreground py-10 text-center text-sm">Say hi to BudgetWise!</p>}
-      />
-
-      <Composer
-        placeholder="Type a message…"
-        onSendText={thread.sendText}
-        onSendImages={thread.sendAlbum}
-      />
+function OrderUnavailable() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+      <SearchX className="text-muted-foreground size-10" />
+      <p className="font-heading text-base font-semibold">We couldn&apos;t find this order</p>
+      <p className="text-muted-foreground max-w-xs text-sm">It may belong to a different account. Your orders are all in My Orders.</p>
+      <Link href={MY_ORDERS} className="bg-primary text-primary-foreground mt-1 inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold">
+        Go to My Orders
+      </Link>
     </div>
   );
 }
@@ -327,17 +331,21 @@ function GamepassSection({
 
 const WELCOME_KEY = (orderNumber: string) => `bw:welcome-seen:${orderNumber}`;
 
-/** First order only: what happens next, in two lines. Dismissed for good. */
-function WelcomeCard({ orderNumber }: { orderNumber: string }) {
+/**
+ * First order only, right after checkout (?placed=1): what happens next, in
+ * two lines. Dismissed for good.
+ */
+function useWelcome(orderNumber: string, orderCount: number | null) {
+  const [placed, setPlaced] = useState(false);
   const [hidden, setHidden] = useState(false);
   useEffect(() => {
+    setPlaced(new URLSearchParams(window.location.search).has("placed"));
     try {
       if (localStorage.getItem(WELCOME_KEY(orderNumber))) setHidden(true);
     } catch {
       // storage blocked: show it this time
     }
   }, [orderNumber]);
-  if (hidden) return null;
   const dismiss = () => {
     setHidden(true);
     try {
@@ -351,6 +359,10 @@ function WelcomeCard({ orderNumber }: { orderNumber: string }) {
       window.history.replaceState(window.history.state, "", url);
     }
   };
+  return { show: placed && !hidden && orderCount !== null && orderCount <= 1, dismiss };
+}
+
+function WelcomeCard({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div className="border-primary/15 bg-primary/5 mx-3 mt-3 rounded-2xl border p-3.5 sm:mx-4" role="status">
       <p className="font-heading text-base font-semibold">Order placed!</p>
@@ -360,7 +372,7 @@ function WelcomeCard({ orderNumber }: { orderNumber: string }) {
       <p className="text-muted-foreground mt-1 text-xs">You can come back to this chat anytime from My Orders.</p>
       <button
         type="button"
-        onClick={dismiss}
+        onClick={onDismiss}
         className="bg-primary text-primary-foreground mt-2.5 inline-flex min-h-10 items-center rounded-full px-4 text-sm font-semibold"
       >
         Got it

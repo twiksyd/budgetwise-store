@@ -212,31 +212,36 @@ describe("Part 1 — mobile customer experience", { concurrency: false }, () => 
     assert.equal(await page.getByText("Your BudgetWise messages will appear here.").count(), 0, "not repeated");
   });
 
-  test("the button opens the unread conversation first; closing returns to the same place", async () => {
+  test("the button opens the unread conversation first, full screen; Back returns to the same place", async () => {
     const { page } = people.custc;
     await page.goto("/faq");
-    await page.evaluate(() => window.scrollTo(0, 600));
-    await page.waitForTimeout(300);
-    const scrollBefore = await page.evaluate(() => window.scrollY);
     await floating(page).getByTestId("messages-badge").waitFor(T);
     await floating(page).click();
-    const sheet = page.getByRole("dialog");
-    await sheet.getByText(/Order BW-LT024/).waitFor(T);
-    await sheet.getByText("Hi po! We reviewed your order.").waitFor(T);
-    await sheet.getByRole("button", { name: /Other conversations/ }).click();
-    await sheet.getByText("BudgetWise Messages").waitFor(T);
-    await sheet.getByRole("button", { name: /BW-LT023/ }).waitFor(T);
-    await sheet.getByRole("button", { name: "Back" }).click();
-    await noHorizontalOverflow(page, "messenger sheet 390");
-    await sheet.getByRole("button", { name: "Close messages" }).click();
-    await page.waitForTimeout(400);
-    assert.equal(new URL(page.url()).pathname, "/faq", "no navigation");
-    assert.equal(await page.evaluate(() => window.scrollY), scrollBefore, "same scroll position");
+    // A real page, not a sheet over the storefront.
+    await page.waitForURL(/\/orders\/BW-LT024$/, T);
+    const screen = page.locator("[data-messenger-screen]");
+    await screen.getByText(/Order BW-LT024/).waitFor(T);
+    await screen.getByText("Hi po! We reviewed your order.").waitFor(T);
+    assert.equal(await page.getByRole("dialog").count(), 0, "no dialog/sheet");
+    const layout = await page.evaluate(() => {
+      const rect = document.querySelector("[data-messenger-screen]").getBoundingClientRect();
+      const before = window.scrollY;
+      window.scrollTo(0, 5000);
+      const scrolled = window.scrollY !== before;
+      return { top: rect.top, height: rect.height, width: rect.width, scrolled, vh: window.innerHeight, vw: window.innerWidth };
+    });
+    assert.equal(layout.top, 0, "covers from the top");
+    assert.equal(Math.round(layout.height), layout.vh, "covers the whole height");
+    assert.equal(Math.round(layout.width), layout.vw, "covers the whole width");
+    assert.equal(layout.scrolled, false, "the page underneath cannot scroll");
+    await noHorizontalOverflow(page, "messenger screen 390");
+    await page.goBack();
+    await page.waitForURL(/\/faq$/, T);
   });
 
   test("reading clears the badge everywhere; a new reply brings it back instantly (no refresh)", async () => {
     const { page } = people.custc;
-    // Reading LT024 in the sheet just now cleared it on the server.
+    // Reading LT024 just now cleared it on the server.
     await page.waitForFunction(() => !document.querySelector('[data-testid="messages-badge"]'), null, T);
     assert.equal(await page.getByRole("link", { name: /^My Orders \(/ }).count(), 0, "header badge cleared too");
     await adminSays("BW-LT023", "Good news po, your order is being processed.");
@@ -244,15 +249,23 @@ describe("Part 1 — mobile customer experience", { concurrency: false }, () => 
     await page.getByRole("link", { name: /^My Orders \(1 unread/ }).waitFor(T);
     // ...and opening goes straight to that conversation.
     await floating(page).click();
-    await page.getByRole("dialog").getByText(/Order BW-LT023/).waitFor(T);
-    await page.getByRole("dialog").getByText("Good news po, your order is being processed.").waitFor(T);
+    await page.waitForURL(/\/orders\/BW-LT023$/, T);
+    await page.locator("[data-messenger-screen]").getByText("Good news po, your order is being processed.").waitFor(T);
   });
 
-  test("the chat inside the panel is realtime", async () => {
+  test("the full-screen chat is realtime, and Back returns to My Orders without a reload", async () => {
     const { page } = people.custc;
     await adminSays("BW-LT023", "Please accept our friend request po.");
-    await page.getByRole("dialog").getByText("Please accept our friend request po.").waitFor(T);
-    await page.getByRole("dialog").getByRole("button", { name: "Close messages" }).click();
+    await page.locator("[data-messenger-screen]").getByText("Please accept our friend request po.").waitFor(T);
+    assert.equal(await page.locator('[data-connection="reconnecting"]').count(), 0, "no reconnect warning in normal use");
+    await page.goto("/account/orders");
+    await page.locator('[data-order-card="BW-LT023"]').click();
+    await page.locator("[data-messenger-screen]").getByText("Please accept our friend request po.").waitFor(T);
+    const marker = await page.evaluate(() => (window.__noReload = Math.random()));
+    await page.getByTestId("chat-back").click();
+    await page.waitForURL(/\/account\/orders$/, T);
+    await page.locator('[data-order-card="BW-LT023"]').waitFor(T);
+    assert.equal(await page.evaluate(() => window.__noReload), marker, "client navigation, no document reload");
   });
 
   test("full-screen order chat: composer stays reachable with the keyboard open", async () => {

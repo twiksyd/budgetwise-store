@@ -523,14 +523,22 @@ describe("connection status and reconnect", () => {
     assert.equal(deriveConnectionStatus({ online: true, channelState: "CHANNEL_ERROR" }), "reconnecting");
     assert.equal(deriveConnectionStatus({ online: true, channelState: "TIMED_OUT" }), "reconnecting");
     assert.equal(deriveConnectionStatus({ online: true, channelState: "CLOSED" }), "reconnecting");
-    assert.equal(deriveConnectionStatus({ online: true, channelState: null }), "reconnecting");
     assert.equal(deriveConnectionStatus({ online: false, channelState: "SUBSCRIBED" }), "offline");
+  });
+  test("a first join in progress, or no topic yet, is never shown as a connection problem", () => {
+    assert.equal(deriveConnectionStatus({ online: true, channelState: null }), "connecting");
+    assert.equal(deriveConnectionStatus({ online: true, channelState: "joining" }), "connecting");
+    assert.equal(deriveConnectionStatus({ online: true, channelState: null, hasTopic: false }), "idle");
+    assert.equal(deriveConnectionStatus({ online: true, channelState: null, wasLive: true }), "reconnecting");
+    assert.equal(deriveConnectionStatus({ online: true, channelState: null, failedBefore: true }), "reconnecting");
   });
   test("backoff grows and caps; polling only while not live", () => {
     assert.deepEqual([0, 1, 2, 3, 10].map(reconnectDelay), [1000, 2000, 4000, 8000, 30000]);
     assert.equal(pollIntervalFor("live"), null);
     assert.equal(pollIntervalFor("reconnecting"), 10_000);
     assert.equal(pollIntervalFor("offline"), null);
+    assert.equal(pollIntervalFor("connecting"), 10_000);
+    assert.equal(pollIntervalFor("idle"), null);
   });
   test("missed events are fetched on reconnect and on wake, not on first connect", () => {
     assert.equal(shouldResync({ previous: "reconnecting", next: "live", hasConnectedBefore: false }), false);
