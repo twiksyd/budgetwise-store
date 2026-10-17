@@ -40,8 +40,13 @@ export function ChatThread({
   emptyState,
   footer,
   className,
+  loadError = false,
+  onReload,
 }: {
   state: ThreadState;
+  /** The first page could not be loaded (shows a retry instead of a skeleton). */
+  loadError?: boolean;
+  onReload?: () => void;
   orderNumber: string;
   /** Messages from my side of the conversation (right-aligned). */
   isOwnSide: (message: ChatMessageDto) => boolean;
@@ -201,11 +206,19 @@ export function ChatThread({
         {!state.hasOlder && state.loaded && state.messages.length > 0 && (
           <p className="text-muted-foreground py-3 text-center text-[11px]">Start of conversation</p>
         )}
-        {!state.loaded && (
-          <div className="text-muted-foreground flex h-full items-center justify-center">
-            <Loader2 className="size-5 animate-spin" />
-          </div>
-        )}
+        {!state.loaded &&
+          (loadError ? (
+            <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 text-sm">
+              <p>Couldn&apos;t load messages.</p>
+              {onReload && (
+                <button type="button" onClick={onReload} className="border-border hover:bg-muted rounded-lg border px-3 py-1.5 text-xs font-semibold">
+                  Try again
+                </button>
+              )}
+            </div>
+          ) : (
+            <ThreadSkeleton />
+          ))}
         {state.loaded && state.messages.length === 0 && state.pending.length === 0 && emptyState}
 
         {items.map((item) =>
@@ -270,6 +283,17 @@ export function ChatThread({
       )}
 
       <ImageLightbox src={lightbox} alt="Chat image" open={lightbox !== null} onOpenChange={(open) => !open && setLightbox(null)} />
+    </div>
+  );
+}
+
+/** First load only: a few placeholder bubbles inside the thread, nothing else blocks. */
+function ThreadSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 py-2" aria-busy="true" aria-label="Loading messages">
+      {["w-2/3", "ml-auto w-1/2", "w-3/5", "ml-auto w-2/5", "w-1/2"].map((width, index) => (
+        <div key={index} className={cn("bg-muted h-10 animate-pulse rounded-2xl", width)} />
+      ))}
     </div>
   );
 }

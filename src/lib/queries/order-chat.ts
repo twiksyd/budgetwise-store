@@ -137,11 +137,15 @@ export async function resolveChatActor(
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, status: 401, error: "Please sign in first." };
 
-  if (as === "admin" && !(await isAdminUser(userId))) {
+  // Both lookups depend only on the verified user id: run them together.
+  // Nothing about the order is returned unless the checks below pass.
+  const [isAdmin, order] = await Promise.all([
+    as === "admin" ? isAdminUser(userId) : Promise.resolve(false),
+    getChatOrder(orderNumber),
+  ]);
+  if (as === "admin" && !isAdmin) {
     return { ok: false, status: 403, error: "Not allowed." };
   }
-
-  const order = await getChatOrder(orderNumber);
   if (!order) return { ok: false, status: 404, error: "Order not found." };
   if (as === "customer" && order.ownerUserId !== userId) {
     return { ok: false, status: 404, error: "Order not found." };

@@ -192,6 +192,8 @@ export function inboxReducer(state, action) {
     case "mark_read": {
       const row = state.rows[action.orderNumber];
       if (!row) return state;
+      // Reported again for the same message: nothing changes, no re-render.
+      if (row.unreadCount === 0 && row.myReadMessageId === action.messageId) return state;
       return {
         ...state,
         rows: {

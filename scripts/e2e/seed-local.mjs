@@ -117,6 +117,36 @@ export async function seed() {
   return ids;
 }
 
+/**
+ * Peak-hour inbox: `count` extra conversations for customer A, newest last.
+ * Every `longEvery`-th one has a long history (`longLength` messages); the
+ * rest have a handful. Each thread ends with a unique marker message so a
+ * test can tell exactly which conversation is on screen.
+ */
+export async function seedPeak(ids, { count = 35, longEvery = 5, longLength = 300 } = {}) {
+  const orders = [];
+  for (let i = 0; i < count; i += 1) {
+    const orderNumber = `BW-PK${String(i).padStart(3, "0")}`;
+    const name = `Peak Customer ${String(i).padStart(2, "0")}`;
+    const roblox = `peakRBX${String(i).padStart(2, "0")}`;
+    await createOrder(orderNumber, ids.custa, name, roblox, [
+      line(0, "44444444-4444-4444-4444-444444444444", `Peak Game ${i % 4}`, `Peak Item ${i}`, 100, 1 + (i % 3), 50 + i),
+    ]);
+    const length = i % longEvery === 0 ? longLength : 6;
+    await sql(
+      `insert into public.store_order_messages (order_number, sender_role, sender_user_id, kind, body, created_at)
+       select $1, case when g % 2 = 0 then 'customer' else 'admin' end,
+              case when g % 2 = 0 then $2::uuid else $3::uuid end, 'text',
+              case when g = $4 then $5 else 'history ' || g end,
+              now() - interval '2 hours' + make_interval(secs => g + $6 * 10)
+         from generate_series(1, $4) g`,
+      [orderNumber, ids.custa, ids.robert, length, `LAST-${orderNumber}`, i],
+    );
+    orders.push({ orderNumber, name, roblox, length });
+  }
+  return orders;
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const ids = await seed();
   console.log(JSON.stringify(ids, null, 2));

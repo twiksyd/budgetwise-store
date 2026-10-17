@@ -134,6 +134,8 @@ export function CustomerOrderChat({
           otherSideReadCursor={adminRead}
           initialReadCursor={ownRead.current}
           onLoadOlder={() => void thread.loadOlder()}
+          loadError={thread.loadError}
+          onReload={() => void thread.reload()}
           onRetry={thread.retry}
           onDiscard={thread.discard}
           onReadUpTo={onReadUpTo}

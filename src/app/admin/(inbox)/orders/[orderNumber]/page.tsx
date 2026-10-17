@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { isValidOrderNumber } from "@/lib/order-chat.mjs";
-import { ConversationView } from "@/components/admin-inbox/conversation-view";
 
-// Data is loaded client-side through the admin APIs (each re-checks the
-// session), which keeps switching between conversations instant.
+// Reloads and shared links land here. The inbox shell (layout) reads the
+// order number from the URL and opens it client-side; switching between
+// conversations afterwards never comes back to the server for this page.
+// Data is loaded through the admin APIs, each of which re-checks the session.
 export default async function AdminConversationPage({
   params,
 }: {
@@ -11,5 +12,5 @@ export default async function AdminConversationPage({
 }) {
   const { orderNumber } = await params;
   if (!isValidOrderNumber(orderNumber)) notFound();
-  return <ConversationView key={orderNumber} orderNumber={orderNumber} />;
+  return null;
 }

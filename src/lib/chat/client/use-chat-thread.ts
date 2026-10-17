@@ -1,13 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef } from "react";
-import {
-  initialThread,
-  newestMessageId,
-  oldestMessageId,
-  threadReducer,
-} from "@/lib/chat/thread-state.mjs";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { ThreadAction } from "@/lib/chat/thread-state.mjs";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
+import { createConversationCache, type ConversationCache } from "@/lib/chat/conversation-cache.mjs";
+import { createConversationLoader, type ConversationLoader } from "@/lib/chat/conversation-loader.mjs";
 import { fetchJson, jsonInit, newClientId, RequestError } from "@/lib/chat/client/fetch-json";
 
 type Viewer = "admin" | "customer";
@@ -17,101 +14,76 @@ interface Options {
   viewer: Viewer;
   initialMessages?: ChatMessageDto[];
   initialHasOlder?: boolean;
+  /** Admin inbox: the shared conversation cache + loader (data survives switching). */
+  cache?: ConversationCache<unknown>;
+  loader?: ConversationLoader;
 }
 
 /**
  * Data side of one chat thread: first page, older pages, delta fetches
  * after realtime pings, and sends with optimistic bubbles, upload progress,
  * retry and a client message id that makes retries idempotent end to end.
+ *
+ * All state lives in a conversation cache keyed by order number — the
+ * inbox's shared cache, or a private one-conversation cache (customer
+ * page). Every update names its conversation, so a response for another
+ * chat can never land in this one.
  */
-export function useChatThread({ orderNumber, viewer, initialMessages, initialHasOlder }: Options) {
-  const [state, dispatch] = useReducer(
-    threadReducer,
-    initialThread,
-    (base) =>
-      initialMessages
-        ? threadReducer(base, { type: "loaded", messages: initialMessages, hasOlder: Boolean(initialHasOlder) })
-        : base,
+export function useChatThread({ orderNumber, viewer, initialMessages, initialHasOlder, cache: sharedCache, loader: sharedLoader }: Options) {
+  const [own] = useState(() => {
+    if (sharedCache && sharedLoader) return null;
+    const cache = createConversationCache({ limit: 1 });
+    cache.pin(orderNumber);
+    if (initialMessages) {
+      cache.dispatch(orderNumber, { type: "loaded", messages: initialMessages, hasOlder: Boolean(initialHasOlder) });
+    }
+    return { cache, loader: createConversationLoader({ cache, fetchJson, viewer }) };
+  });
+  const cache = sharedCache ?? own!.cache;
+  const loader = sharedLoader ?? own!.loader;
+
+  const getThread = useCallback(() => cache.getThread(orderNumber), [cache, orderNumber]);
+  const state = useSyncExternalStore(cache.subscribe, getThread, getThread);
+  const loadError = useSyncExternalStore(
+    cache.subscribe,
+    () => Boolean(cache.get(orderNumber)?.threadError),
+    () => false,
   );
-  const stateRef = useRef(state);
-  stateRef.current = state;
+  const dispatch = useCallback(
+    (action: ThreadAction) => {
+      cache.dispatch(orderNumber, action);
+    },
+    [cache, orderNumber],
+  );
   const base = `/api/order-chat/${encodeURIComponent(orderNumber)}`;
   const actingAs = `as=${viewer}`;
 
   // Local preview URLs are released once the server copy replaces them.
   const revokePreview = useCallback((clientMessageId: string) => {
-    const url = stateRef.current.pending.find((item) => item.clientMessageId === clientMessageId)?.previewUrl;
+    const url = getThread().pending.find((item) => item.clientMessageId === clientMessageId)?.previewUrl;
     if (url) URL.revokeObjectURL(url);
-  }, []);
+  }, [getThread]);
 
-  // Files for pending image sends, kept for retry.
-  const files = useRef(new Map<string, { file: File; caption: string }>());
-  const inFlight = useRef(new Set<string>());
+  // Files for pending image sends, kept for retry (in the cache, so a retry
+  // still works after switching away and back).
+  const files = cache.files;
+  const inFlight = cache.inFlight;
 
-  // ---- loading
+  // ---- loading (the inbox starts these itself when a chat is opened)
   useEffect(() => {
-    if (initialMessages) return;
-    let cancelled = false;
-    void fetchJson<{ messages: ChatMessageDto[]; hasOlder?: boolean }>(`${base}/messages?${actingAs}`)
-      .then((body) => {
-        if (!cancelled) dispatch({ type: "loaded", messages: body.messages, hasOlder: Boolean(body.hasOlder) });
-      })
-      .catch(() => {
-        if (!cancelled) dispatch({ type: "loaded", messages: [], hasOlder: false });
-      });
-    return () => {
-      cancelled = true;
-    };
-    // initialMessages is only read on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [base, actingAs]);
+    if (sharedLoader) return;
+    void loader.ensureThread(orderNumber);
+  }, [sharedLoader, loader, orderNumber]);
 
-  const loadOlder = useCallback(async () => {
-    const current = stateRef.current;
-    const oldest = oldestMessageId(current);
-    if (!current.hasOlder || current.loadingOlder || !oldest) return;
-    dispatch({ type: "loading_older" });
-    try {
-      const body = await fetchJson<{ messages: ChatMessageDto[]; hasOlder?: boolean }>(
-        `${base}/messages?${actingAs}&before=${oldest}`,
-      );
-      dispatch({ type: "older", messages: body.messages, hasOlder: Boolean(body.hasOlder) });
-    } catch {
-      dispatch({ type: "older", messages: [], hasOlder: true });
-    }
-  }, [base, actingAs]);
-
-  // Delta fetch, coalesced: pings that arrive during a fetch trigger one more.
-  const fetching = useRef(false);
-  const dirty = useRef(false);
-  const fetchNewer = useCallback(async () => {
-    if (fetching.current) {
-      dirty.current = true;
-      return;
-    }
-    fetching.current = true;
-    try {
-      do {
-        dirty.current = false;
-        const newest = newestMessageId(stateRef.current);
-        const url = newest
-          ? `${base}/messages?${actingAs}&after=${newest}`
-          : `${base}/messages?${actingAs}`;
-        const body = await fetchJson<{ messages: ChatMessageDto[] }>(url);
-        dispatch({ type: "received", messages: body.messages });
-      } while (dirty.current);
-    } catch {
-      // Next ping, resync or poll tries again.
-    } finally {
-      fetching.current = false;
-    }
-  }, [base, actingAs]);
+  const loadOlder = useCallback(() => loader.loadOlder(orderNumber), [loader, orderNumber]);
+  const fetchNewer = useCallback(() => loader.fetchNewer(orderNumber), [loader, orderNumber]);
+  const reload = useCallback(() => loader.ensureThread(orderNumber, { maxAgeMs: 0 }), [loader, orderNumber]);
 
   // ---- sending
   const postText = useCallback(
     async (clientMessageId: string, text: string) => {
-      if (inFlight.current.has(clientMessageId)) return;
-      inFlight.current.add(clientMessageId);
+      if (inFlight.has(clientMessageId)) return;
+      inFlight.add(clientMessageId);
       try {
         const body = await fetchJson<{ message: ChatMessageDto }>(
           `${base}/messages?${actingAs}`,
@@ -125,16 +97,16 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
           error: error instanceof RequestError ? error.message : "Not sent.",
         });
       } finally {
-        inFlight.current.delete(clientMessageId);
+        inFlight.delete(clientMessageId);
       }
     },
-    [base, actingAs],
+    [base, actingAs, dispatch, inFlight],
   );
 
   const postImage = useCallback(
     (clientMessageId: string, file: File, caption: string) => {
-      if (inFlight.current.has(clientMessageId)) return;
-      inFlight.current.add(clientMessageId);
+      if (inFlight.has(clientMessageId)) return;
+      inFlight.add(clientMessageId);
       const form = new FormData();
       form.set("body", caption);
       form.set("clientMessageId", clientMessageId);
@@ -150,10 +122,10 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
         }
       };
       xhr.onload = () => {
-        inFlight.current.delete(clientMessageId);
+        inFlight.delete(clientMessageId);
         const body = xhr.response as { message?: ChatMessageDto; error?: string } | null;
         if (xhr.status >= 200 && xhr.status < 300 && body?.message) {
-          files.current.delete(clientMessageId);
+          files.delete(clientMessageId);
           revokePreview(clientMessageId);
           dispatch({ type: "confirmed", clientMessageId, message: body.message });
         } else {
@@ -161,12 +133,12 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
         }
       };
       xhr.onerror = () => {
-        inFlight.current.delete(clientMessageId);
+        inFlight.delete(clientMessageId);
         dispatch({ type: "failed", clientMessageId, error: "No connection. Tap to retry." });
       };
       xhr.send(form);
     },
-    [base, actingAs, revokePreview],
+    [base, actingAs, revokePreview, dispatch, files, inFlight],
   );
 
   const sendText = useCallback(
@@ -179,13 +151,13 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
       void postText(clientMessageId, text);
       return clientMessageId;
     },
-    [postText],
+    [postText, dispatch],
   );
 
   const sendImage = useCallback(
     (file: File, caption: string) => {
       const clientMessageId = newClientId();
-      files.current.set(clientMessageId, { file, caption });
+      files.set(clientMessageId, { file, caption });
       dispatch({
         type: "send",
         item: {
@@ -199,54 +171,53 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
       postImage(clientMessageId, file, caption);
       return clientMessageId;
     },
-    [postImage],
+    [postImage, dispatch, files],
   );
 
   /** Retries with the SAME client id, so a lost-response retry cannot duplicate. */
   const retry = useCallback(
     (clientMessageId: string) => {
-      const item = stateRef.current.pending.find((pending) => pending.clientMessageId === clientMessageId);
+      const item = getThread().pending.find((pending) => pending.clientMessageId === clientMessageId);
       if (!item || item.status !== "failed") return;
       dispatch({ type: "retry", clientMessageId });
       if (item.kind === "image") {
-        const entry = files.current.get(clientMessageId);
+        const entry = files.get(clientMessageId);
         if (entry) postImage(clientMessageId, entry.file, entry.caption);
       } else {
         void postText(clientMessageId, item.body);
       }
     },
-    [postImage, postText],
+    [postImage, postText, getThread, dispatch, files],
   );
 
   const discard = useCallback((clientMessageId: string) => {
-    files.current.delete(clientMessageId);
+    files.delete(clientMessageId);
     revokePreview(clientMessageId);
     dispatch({ type: "discard", clientMessageId });
-  }, [revokePreview]);
+  }, [revokePreview, dispatch, files]);
 
   /** Adds a message the server already created (e.g. payment details). */
   const addConfirmed = useCallback((message: ChatMessageDto) => {
     dispatch({ type: "received", messages: [message] });
-  }, []);
+  }, [dispatch]);
 
-  // ---- read position
+  // ---- read position (fire-and-forget; never blocks the thread)
   const lastMarked = useRef<string | null>(null);
+  /** "skipped" = already reported; "failed" = the server did not record it. */
   const markRead = useCallback(
-    async (messageId: string) => {
-      if (lastMarked.current === messageId) return null;
+    async (messageId: string): Promise<"ok" | "skipped" | "failed"> => {
+      if (lastMarked.current === messageId) return "skipped";
       lastMarked.current = messageId;
       try {
-        return await fetchJson<{ cursor: unknown }>(
-          `${base}/read?${actingAs}`,
-          jsonInit("POST", { messageId }),
-        );
+        await fetchJson<{ cursor: unknown }>(`${base}/read?${actingAs}`, jsonInit("POST", { messageId }));
+        return "ok";
       } catch {
         lastMarked.current = null;
-        return null;
+        return "failed";
       }
     },
     [base, actingAs],
   );
 
-  return { state, loadOlder, fetchNewer, sendText, sendImage, retry, discard, addConfirmed, markRead };
+  return { state, loadError, reload, loadOlder, fetchNewer, sendText, sendImage, retry, discard, addConfirmed, markRead };
 }

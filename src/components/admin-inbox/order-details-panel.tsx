@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, ExternalLink, Loader2, Pencil } from "lucide-react";
+import { CheckCircle2, Clock, ExternalLink, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import type { OrderDetails, OrderDetailsLine } from "@/lib/chat/order-details.mjs";
 import type { FulfillmentSlotView } from "@/lib/chat/fulfillment-fields.mjs";
@@ -59,10 +59,19 @@ export function OrderDetailsPanel({
   onDetailsChange: (details: OrderDetails) => void;
 }) {
   if (!details) {
-    return (
-      <div className="text-muted-foreground flex h-40 items-center justify-center text-sm">
-        {loading ? <Loader2 className="size-5 animate-spin" /> : "Order details unavailable."}
+    return loading ? (
+      <div className="space-y-5 px-4 py-4" aria-busy="true" aria-label="Loading order details">
+        {[3, 3, 4].map((rows, section) => (
+          <div key={section} className="space-y-2.5">
+            <div className="bg-muted h-3 w-16 animate-pulse rounded" />
+            {Array.from({ length: rows }, (_, index) => (
+              <div key={index} className="bg-muted h-4 animate-pulse rounded" style={{ width: `${85 - index * 12}%` }} />
+            ))}
+          </div>
+        ))}
       </div>
+    ) : (
+      <div className="text-muted-foreground flex h-40 items-center justify-center text-sm">Order details unavailable.</div>
     );
   }
 

@@ -120,7 +120,7 @@ describe("shared inbox, three admins + customers, real realtime", { concurrency:
     const { page } = people.robert;
     await rowFor(page, ORDER_A).click();
     await page.waitForURL(`**/admin/orders/${ORDER_A}`);
-    await page.getByText("Hello po, may tanong ako").waitFor(T);
+    await page.getByRole("log").getByText("Hello po, may tanong ako").waitFor(T);
     const panel = page.getByRole("complementary", { name: "Order details" });
     await panel.getByText("Juan123").waitFor(T);
     await panel.getByText("Blox Fruits").waitFor(T);
@@ -166,7 +166,7 @@ describe("shared inbox, three admins + customers, real realtime", { concurrency:
   test("Robert's reply: Andre sees 'Sent by Robert', the customer sees only 'BudgetWise'", async () => {
     await people.robert.page.getByLabel("Message", { exact: true }).fill("Hi po! Checking your order now.");
     await people.robert.page.getByLabel("Message", { exact: true }).press("Enter");
-    await people.andre.page.getByText("Hi po! Checking your order now.").waitFor(T);
+    await people.andre.page.getByRole("log").getByText("Hi po! Checking your order now.").waitFor(T);
     await people.andre.page.getByText("Sent by Robert").first().waitFor(T);
     await people.custa.page.getByText("Hi po! Checking your order now.").waitFor(T);
     const customerPage = await people.custa.page.locator("body").innerText();
@@ -340,7 +340,7 @@ describe("shared inbox, three admins + customers, real realtime", { concurrency:
     });
     assert.equal(reuse.status, 409);
     await people.robert.page.waitForTimeout(1500);
-    assert.equal(await people.robert.page.getByText("retry-me-once").count(), 1, "admins see it exactly once");
+    assert.equal(await people.robert.page.getByRole("log").getByText("retry-me-once").count(), 1, "admins see it exactly once");
   });
 
   test("offline then back: badge shows Offline, then Live, and missed messages arrive", async () => {
@@ -349,7 +349,7 @@ describe("shared inbox, three admins + customers, real realtime", { concurrency:
     await page.getByRole("status").filter({ hasText: "Offline" }).waitFor(T);
     await people.robert.page.getByLabel("Message", { exact: true }).fill("Sent while you were offline");
     await people.robert.page.getByLabel("Message", { exact: true }).press("Enter");
-    await people.robert.page.getByText("Sent while you were offline").waitFor(T);
+    await people.robert.page.getByRole("log").getByText("Sent while you were offline").waitFor(T);
     await context.setOffline(false);
     await page.getByText("Sent while you were offline").waitFor({ timeout: 45_000 });
     await page.getByRole("status").filter({ hasText: "Live" }).waitFor({ timeout: 45_000 });
@@ -363,7 +363,7 @@ describe("shared inbox, three admins + customers, real realtime", { concurrency:
         body: JSON.stringify({ body: `filler ${i}`, clientMessageId: crypto.randomUUID() }),
       });
     }
-    await page.getByText("filler 11").waitFor(T);
+    await page.getByRole("log").getByText("filler 11").waitFor(T);
     await page.locator('[role="log"]').first().evaluate((node) => node.scrollTo({ top: 0 }));
     await page.waitForTimeout(600);
     await api(people.custa.page, `/api/order-chat/${ORDER_A}/messages?as=customer`, {
@@ -372,7 +372,7 @@ describe("shared inbox, three admins + customers, real realtime", { concurrency:
     });
     await page.getByRole("button", { name: /1 new message/ }).waitFor(T);
     await page.getByRole("button", { name: /1 new message/ }).click();
-    await page.getByText("arrived while scrolled up").waitFor(T);
+    await page.getByRole("log").getByText("arrived while scrolled up").waitFor(T);
   });
 
   test("quantity 3 Via Link: three numbered fields, each saved on its own, admin sees each unit", async () => {

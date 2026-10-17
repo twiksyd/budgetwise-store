@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useRef } from "react";
 import { Loader2, Search } from "lucide-react";
 import { useInbox } from "@/components/admin-inbox/inbox-provider";
 import { ConnectionBadge } from "@/components/chat/connection-badge";
@@ -19,6 +18,10 @@ const FILTERS: { value: InboxFilter; label: string }[] = [
   { value: "under_review", label: "Under review" },
 ];
 
+/** Rows after the open one that are prefetched (thread page + details). */
+const PREFETCH_NEXT = 4;
+const HOVER_PREFETCH_DELAY_MS = 60;
+
 const SHORT_TIME = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", hour: "numeric", minute: "2-digit" });
 const SHORT_DATE = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric" });
 const DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" });
@@ -34,8 +37,43 @@ function initials(name: string) {
 }
 
 export function ConversationList() {
-  const { inbox, view, setView, status, loadingPage, loadMore } = useInbox();
+  const { inbox, view, setView, status, loadingPage, loadMore, activeOrderNumber, loader } = useInbox();
   const rows = visibleRows(inbox);
+
+  // Likely next conversations: the few rows below the open one (or the top
+  // of the list). Throttled — a steady stream of messages reordering the
+  // list must not keep postponing it — and never more than a handful.
+  const order = rows.map((row) => row.orderNumber).join(",");
+  const latest = useRef({ order, activeOrderNumber });
+  latest.current = { order, activeOrderNumber };
+  const prefetchTimer = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (prefetchTimer.current !== undefined) return; // one already scheduled uses the latest list
+    prefetchTimer.current = window.setTimeout(() => {
+      prefetchTimer.current = undefined;
+      const { order: current, activeOrderNumber: open } = latest.current;
+      const list = current ? current.split(",") : [];
+      const index = open ? list.indexOf(open) : -1;
+      loader.prefetchCandidates(index >= 0 ? list.slice(index + 1, index + 1 + PREFETCH_NEXT) : list.slice(0, PREFETCH_NEXT + 1));
+    }, 300);
+  }, [order, activeOrderNumber, loader]);
+  useEffect(() => () => window.clearTimeout(prefetchTimer.current), []);
+
+  // Up/Down move between conversations (focus only — Enter opens one).
+  const onListKeyDown = useCallback((event: React.KeyboardEvent<HTMLUListElement>) => {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Home" && event.key !== "End") return;
+    const links = [...event.currentTarget.querySelectorAll<HTMLAnchorElement>("a[data-order-number]")];
+    if (!links.length) return;
+    const current = links.indexOf(document.activeElement as HTMLAnchorElement);
+    let next: number;
+    if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = links.length - 1;
+    else if (current < 0) next = 0;
+    else next = Math.min(links.length - 1, Math.max(0, current + (event.key === "ArrowDown" ? 1 : -1)));
+    event.preventDefault();
+    links[next].focus();
+    links[next].scrollIntoView({ block: "nearest" });
+  }, []);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -86,7 +124,7 @@ export function ConversationList() {
             {view.search || view.filter !== "all" ? "No chats match." : "No customer chats yet."}
           </p>
         ) : (
-          <ul>
+          <ul onKeyDown={onListKeyDown} aria-label="Conversations">
             {rows.map((row) => (
               <ConversationRow key={row.orderNumber} row={row} />
             ))}
@@ -110,9 +148,10 @@ export function ConversationList() {
 }
 
 function ConversationRow({ row }: { row: InboxRow }) {
-  const { me, directory, presence, nowMs } = useInbox();
-  const params = useParams<{ orderNumber?: string }>();
-  const active = params?.orderNumber === row.orderNumber;
+  const { me, directory, presence, nowMs, activeOrderNumber, select, loader } = useInbox();
+  const active = activeOrderNumber === row.orderNumber;
+  const hoverTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
   const unread = row.unreadCount > 0;
   const activity = describeConversationPresence(presence, row.orderNumber, { me, directory, nowMs });
   const assignee = row.assignedAdminId
@@ -123,9 +162,21 @@ function ConversationRow({ row }: { row: InboxRow }) {
 
   return (
     <li>
-      <Link
+      <a
         href={`/admin/orders/${encodeURIComponent(row.orderNumber)}`}
-        prefetch={false}
+        data-order-number={row.orderNumber}
+        onClick={(event) => {
+          // New tab / window keeps the browser's behaviour.
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          select(row.orderNumber, { focusComposer: true });
+        }}
+        onMouseEnter={() => {
+          window.clearTimeout(hoverTimer.current);
+          hoverTimer.current = window.setTimeout(() => loader.prefetchNow(row.orderNumber), HOVER_PREFETCH_DELAY_MS);
+        }}
+        onMouseLeave={() => window.clearTimeout(hoverTimer.current)}
+        onFocus={() => loader.prefetchNow(row.orderNumber)}
         aria-current={active ? "page" : undefined}
         className={cn(
           "border-border/40 flex gap-3 border-b px-3 py-3 transition-colors",
@@ -171,7 +222,7 @@ function ConversationRow({ row }: { row: InboxRow }) {
             )}
           </div>
         </div>
-      </Link>
+      </a>
     </li>
   );
 }
