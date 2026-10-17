@@ -1,4 +1,4 @@
--- Tests for draft 0022 (structured fulfillment details).
+-- Tests for 0022 (structured fulfillment details).
 \set ON_ERROR_STOP 1
 create or replace function pg_temp.ok(cond boolean, label text) returns void
 language plpgsql as $$ begin
@@ -13,46 +13,87 @@ language plpgsql as $$ begin
     raise notice 'ok - % (%)', label, sqlstate; return; end;
   raise exception 'FAIL: % (statement succeeded)', label; end $$;
 
-\echo '--- structured fulfillment details (draft 0022)'
-\set line '{"user_id": null, "gamepass_id": "5f0c1b2a-3d4e-4f60-8a7b-9c0d1e2f3a4b", "game_id": "bf10c2e9-d9f2-4f86-8c7d-5c94b7354a75", "product_name": "500 Robux", "game_name": "Robux (Via Link)", "robux_amount": 500, "quantity": 1, "unit_price": 150, "line_total": 150, "is_via_plus": false, "line_robux_amount": 500, "line_cost": 100, "line_profit": 50}'
+\set robert '''00000000-0000-0000-0000-0000000000a1'''
+\set custa  '''00000000-0000-0000-0000-0000000000c1'''
+\set custb  '''00000000-0000-0000-0000-0000000000c2'''
 
-select create_store_order_v2('idem-key-fulfil-0000000001', repeat('e',64), repeat('e',64), 'BW-FFFFFF',
-  'Ana', 'anaRBX', 150, jsonb_build_array(:'line'::jsonb), null,
-  '[{"line_index": 0, "field_key": "roblox_gamepass_url", "value": "https://www.roblox.com/game-pass/123456789"}]');
-select pg_temp.ok(
-  (select value from store_order_fulfillment_details where order_number = 'BW-FFFFFF' and line_index = 0
-     and field_key = 'roblox_gamepass_url') = 'https://www.roblox.com/game-pass/123456789'
-  and (select source from store_order_fulfillment_details where order_number = 'BW-FFFFFF') = 'checkout',
-  'checkout stores the gamepass link against the exact order line');
+\echo '--- structured fulfillment details (0022)'
+-- Order A gets a Via Link line with quantity 2 (allowed by the cart today).
+insert into store_order_line_snapshots (order_number, line_index, gamepass_id, game_id, product_name,
+  game_name, robux_amount, quantity, unit_price, line_total)
+values ('BW-AAAAAA', 0, gen_random_uuid(), 'bf10c2e9-d9f2-4f86-8c7d-5c94b7354a75', '500 Robux',
+  'Robux (Via Link)', 500, 2, 125, 250);
 
-select create_store_order_v2('idem-key-fulfil-0000000001', repeat('e',64), repeat('e',64), 'BW-FFFFF2',
-  'Ana', 'anaRBX', 150, jsonb_build_array(:'line'::jsonb), null,
-  '[{"line_index": 0, "field_key": "roblox_gamepass_url", "value": "https://www.roblox.com/game-pass/123456789"}]');
+truncate realtime.messages;
+select store_set_fulfillment_detail('BW-AAAAAA', 0, 0, 'roblox_gamepass_url',
+  'https://www.roblox.com/game-pass/123456789', '123456789', :custa, 'customer');
 select pg_temp.ok(
-  (select count(*) from store_order_fulfillment_details) = 1
-  and not exists (select 1 from store_order_snapshots where order_number = 'BW-FFFFF2'),
-  'an idempotent replay writes no second order and no duplicate details');
+  (select value = 'https://www.roblox.com/game-pass/123456789' and external_id = '123456789'
+      and source = 'customer' and updated_by = :custa
+     from store_order_fulfillment_details where order_number = 'BW-AAAAAA' and unit_index = 0),
+  'customer submits a link for unit 0; canonical URL + gamepass id stored');
+select pg_temp.ok(
+  (select count(*) from store_order_fulfillment_details where order_number = 'BW-AAAAAA') = 1,
+  'unit 1 of the same line is still empty (per-unit, not one link for the whole quantity)');
+select pg_temp.ok(
+  (select array_agg(k order by k) from realtime.messages, jsonb_object_keys(payload) k
+    where topic = 'admin:inbox' and event = 'fulfillment') = array['conversation_id', 'field_key', 'order_number']
+  and (select count(*) from realtime.messages where payload::text like '%123456789%') = 0,
+  'admins get a compact fulfillment ping with no value in it');
+select pg_temp.ok(
+  (select count(*) from realtime.messages where topic like 'chat:%' and event = 'fulfillment') = 1,
+  'the customer''s other tabs get a ping too');
+select pg_temp.ok(
+  (select details->>'before' is null and details->>'after' = 'https://www.roblox.com/game-pass/123456789'
+      and actor_user_id = :custa
+     from store_chat_audit_log where action = 'fulfillment_detail.submitted'),
+  'customer submission is audited');
 
-select pg_temp.raises(
-  format($$select create_store_order_v2('idem-key-fulfil-0000000002', repeat('e',64), repeat('e',64), 'BW-GGGGGG',
-     'Ben', 'benRBX', 150, jsonb_build_array(%L::jsonb), null,
-     '[{"line_index": 7, "field_key": "roblox_gamepass_url", "value": "https://www.roblox.com/game-pass/1"}]')$$, :'line'),
-  '23503', 'a detail for a line that does not exist is rejected');
+select store_set_fulfillment_detail('BW-AAAAAA', 0, 0, 'roblox_gamepass_url',
+  'https://www.roblox.com/game-pass/987654321', '987654321', :robert, 'admin');
 select pg_temp.ok(
-  not exists (select 1 from store_order_snapshots where order_number = 'BW-GGGGGG')
-  and not exists (select 1 from orders where order_number = 'BW-GGGGGG'),
-  'and the whole order rolls back with it (atomic)');
+  (select details->>'before' = 'https://www.roblox.com/game-pass/123456789'
+      and details->>'after' = 'https://www.roblox.com/game-pass/987654321'
+      and actor_user_id = :robert and created_at is not null
+     from store_chat_audit_log where action = 'fulfillment_detail.corrected'),
+  'admin correction audited with who, previous value, new value, when');
+select pg_temp.ok(
+  (select source = 'admin' from store_order_fulfillment_details where order_number = 'BW-AAAAAA' and unit_index = 0),
+  'current value records that an admin set it');
 
-select create_store_order('idem-key-legacy-000000001', repeat('f',64), repeat('f',64), 'BW-HHHHHH',
-  'Cy', 'cyRBX', 150, jsonb_build_array(:'line'::jsonb), null);
+select store_set_fulfillment_detail('BW-AAAAAA', 0, 0, 'roblox_gamepass_url',
+  'https://www.roblox.com/game-pass/987654321', '987654321', :robert, 'admin');
 select pg_temp.ok(
-  exists (select 1 from store_order_snapshots where order_number = 'BW-HHHHHH')
-  and not exists (select 1 from store_order_fulfillment_details where order_number = 'BW-HHHHHH'),
-  'the currently deployed create_store_order keeps working; such orders just have no details');
+  (select count(*) from store_chat_audit_log where action like 'fulfillment_detail.%') = 2,
+  'saving an identical value writes nothing and audits nothing');
+
+select pg_temp.raises($$select store_set_fulfillment_detail('BW-AAAAAA', 0, 1, 'roblox_gamepass_url',
+  'https://www.roblox.com/game-pass/5', '5', '00000000-0000-0000-0000-0000000000c2', 'customer')$$, '42501',
+  'customer B cannot write customer A''s fulfillment details');
+select pg_temp.raises($$select store_set_fulfillment_detail('BW-AAAAAA', 0, 1, 'roblox_gamepass_url',
+  'https://www.roblox.com/game-pass/5', '5', '00000000-0000-0000-0000-0000000000c1', 'admin')$$, '42501',
+  'a customer cannot write as an admin');
+select pg_temp.raises($$select store_set_fulfillment_detail('BW-AAAAAA', 0, 2, 'roblox_gamepass_url',
+  'https://www.roblox.com/game-pass/5', '5', '00000000-0000-0000-0000-0000000000c1', 'customer')$$, '22023',
+  'unit index beyond the line quantity is refused');
+select pg_temp.raises($$select store_set_fulfillment_detail('BW-AAAAAA', 9, 0, 'roblox_gamepass_url',
+  'https://www.roblox.com/game-pass/5', '5', '00000000-0000-0000-0000-0000000000c1', 'customer')$$, 'P0002',
+  'a line that does not exist is refused');
+select pg_temp.raises($$select store_set_fulfillment_detail('BW-AAAAAA', 0, 1, 'roblox_gamepass_url',
+  'https://evil.example/game-pass/5', '5', '00000000-0000-0000-0000-0000000000c1', 'customer')$$, '23514',
+  'database refuses a non-canonical gamepass URL even if the app let it through');
+select pg_temp.raises($$select store_set_fulfillment_detail('BW-AAAAAA', 0, 1, 'roblox_gamepass_url',
+  'https://www.roblox.com/game-pass/5', '6', '00000000-0000-0000-0000-0000000000c1', 'customer')$$, '23514',
+  'database refuses a URL whose id does not match the stored gamepass id');
+select pg_temp.raises($$select store_set_fulfillment_detail('BW-AAAAAA', 0, 1, 'roblox_gamepass_url',
+  'javascript:alert(1)', '5', '00000000-0000-0000-0000-0000000000c1', 'customer')$$, '23514',
+  'database refuses script URLs');
 
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c1', false);
 select pg_temp.raises($$select * from store_order_fulfillment_details$$, '42501', 'customers cannot read fulfillment details directly');
-select pg_temp.raises($$select create_store_order_v2('x', 'x', 'x', 'x', 'x', 'x', 1, '[]', null, null)$$, '42501', 'customers cannot call order creation directly');
+select pg_temp.raises($$select store_set_fulfillment_detail('BW-AAAAAA', 0, 1, 'roblox_gamepass_url',
+  'https://www.roblox.com/game-pass/5', '5', '00000000-0000-0000-0000-0000000000c1', 'customer')$$, '42501',
+  'customers cannot call the write function directly (only through the server)');
 reset role;
 \echo 'ALL 0022 DATABASE TESTS PASSED'

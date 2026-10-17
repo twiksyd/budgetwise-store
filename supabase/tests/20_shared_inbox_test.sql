@@ -163,6 +163,48 @@ select pg_temp.ok(
   (select count(*) from store_order_messages where client_message_id = '11111111-1111-1111-1111-111111111111') = 2,
   'a different sender reusing the same client id is unaffected (no cross-user interference)');
 
+
+-- ============================================================ 4b. Posting + paging
+\echo '--- message posting and paging functions'
+select (store_post_message('BW-AAAAAA', 'customer', :custa, 'text', 'retry me', null, null,
+        '33333333-3333-3333-3333-333333333333')->>'created')::boolean as first_created \gset
+select (store_post_message('BW-AAAAAA', 'customer', :custa, 'text', 'retry me', null, null,
+        '33333333-3333-3333-3333-333333333333')->>'created')::boolean as second_created \gset
+select pg_temp.ok(:'first_created'::boolean and not :'second_created'::boolean
+  and (select count(*) from store_order_messages where client_message_id = '33333333-3333-3333-3333-333333333333') = 1,
+  'post_message: a retried send returns the original row and stores one copy');
+select pg_temp.raises(
+  $$select store_post_message('BW-AAAAAA', 'customer', '00000000-0000-0000-0000-0000000000c1', 'text', 'different text', null, null,
+      '33333333-3333-3333-3333-333333333333')$$, 'BW010',
+  'post_message: same client id with different content is refused, not merged');
+select pg_temp.raises(
+  $$select store_post_message('BW-BBBBBB', 'customer', '00000000-0000-0000-0000-0000000000c1', 'text', 'not my order', null, null, gen_random_uuid())$$, '42501',
+  'post_message: a customer cannot post into another customer''s order');
+select pg_temp.raises(
+  $$select store_post_message('BW-AAAAAA', 'admin', '00000000-0000-0000-0000-0000000000c1', 'text', 'fake admin', null, null, gen_random_uuid())$$, '42501',
+  'post_message: a customer id cannot post as admin');
+select pg_temp.raises(
+  $$select store_post_message('BW-AAAAAA', 'admin', '00000000-0000-0000-0000-0000000000a1', 'payment', 'x', null, null, gen_random_uuid())$$, '22023',
+  'post_message: payment messages can only come from store_send_payment_details');
+
+select pg_temp.ok(
+  (select array_agg(id) from store_chat_messages_page('BW-AAAAAA', p_limit => 2))
+    = (select array_agg(id order by created_at, id) from (
+         select id, created_at from store_order_messages where order_number = 'BW-AAAAAA'
+          order by created_at desc, id desc limit 2) newest),
+  'paging: default page is the NEWEST messages, returned oldest-first (fixes the 500-oldest bug)');
+select (select id from store_chat_messages_page('BW-AAAAAA', p_limit => 2) limit 1) as page_oldest \gset
+select pg_temp.ok(
+  (select count(*) from store_chat_messages_page('BW-AAAAAA', p_before_message_id => :'page_oldest', p_limit => 50))
+    = (select count(*) from store_order_messages where order_number = 'BW-AAAAAA') - 2,
+  'paging: "before" returns exactly the older remainder, no gaps or overlap');
+select pg_temp.ok(
+  (select count(*) from store_chat_messages_page('BW-AAAAAA', p_after_message_id => :'page_oldest', p_limit => 50)) = 1,
+  'paging: "after" returns only newer messages (delta fetch)');
+select pg_temp.raises(
+  $$select * from store_chat_messages_page('BW-BBBBBB', p_before_message_id => (select id from store_order_messages where order_number = 'BW-AAAAAA' limit 1))$$, 'P0002',
+  'paging: a cursor from another chat is refused');
+
 -- ============================================================ 5. Per-admin unread
 \echo '--- per-admin unread'
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000a3', 'kenneth@bw.test');

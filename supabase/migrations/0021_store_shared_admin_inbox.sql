@@ -1150,6 +1150,133 @@ begin
 end;
 $$;
 
+-- The one write path for chat text/image messages. Idempotent per
+-- (order, sender, client message id): a retry returns the original row; the
+-- same id reused for DIFFERENT content is refused (BW010) instead of being
+-- silently merged. Re-checks that the sender may post in this chat.
+create or replace function public.store_post_message(
+  p_order_number text,
+  p_sender_role text,
+  p_sender uuid,
+  p_kind text,
+  p_body text,
+  p_attachment_path text,
+  p_attachment_mime text,
+  p_client_message_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_row public.store_order_messages;
+begin
+  if p_kind not in ('text', 'image') then
+    raise exception 'unsupported message kind' using errcode = '22023';
+  end if;
+
+  if p_sender_role = 'admin' then
+    if not exists (select 1 from public.admin_users where user_id = p_sender) then
+      raise exception 'not an admin' using errcode = '42501';
+    end if;
+  elsif p_sender_role = 'customer' then
+    if not exists (
+      select 1 from public.store_order_snapshots
+       where order_number = p_order_number and owner_user_id = p_sender
+    ) then
+      raise exception 'not the order owner' using errcode = '42501';
+    end if;
+  else
+    raise exception 'invalid sender role' using errcode = '22023';
+  end if;
+
+  insert into public.store_order_messages (
+    order_number, sender_role, sender_user_id, kind, body,
+    attachment_path, attachment_mime, client_message_id
+  )
+  values (
+    p_order_number, p_sender_role, p_sender, p_kind, coalesce(p_body, ''),
+    p_attachment_path, p_attachment_mime, p_client_message_id
+  )
+  on conflict (order_number, sender_user_id, client_message_id)
+    where client_message_id is not null
+    do nothing
+  returning * into v_row;
+
+  if found then
+    return jsonb_build_object('created', true, 'message', to_jsonb(v_row));
+  end if;
+
+  select * into v_row from public.store_order_messages m
+   where m.order_number = p_order_number
+     and m.sender_user_id = p_sender
+     and m.client_message_id = p_client_message_id;
+
+  if v_row.kind is distinct from p_kind
+     or v_row.body is distinct from coalesce(p_body, '')
+     or v_row.attachment_path is distinct from p_attachment_path then
+    raise exception 'IDEMPOTENCY_KEY_REUSED' using errcode = 'BW010';
+  end if;
+
+  return jsonb_build_object('created', false, 'message', to_jsonb(v_row));
+end;
+$$;
+
+-- Keyset pages over the exact (created_at, id) order. Always returned oldest
+-- first. Newest page by default; older than / newer than a message id
+-- otherwise. A cursor from another chat is refused.
+create or replace function public.store_chat_messages_page(
+  p_order_number text,
+  p_before_message_id uuid default null,
+  p_after_message_id uuid default null,
+  p_limit integer default 50
+)
+returns setof public.store_order_messages
+language plpgsql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_at timestamptz;
+  v_id uuid;
+  v_limit integer := least(greatest(coalesce(p_limit, 50), 1), 200);
+begin
+  if p_after_message_id is not null then
+    select m.created_at, m.id into v_at, v_id from public.store_order_messages m
+     where m.id = p_after_message_id and m.order_number = p_order_number;
+    if not found then
+      raise exception 'cursor not in this conversation' using errcode = 'P0002';
+    end if;
+    return query
+      select m.* from public.store_order_messages m
+       where m.order_number = p_order_number and (m.created_at, m.id) > (v_at, v_id)
+       order by m.created_at, m.id
+       limit v_limit;
+    return;
+  end if;
+
+  if p_before_message_id is not null then
+    select m.created_at, m.id into v_at, v_id from public.store_order_messages m
+     where m.id = p_before_message_id and m.order_number = p_order_number;
+    if not found then
+      raise exception 'cursor not in this conversation' using errcode = 'P0002';
+    end if;
+  end if;
+
+  return query
+    select x.* from (
+      select m.* from public.store_order_messages m
+       where m.order_number = p_order_number
+         and (p_before_message_id is null or (m.created_at, m.id) < (v_at, v_id))
+       order by m.created_at desc, m.id desc
+       limit v_limit
+    ) x
+    order by x.created_at, x.id;
+end;
+$$;
+
 -- Used by the realtime policy below. Answers only "may the CURRENT user
 -- receive this topic?" — it reveals nothing else.
 create or replace function public.store_realtime_topic_allowed(p_topic text)
@@ -1189,6 +1316,8 @@ revoke all on function public.store_assign_conversation(text, uuid, uuid) from p
 revoke all on function public.store_save_quick_reply(uuid, uuid, text, text, text, boolean) from public, anon, authenticated;
 revoke all on function public.store_save_payment_method(uuid, uuid, text, text, text, text, boolean, integer) from public, anon, authenticated;
 revoke all on function public.store_send_payment_details(text, uuid, uuid, uuid) from public, anon, authenticated;
+revoke all on function public.store_post_message(text, text, uuid, text, text, text, text, uuid) from public, anon, authenticated;
+revoke all on function public.store_chat_messages_page(text, uuid, uuid, integer) from public, anon, authenticated;
 revoke all on function public.store_realtime_topic_allowed(text) from public, anon;
 
 grant execute on function public.store_admin_inbox(uuid, text, text, timestamptz, text, integer, text) to service_role;
@@ -1199,6 +1328,8 @@ grant execute on function public.store_assign_conversation(text, uuid, uuid) to 
 grant execute on function public.store_save_quick_reply(uuid, uuid, text, text, text, boolean) to service_role;
 grant execute on function public.store_save_payment_method(uuid, uuid, text, text, text, text, boolean, integer) to service_role;
 grant execute on function public.store_send_payment_details(text, uuid, uuid, uuid) to service_role;
+grant execute on function public.store_post_message(text, text, uuid, text, text, text, text, uuid) to service_role;
+grant execute on function public.store_chat_messages_page(text, uuid, uuid, integer) to service_role;
 grant execute on function public.store_realtime_topic_allowed(text) to authenticated, service_role;
 
 -- ===========================================================================

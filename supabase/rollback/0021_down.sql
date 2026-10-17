@@ -22,6 +22,8 @@ drop trigger if exists store_order_messages_after_insert on public.store_order_m
 drop trigger if exists store_order_messages_legacy_read_sync on public.store_order_messages;
 
 drop function if exists public.store_realtime_topic_allowed(text);
+drop function if exists public.store_chat_messages_page(text, uuid, uuid, integer);
+drop function if exists public.store_post_message(text, text, uuid, text, text, text, text, uuid);
 drop function if exists public.store_send_payment_details(text, uuid, uuid, uuid);
 drop function if exists public.store_save_payment_method(uuid, uuid, text, text, text, text, boolean, integer);
 drop function if exists public.store_save_quick_reply(uuid, uuid, text, text, text, boolean);

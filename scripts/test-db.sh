@@ -40,6 +40,7 @@ base "$MAIN"
 apply "$MAIN" ../migrations/0021_store_shared_admin_inbox.sql   # second run
 check "$MAIN" 20_shared_inbox_test.sql
 apply "$MAIN" ../migrations/0022_store_order_fulfillment_details.sql
+apply "$MAIN" ../migrations/0022_store_order_fulfillment_details.sql   # second run
 check "$MAIN" 25_fulfillment_test.sql
 apply "$MAIN" ../migrations/0023_store_chat_legacy_cleanup.sql
 check "$MAIN" 30_cleanup_test.sql
