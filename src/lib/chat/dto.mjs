@@ -3,7 +3,7 @@
 //
 // Internal-only fields that must never reach a customer:
 //   attachment_path, attachment_mime, sender_user_id, payload.qr_path,
-//   payload.method_id, read_at.
+//   payload.method_id, read_at, album storage/thumb paths.
 
 const PAYMENT_PROVIDERS = new Set(["gcash"]);
 
@@ -25,13 +25,31 @@ export function toPaymentCard(payload) {
   };
 }
 
+const ALBUM_LABELS = new Set(["proof_of_delivery"]);
+
+/**
+ * An album as clients see it: opaque attachment ids in order plus display
+ * dimensions. Storage paths never leave the server.
+ */
+export function toAlbum(payload, attachments) {
+  const label = payload && typeof payload === "object" && ALBUM_LABELS.has(payload.label) ? payload.label : null;
+  const items = [...(attachments ?? [])]
+    .sort((a, b) => a.position - b.position)
+    .map((item) => ({
+      id: item.id,
+      width: Number.isInteger(item.width) ? item.width : null,
+      height: Number.isInteger(item.height) ? item.height : null,
+    }));
+  return { label, items };
+}
+
 /**
  * One message for one viewer.
  *   viewer = "admin"    -> includes sender_user_id (for "Sent by Robert")
  *   viewer = "customer" -> no admin identity; client id only on the
  *                          customer's own messages (for optimistic reconcile)
  */
-export function toChatMessage(row, { viewer, viewerUserId } = {}) {
+export function toChatMessage(row, { viewer, viewerUserId, attachments } = {}) {
   const base = {
     id: row.id,
     orderNumber: row.order_number,
@@ -42,6 +60,7 @@ export function toChatMessage(row, { viewer, viewerUserId } = {}) {
     createdAt: row.created_at,
     clientMessageId: null,
     payment: row.kind === "payment" ? toPaymentCard(row.payload) : null,
+    album: row.kind === "album" ? toAlbum(row.payload, attachments?.get(row.id)) : null,
   };
 
   if (viewer === "admin") {

@@ -7,6 +7,9 @@ import { CartDrawer } from "@/components/cart/cart-drawer";
 import { FloatingCartButton } from "@/components/cart/floating-cart-button";
 import { RouteTransitionShell } from "@/components/layout/route-transition-shell";
 import { StoreStatusBanner } from "@/components/shared/store-status-banner";
+import { CustomerMessagesProvider } from "@/components/customer-messages/customer-messages-provider";
+import { FloatingMessageButton } from "@/components/customer-messages/floating-message-button";
+import { MessengerSheet } from "@/components/customer-messages/messenger-sheet";
 import type { StoreStatus } from "@/types/store-operations";
 
 // The /admin surface renders its own shell (see
@@ -29,20 +32,34 @@ export function StorefrontChrome({
     return <>{children}</>;
   }
 
+  // An order page IS the messenger: on phones it fills the screen (its own
+  // compact header has the way back), with no footer or floating buttons.
+  const isMessengerPage = pathname?.startsWith("/orders/") ?? false;
   // Redundant while already looking at the cart or mid-checkout.
   const showFloatingCartButton =
-    !pathname?.startsWith("/cart") && !pathname?.startsWith("/checkout");
+    !isMessengerPage && !pathname?.startsWith("/cart") && !pathname?.startsWith("/checkout");
+  // Never over checkout or cart actions; not needed on the messenger itself.
+  const showFloatingMessages =
+    !isMessengerPage &&
+    !pathname?.startsWith("/cart") &&
+    !pathname?.startsWith("/checkout") &&
+    !pathname?.startsWith("/login") &&
+    !pathname?.startsWith("/auth");
 
   return (
-    <>
+    <CustomerMessagesProvider>
       {status !== "open" && (
         <StoreStatusBanner status={status} noticeMessage={noticeMessage} />
       )}
-      <SiteHeader />
+      <div className={isMessengerPage ? "hidden sm:contents" : "contents"}>
+        <SiteHeader />
+      </div>
       <RouteTransitionShell>{children}</RouteTransitionShell>
-      <SiteFooter />
+      {!isMessengerPage && <SiteFooter />}
       <CartDrawer />
       {showFloatingCartButton && <FloatingCartButton />}
-    </>
+      {showFloatingMessages && <FloatingMessageButton />}
+      <MessengerSheet />
+    </CustomerMessagesProvider>
   );
 }

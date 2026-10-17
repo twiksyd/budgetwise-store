@@ -13,6 +13,7 @@ export function buildOrderDetails({
   status,
   conversation,
   customerEmail,
+  artwork,
 }) {
   const normalizedLines = [...(lines ?? [])]
     .sort((a, b) => a.line_index - b.line_index)
@@ -27,6 +28,8 @@ export function buildOrderDetails({
       unitPrice: Number(line.unit_price),
       lineTotal: Number(line.line_total),
       isViaPlus: Boolean(line.is_via_plus),
+      // The catalog's own product artwork for the frozen gamepass id.
+      imageUrl: (line.gamepass_id && artwork?.get(line.gamepass_id)) || null,
     }));
 
   const fulfillment = buildFulfillmentView(normalizedLines, fulfillmentRows);
@@ -56,6 +59,8 @@ export function buildOrderDetails({
       conversationId: conversation?.id ?? null,
       assignedAdminId: conversation?.assigned_admin_id ?? null,
       paymentDetailsSentAt: conversation?.payment_details_sent_at ?? null,
+      state: conversation?.state ?? "active",
+      doneAt: conversation?.done_at ?? null,
     },
     customer: {
       name: snapshot.buyer_name,

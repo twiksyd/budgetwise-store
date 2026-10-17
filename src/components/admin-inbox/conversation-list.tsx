@@ -10,12 +10,14 @@ import { describeConversationPresence } from "@/lib/chat/presence-state.mjs";
 import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
+// Active is the working queue; Done is the archive of handled chats.
 const FILTERS: { value: InboxFilter; label: string }[] = [
-  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
   { value: "unread", label: "Unread" },
+  { value: "mine", label: "Assigned to me" },
   { value: "unassigned", label: "Unassigned" },
-  { value: "mine", label: "Mine" },
-  { value: "under_review", label: "Under review" },
+  { value: "done", label: "Done" },
+  { value: "all", label: "All" },
 ];
 
 /** Rows after the open one that are prefetched (thread page + details). */
@@ -121,7 +123,13 @@ export function ConversationList() {
           </div>
         ) : rows.length === 0 ? (
           <p className="text-muted-foreground p-8 text-center text-sm">
-            {view.search || view.filter !== "all" ? "No chats match." : "No customer chats yet."}
+            {view.search
+              ? "No chats match."
+              : view.filter === "active"
+                ? "Nothing waiting. New chats appear here automatically."
+                : view.filter === "done"
+                  ? "No chats marked Done yet."
+                  : "No chats match."}
           </p>
         ) : (
           <ul onKeyDown={onListKeyDown} aria-label="Conversations">
@@ -206,6 +214,11 @@ function ConversationRow({ row }: { row: InboxRow }) {
             </p>
           )}
           <div className="mt-1 flex items-center gap-1.5">
+            {row.state === "done" && (
+              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                Done
+              </span>
+            )}
             {assignee ? (
               <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-semibold">
                 {assignee}

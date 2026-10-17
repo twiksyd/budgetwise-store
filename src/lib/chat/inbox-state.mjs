@@ -4,7 +4,18 @@
 // in `stale`, and only that one row is fetched.
 import { comparePositions, toMicros } from "./cursor.mjs";
 
-export const INBOX_FILTERS = Object.freeze(["all", "unread", "unassigned", "mine", "under_review"]);
+// "active" is the working queue (default). unread / unassigned / mine are
+// views of the Active queue; "done" is the archive; "all" is everything.
+export const INBOX_FILTERS = Object.freeze(["active", "unread", "mine", "unassigned", "done", "all", "under_review"]);
+const ACTIVE_QUEUE_FILTERS = new Set(["active", "unread", "unassigned", "mine"]);
+
+/** Done conversations never sit in the Active queue, even while open. */
+function excludedByState(row, filter) {
+  const state = row.state ?? "active";
+  if (ACTIVE_QUEUE_FILTERS.has(filter)) return state !== "active";
+  if (filter === "done") return state !== "done";
+  return false;
+}
 
 export function createInboxState({ me, rows = [], hasMore = false, nextCursor = null, view }) {
   const state = {
@@ -14,7 +25,7 @@ export function createInboxState({ me, rows = [], hasMore = false, nextCursor = 
     hasMore,
     nextCursor,
     stale: [],
-    view: { filter: "all", search: "", ...view },
+    view: { filter: "active", search: "", ...view },
   };
   for (const row of rows) state.rows[row.orderNumber] = row;
   state.order = sortOrder(state.rows, Object.keys(state.rows));
@@ -33,6 +44,7 @@ function sortOrder(rows, keys) {
 }
 
 export function matchesView(row, view, me, activeOrderNumber) {
+  if (excludedByState(row, view.filter)) return false;
   if (row.orderNumber === activeOrderNumber) return true; // never yank the open chat
   const search = (view.search ?? "").trim().toLowerCase();
   if (
@@ -146,6 +158,7 @@ export function inboxReducer(state, action) {
               lastSenderRole: event.row.last_sender_role,
             }
           : {}),
+        state: event.row.state ?? row.state,
         paymentDetailsSentAt: event.row.payment_details_sent_at ?? row.paymentDetailsSentAt,
         unreadCount: countsAsUnread ? row.unreadCount + 1 : row.unreadCount,
       };
@@ -164,6 +177,7 @@ export function inboxReducer(state, action) {
           assignedAt: event.assigned_at ?? null,
           customerReadAt: event.customer_read_at ?? null,
           customerReadMessageId: event.customer_read_message_id ?? null,
+          ...(event.state ? { state: event.state, doneAt: event.done_at ?? null, doneBy: event.done_by ?? null } : {}),
         },
         action.activeOrderNumber,
       );

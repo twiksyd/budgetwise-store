@@ -40,3 +40,12 @@ export function handleFulfillmentSave(input: {
     }): Promise<{ value: string; external_id: string | null; source: string; updated_at: string } | null>;
   };
 }): Promise<{ status: number; body: unknown }>;
+export function handleAlbumMedia(input: {
+  attachmentId: string;
+  size: "thumb" | "full";
+  deps: {
+    loadAttachment(id: string): Promise<{ order_number: string; storage_path: string; thumb_path: string } | null>;
+    resolveViewer(orderNumber: string): Promise<{ ok: true } | { ok: false; status: number }>;
+    sign(path: string): Promise<string>;
+  };
+}): Promise<RouteResult>;

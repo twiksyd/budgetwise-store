@@ -76,7 +76,7 @@ describe("shared inbox, three admins + customers, real realtime", { concurrency:
   test("customer page: chat, Live badge, gamepass link card for the Via Link item", async () => {
     const { page } = people.custa;
     await page.goto(`/orders/${ORDER_A}`);
-    await page.getByText("Order slip").first().waitFor(T);
+    await page.getByText("Order placed").first().waitFor(T);
     await page.getByRole("status").filter({ hasText: "Live" }).waitFor(T);
     await page.getByRole("heading", { name: "Gamepass Link" }).waitFor(T);
   });
@@ -222,7 +222,7 @@ describe("shared inbox, three admins + customers, real realtime", { concurrency:
     const card = people.custa.page.getByText("GCash Payment");
     await card.waitFor(T);
     await people.custa.page.getByText("09171234567").first().waitFor(T);
-    await people.custa.page.getByText("Payment details sent").waitFor(T);
+    await people.custa.page.getByText("Pay using the payment card below").waitFor(T);
 
     const messages = await api(people.custa.page, `/api/order-chat/${ORDER_A}/messages?as=customer`, {});
     assert.equal(messages.status, 200);
@@ -291,13 +291,15 @@ describe("shared inbox, three admins + customers, real realtime", { concurrency:
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
     const { page } = people.custa;
     await page.locator('input[type="file"]').setInputFiles({ name: "gcash-receipt.png", mimeType: "image/png", buffer: png });
-    await page.getByAltText("Selected image").waitFor(T);
+    await page.getByAltText("Selected image 1").waitFor(T);
     await page.getByRole("button", { name: "Send message" }).click();
-    await people.robert.page.getByAltText("Sent image").first().waitFor(T);
-    const latest = JSON.parse((await api(page, `/api/order-chat/${ORDER_A}/messages?as=customer`, {})).text).messages.filter((m) => m.kind === "image").pop();
-    const own = await page.request.get(`/api/order-chat/attachments/${latest.id}`, { maxRedirects: 0 });
+    await people.robert.page.getByAltText("Photo 1 of 1").first().waitFor(T);
+    const latest = JSON.parse((await api(page, `/api/order-chat/${ORDER_A}/messages?as=customer`, {})).text).messages.filter((m) => m.kind === "album").pop();
+    assert.equal(latest.album.items.length, 1);
+    const media = `/api/order-chat/media/${latest.album.items[0].id}?size=full`;
+    const own = await page.request.get(media, { maxRedirects: 0 });
     assert.equal(own.status(), 302);
-    const other = await people.custb.page.request.get(`/api/order-chat/attachments/${latest.id}`, { maxRedirects: 0 });
+    const other = await people.custb.page.request.get(media, { maxRedirects: 0 });
     assert.equal(other.status(), 404, "customer B cannot open A's receipt");
 
     const fake = await api(page, `/api/order-chat/${ORDER_A}/messages?as=customer`, {

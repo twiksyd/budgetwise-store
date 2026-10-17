@@ -133,7 +133,7 @@ export function InboxProvider({
   const [presence, setPresence] = useState<PresenceState>(emptyPresence);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [quickReplies, setQuickReplies] = useState(initialQuickReplies);
-  const [view, setViewState] = useState<InboxView>({ filter: "all", search: "" });
+  const [view, setViewState] = useState<InboxView>({ filter: "active", search: "" });
   const viewRef = useRef(view);
   viewRef.current = view;
   const [loadingPage, setLoadingPage] = useState(false);

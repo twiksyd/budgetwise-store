@@ -10,12 +10,14 @@ import {
   isSeen,
   type ThreadState,
 } from "@/lib/chat/thread-state.mjs";
-import { ImageLightbox } from "@/components/chat/image-lightbox";
-import { MessageBubble, PendingBubble } from "@/components/chat/message-bubble";
+import { MediaViewer, type ViewerItem } from "@/components/chat/media-viewer";
+import { MessageBubble, PendingBubble, type SlipInfo } from "@/components/chat/message-bubble";
 import { cn } from "@/lib/utils";
 
 type Cursor = { at: string | null; messageId: string | null } | null;
 const NEAR_BOTTOM_PX = 96;
+/** Beyond this distance from the latest message a "jump to latest" arrow shows. */
+const FAR_FROM_BOTTOM_PX = 640;
 const NEAR_TOP_PX = 160;
 
 /**
@@ -42,8 +44,11 @@ export function ChatThread({
   className,
   loadError = false,
   onReload,
+  slip,
 }: {
   state: ThreadState;
+  /** Order identity for the compact "Order placed" card (replaces the slip text). */
+  slip?: SlipInfo | null;
   /** The first page could not be loaded (shows a retry instead of a skeleton). */
   loadError?: boolean;
   onReload?: () => void;
@@ -67,7 +72,9 @@ export function ChatThread({
   const scroller = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
   const [newCount, setNewCount] = useState(0);
-  const [lightbox, setLightbox] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ items: ViewerItem[]; index: number } | null>(null);
+  const [farFromBottom, setFarFromBottom] = useState(false);
+  const openMedia = useCallback((items: ViewerItem[], index: number) => setViewer({ items, index }), []);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -82,9 +89,15 @@ export function ChatThread({
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
   const initialized = useRef(false);
 
+  // Where to keep the reader when an older page is prepended.
+  const restore = useRef<{ height: number; top: number } | null>(null);
+
   const scrollToBottom = useCallback((smooth: boolean) => {
     const node = scroller.current;
     if (!node) return;
+    // Jumping to the latest cancels a pending "keep my place" from an older
+    // page still loading — it must not yank the reader back up afterwards.
+    restore.current = null;
     node.scrollTo({ top: node.scrollHeight, behavior: smooth ? "smooth" : "auto" });
     atBottom.current = true;
     setNewCount(0);
@@ -152,7 +165,6 @@ export function ChatThread({
   }, [reportRead]);
 
   // Older pages: preserve what is on screen.
-  const restore = useRef<{ height: number; top: number } | null>(null);
   const oldestId = state.messages[0]?.id;
   useLayoutEffect(() => {
     const node = scroller.current;
@@ -165,6 +177,7 @@ export function ChatThread({
     const node = scroller.current;
     if (!node) return;
     const distance = node.scrollHeight - node.scrollTop - node.clientHeight;
+    setFarFromBottom(distance > FAR_FROM_BOTTOM_PX);
     const wasAtBottom = atBottom.current;
     atBottom.current = distance < NEAR_BOTTOM_PX;
     if (atBottom.current) {
@@ -253,7 +266,8 @@ export function ChatThread({
                     : null
                 }
                 orderNumber={orderNumber}
-                onOpenImage={setLightbox}
+                slip={slip}
+                onOpenMedia={openMedia}
                 onMediaLoad={onMediaLoad}
               />
             </div>
@@ -271,6 +285,17 @@ export function ChatThread({
         {footer}
       </div>
 
+      {newCount === 0 && farFromBottom && (
+        <button
+          type="button"
+          onClick={() => scrollToBottom(true)}
+          className="bg-background text-foreground border-border absolute right-3 bottom-3 inline-flex size-10 items-center justify-center rounded-full border shadow-lg"
+          aria-label="Jump to latest message"
+        >
+          <ArrowDown className="size-4" />
+        </button>
+      )}
+
       {newCount > 0 && (
         <button
           type="button"
@@ -282,7 +307,12 @@ export function ChatThread({
         </button>
       )}
 
-      <ImageLightbox src={lightbox} alt="Chat image" open={lightbox !== null} onOpenChange={(open) => !open && setLightbox(null)} />
+      <MediaViewer
+        items={viewer?.items ?? []}
+        index={viewer?.index ?? null}
+        onIndexChange={(index) => setViewer((current) => (current ? { ...current, index } : current))}
+        onClose={() => setViewer(null)}
+      />
     </div>
   );
 }

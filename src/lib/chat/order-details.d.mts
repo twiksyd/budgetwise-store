@@ -11,6 +11,7 @@ export interface OrderDetailsLine {
   unitPrice: number;
   lineTotal: number;
   isViaPlus: boolean;
+  imageUrl: string | null;
   fulfillment: FulfillmentSlotView[];
 }
 export interface OrderDetails {
@@ -22,6 +23,8 @@ export interface OrderDetails {
     conversationId: string | null;
     assignedAdminId: string | null;
     paymentDetailsSentAt: string | null;
+    state: "active" | "done";
+    doneAt: string | null;
   };
   customer: { name: string; robloxUsername: string; email: string | null };
   viaPlus: {
@@ -43,6 +46,7 @@ export function buildOrderDetails(input: {
   };
   lines: {
     line_index: number;
+    gamepass_id?: string | null;
     game_id: string | null;
     game_name: string;
     product_name: string;
@@ -64,6 +68,10 @@ export function buildOrderDetails(input: {
     id: string;
     assigned_admin_id: string | null;
     payment_details_sent_at: string | null;
+    state?: "active" | "done";
+    done_at?: string | null;
   } | null;
   customerEmail: string | null;
+  /** gamepass id -> catalog artwork URL */
+  artwork?: Map<string, string>;
 }): OrderDetails;

@@ -31,8 +31,9 @@ function dropReconciled(pending, messages) {
  *   older    { messages, hasOlder }      page before the oldest loaded
  *   received { messages }                delta / realtime-triggered fetch
  *   send     { item }                    optimistic { clientMessageId, kind, body, previewUrl?, createdAt }
- *   progress { clientMessageId, progress }
- *   failed   { clientMessageId, error }
+ *                                        albums: kind "album", previews[], label
+ *   progress { clientMessageId, progress, uploaded? }
+ *   failed   { clientMessageId, error, failedFiles? }
  *   retry    { clientMessageId }
  *   discard  { clientMessageId }
  *   confirmed{ clientMessageId, message } server accepted (also dedupes replays)
@@ -68,13 +69,18 @@ export function threadReducer(state, action) {
       }
       return {
         ...state,
-        pending: [...state.pending, { progress: 0, status: "sending", error: null, ...action.item }],
+        pending: [
+          ...state.pending,
+          { progress: 0, uploaded: 0, status: "sending", error: null, failedFiles: [], ...action.item },
+        ],
       };
     case "progress":
       return {
         ...state,
         pending: state.pending.map((item) =>
-          item.clientMessageId === action.clientMessageId ? { ...item, progress: action.progress } : item,
+          item.clientMessageId === action.clientMessageId
+            ? { ...item, progress: action.progress, uploaded: action.uploaded ?? item.uploaded }
+            : item,
         ),
       };
     case "failed":
@@ -82,7 +88,7 @@ export function threadReducer(state, action) {
         ...state,
         pending: state.pending.map((item) =>
           item.clientMessageId === action.clientMessageId
-            ? { ...item, status: "failed", error: action.error }
+            ? { ...item, status: "failed", error: action.error, failedFiles: action.failedFiles ?? [] }
             : item,
         ),
       };
@@ -91,7 +97,7 @@ export function threadReducer(state, action) {
         ...state,
         pending: state.pending.map((item) =>
           item.clientMessageId === action.clientMessageId
-            ? { ...item, status: "sending", error: null, progress: 0 }
+            ? { ...item, status: "sending", error: null, failedFiles: [] }
             : item,
         ),
       };
