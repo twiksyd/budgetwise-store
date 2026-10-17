@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { MessageCircle, X } from "lucide-react";
 import { useCustomerMessages } from "@/components/customer-messages/customer-messages-provider";
+import { warmChat } from "@/lib/chat/client/customer-store";
 import { badgeText } from "@/lib/chat/order-summary.mjs";
 import { cn } from "@/lib/utils";
 
@@ -14,8 +16,13 @@ const COACHMARK_KEY = "bw:coachmark:messages:v1";
  * cart and catalog buttons). The badge is the server's unread count; a new
  * reply gives it ONE short nudge — no endless bouncing — and opening the
  * messenger stops it.
+ *
+ * Tapping it opens the full-screen chat (a real page, Back returns here)
+ * for the order that most needs attention: an unread reply, else the most
+ * recently active conversation, else the newest order.
  */
 export function FloatingMessageButton() {
+  const router = useRouter();
   const messages = useCustomerMessages();
   const [nudge, setNudge] = useState(0);
   const [coachmark, setCoachmark] = useState(false);
@@ -48,6 +55,12 @@ export function FloatingMessageButton() {
     }
   };
 
+  const target = messages?.pick()?.orderNumber ?? null;
+  const href = target ? `/orders/${encodeURIComponent(target)}` : "/account/orders";
+  useEffect(() => {
+    if (visible) router.prefetch(href);
+  }, [visible, href, router]);
+
   if (!messages || !visible) return null;
   const badge = badgeText(total);
 
@@ -76,10 +89,11 @@ export function FloatingMessageButton() {
       <button
         key={nudge}
         type="button"
+        onPointerDown={() => target && warmChat(target)}
         onClick={() => {
           dismissCoachmark();
           setNudge(0);
-          messages.openMessenger();
+          router.push(href);
         }}
         aria-label={total > 0 ? `Messages from BudgetWise (${total} unread)` : "Messages from BudgetWise"}
         className={cn(

@@ -1,102 +1,93 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, ChevronRight, Loader2, MessageCircle, ShoppingBag } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, ChevronRight, Loader2, MessageCircle, RotateCw, ShoppingBag } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatOrderStatus } from "@/components/order-chat/order-status-badge";
 import { useCustomerMessages } from "@/components/customer-messages/customer-messages-provider";
-import { fetchJson } from "@/lib/chat/client/fetch-json";
+import {
+  customerChatLoader,
+  hasSessionCookie,
+  loadOlderCompleted,
+  loadOrdersSection,
+  loginPath,
+  useMyOrders,
+  warmChat,
+  type MyOrderCard,
+} from "@/lib/chat/client/customer-store";
 import { badgeText, orderOpenSection } from "@/lib/chat/order-summary.mjs";
 import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
-export interface MyOrderCard {
-  orderNumber: string;
-  totalAmount: number;
-  createdAt: string;
-  robloxUsername: string;
-  status: string;
-  state: "active" | "done";
-  doneAt: string | null;
-  unreadCount: number;
-  lastMessageAt: string | null;
-  lastMessagePreview: string | null;
-  lastSenderRole: "customer" | "admin" | null;
-  paymentSent: boolean;
-  summary: string;
-  thumbnails: string[];
-}
-type Cursor = { at: string; orderNumber: string } | null;
-type Section = { rows: MyOrderCard[]; nextCursor: Cursor };
+export type { MyOrderCard };
 
 const DATE = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric" });
+
+// How many of the likeliest-next chats are loaded ahead while My Orders is open.
+const PREFETCH_CHATS = 3;
 
 /**
  * My Orders for customers with 1 or 50+ orders: orders with a new reply
  * first, then everything still in progress, then completed orders — the
- * completed history loads 20 at a time. Updates live (new replies, Done,
- * reopened) without a refresh.
+ * completed history loads 20 at a time.
+ *
+ * Painted from memory when this tab has been here before, then refreshed
+ * in the background on every visit. Active orders and completed history
+ * are separate requests: active orders never wait for the history. Updates
+ * live (new replies, Done, reopened) without a refresh.
  */
-export function MyOrdersView({ initialOpen, initialCompleted }: { initialOpen: Section; initialCompleted: Section }) {
+export function MyOrdersView() {
+  const router = useRouter();
   const messages = useCustomerMessages();
-  const [open, setOpen] = useState(initialOpen.rows);
-  const [completed, setCompleted] = useState(initialCompleted.rows);
-  const [cursor, setCursor] = useState<Cursor>(initialCompleted.nextCursor);
+  const { open, completed, openError, completedError } = useMyOrders();
   const [loadingMore, setLoadingMore] = useState(false);
-  const firstVersion = useRef<number | null>(null);
 
-  const refresh = useCallback(async () => {
-    try {
-      const [openBody, completedBody] = await Promise.all([
-        fetchJson<Section>("/api/account/orders?section=open"),
-        fetchJson<Section>("/api/account/orders?section=completed"),
-      ]);
-      setOpen(openBody.rows);
-      setCompleted((current) => {
-        // Fresh first page + any older pages already loaded (minus orders that reopened).
-        const fresh = new Set(completedBody.rows.map((row) => row.orderNumber));
-        const reopened = new Set(openBody.rows.map((row) => row.orderNumber));
-        const older = current.filter((row) => !fresh.has(row.orderNumber) && !reopened.has(row.orderNumber));
-        return [...completedBody.rows, ...older.slice(Math.max(0, completedBody.rows.length - 20))];
-      });
-      setCursor((current) => current ?? completedBody.nextCursor);
-    } catch {
-      // keep what is shown; the next change tries again
+  useEffect(() => {
+    if (!hasSessionCookie()) {
+      router.replace(loginPath());
+      return;
     }
-  }, []);
+    void loadOrdersSection("open");
+    void loadOrdersSection("completed");
+  }, [router]);
 
   // Every server-confirmed change to this customer's chats (new reply,
   // read, Done, reopen) re-reads the lists.
   const version = messages?.version ?? 0;
+  const seenVersion = useRef(version);
   useEffect(() => {
-    if (firstVersion.current === null) {
-      firstVersion.current = version;
-      return;
-    }
-    void refresh();
-  }, [version, refresh]);
+    if (version === seenVersion.current) return;
+    seenVersion.current = version;
+    void loadOrdersSection("open");
+    void loadOrdersSection("completed");
+  }, [version]);
+
+  const { unread, active } = useMemo(() => orderOpenSection(open?.rows ?? []), [open]);
+  const activeRows = useMemo(() => [...unread, ...active], [unread, active]);
+
+  // The chats most likely to be opened next are loaded ahead (unread first),
+  // so tapping one shows its messages straight away.
+  useEffect(() => {
+    if (!activeRows.length) return;
+    customerChatLoader.prefetchCandidates(activeRows.slice(0, PREFETCH_CHATS).map((row) => row.orderNumber));
+  }, [activeRows]);
 
   const loadMore = async () => {
-    if (!cursor || loadingMore) return;
+    if (loadingMore) return;
     setLoadingMore(true);
     try {
-      const params = new URLSearchParams({ section: "completed", beforeAt: cursor.at, beforeOrder: cursor.orderNumber });
-      const body = await fetchJson<Section>(`/api/account/orders?${params}`);
-      setCompleted((current) => {
-        const seen = new Set(current.map((row) => row.orderNumber));
-        return [...current, ...body.rows.filter((row) => !seen.has(row.orderNumber))];
-      });
-      setCursor(body.nextCursor);
+      await loadOlderCompleted();
+    } catch {
+      // the button stays; tapping again retries
     } finally {
       setLoadingMore(false);
     }
   };
 
-  const { unread, active } = useMemo(() => orderOpenSection(open), [open]);
-  const activeRows = [...unread, ...active];
-
-  if (activeRows.length === 0 && completed.length === 0) {
+  const completedRows = completed?.rows ?? [];
+  if (open && completed && activeRows.length === 0 && completedRows.length === 0) {
     return (
       <div className="mt-8">
         <EmptyState
@@ -111,14 +102,20 @@ export function MyOrdersView({ initialOpen, initialCompleted }: { initialOpen: S
 
   return (
     <div className="mt-6 space-y-8">
-      <section aria-labelledby="active-orders">
+      <section aria-labelledby="active-orders" aria-busy={!open}>
         <h2 id="active-orders" className="text-muted-foreground mb-2.5 text-xs font-bold tracking-wider uppercase">
-          Active orders <span className="font-semibold">({activeRows.length})</span>
+          Active orders {open && <span className="font-semibold">({activeRows.length})</span>}
         </h2>
-        {activeRows.length === 0 ? (
+        {!open ? (
+          openError ? (
+            <LoadError onRetry={() => void loadOrdersSection("open")} />
+          ) : (
+            <CardSkeletons count={2} />
+          )
+        ) : activeRows.length === 0 ? (
           <p className="text-muted-foreground text-sm">Nothing in progress right now.</p>
         ) : (
-          <ul className="flex flex-col gap-2.5">
+          <ul className="flex flex-col gap-2.5" data-testid="active-orders">
             {activeRows.map((order) => (
               <OrderCard key={order.orderNumber} order={order} />
             ))}
@@ -126,29 +123,74 @@ export function MyOrdersView({ initialOpen, initialCompleted }: { initialOpen: S
         )}
       </section>
 
-      {completed.length > 0 && (
-        <section aria-labelledby="completed-orders">
-          <h2 id="completed-orders" className="text-muted-foreground mb-2.5 text-xs font-bold tracking-wider uppercase">
-            Completed orders
-          </h2>
-          <ul className="flex flex-col gap-2.5">
-            {completed.map((order) => (
-              <OrderCard key={order.orderNumber} order={order} />
-            ))}
-          </ul>
-          {cursor && (
-            <button
-              type="button"
-              onClick={() => void loadMore()}
-              disabled={loadingMore}
-              className="border-border hover:bg-muted mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border text-sm font-semibold"
-            >
-              {loadingMore && <Loader2 className="size-4 animate-spin" />}
-              Show older completed orders
-            </button>
-          )}
-        </section>
+      {!completed ? (
+        completedError ? (
+          <section aria-label="Completed orders">
+            <LoadError onRetry={() => void loadOrdersSection("completed")} />
+          </section>
+        ) : open ? (
+          <section aria-label="Completed orders" aria-busy="true">
+            <CardSkeletons count={1} />
+          </section>
+        ) : null
+      ) : (
+        completedRows.length > 0 && (
+          <section aria-labelledby="completed-orders">
+            <h2 id="completed-orders" className="text-muted-foreground mb-2.5 text-xs font-bold tracking-wider uppercase">
+              Completed orders
+            </h2>
+            <ul className="flex flex-col gap-2.5">
+              {completedRows.map((order) => (
+                <OrderCard key={order.orderNumber} order={order} />
+              ))}
+            </ul>
+            {completed.nextCursor && (
+              <button
+                type="button"
+                onClick={() => void loadMore()}
+                disabled={loadingMore}
+                className="border-border hover:bg-muted mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border text-sm font-semibold"
+              >
+                {loadingMore && <Loader2 className="size-4 animate-spin" />}
+                Show older completed orders
+              </button>
+            )}
+          </section>
+        )
       )}
+    </div>
+  );
+}
+
+function CardSkeletons({ count }: { count: number }) {
+  return (
+    <ul className="flex flex-col gap-2.5" aria-hidden>
+      {Array.from({ length: count }, (_, index) => (
+        <li key={index} className="border-border/60 flex items-center gap-3 rounded-2xl border p-3.5">
+          <span className="bg-muted size-11 shrink-0 animate-pulse rounded-xl" />
+          <span className="flex-1 space-y-2">
+            <span className="bg-muted block h-3.5 w-28 animate-pulse rounded" />
+            <span className="bg-muted block h-3 w-44 animate-pulse rounded" />
+          </span>
+          <span className="bg-muted h-3.5 w-14 animate-pulse rounded" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function LoadError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="border-border flex items-center justify-between gap-3 rounded-2xl border border-dashed p-3.5 text-sm">
+      <span className="text-muted-foreground">Couldn&apos;t load your orders.</span>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="border-border hover:bg-muted inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold"
+      >
+        <RotateCw className="size-3.5" />
+        Try again
+      </button>
     </div>
   );
 }
@@ -156,19 +198,23 @@ export function MyOrdersView({ initialOpen, initialCompleted }: { initialOpen: S
 function OrderCard({ order }: { order: MyOrderCard }) {
   const done = order.state === "done";
   const badge = badgeText(order.unreadCount);
+  const warm = () => warmChat(order.orderNumber);
   return (
     <li>
       <Link
         href={`/orders/${encodeURIComponent(order.orderNumber)}`}
         data-order-card={order.orderNumber}
         data-state={order.state}
+        onPointerDown={warm}
+        onMouseEnter={warm}
+        onFocus={warm}
         className={cn(
-          "flex items-center gap-3 rounded-2xl border p-3.5 transition-colors",
+          "flex items-center gap-3 rounded-2xl border p-3.5 transition-[background-color,transform] duration-100 active:scale-[0.985] motion-reduce:active:scale-100",
           done
-            ? "border-emerald-500/25 bg-emerald-500/[0.04] hover:bg-emerald-500/[0.08]"
+            ? "border-emerald-500/25 bg-emerald-500/[0.04] hover:bg-emerald-500/[0.08] active:bg-emerald-500/[0.12]"
             : order.unreadCount > 0
-              ? "border-primary/30 bg-primary/[0.04] hover:bg-primary/[0.08]"
-              : "surface-premium border-border/60 hover:bg-muted/40",
+              ? "border-primary/30 bg-primary/[0.04] hover:bg-primary/[0.08] active:bg-primary/[0.12]"
+              : "surface-premium border-border/60 hover:bg-muted/40 active:bg-muted/70",
         )}
       >
         <div className="flex shrink-0 -space-x-3">

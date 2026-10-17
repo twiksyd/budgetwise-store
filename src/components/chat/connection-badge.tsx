@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
 import type { ConnectionStatus } from "@/lib/chat/connection-state.mjs";
 import { cn } from "@/lib/utils";
 
-type Shown = ConnectionStatus | "connecting";
-
-const LABELS: Record<Shown, { text: string; title: string; dot: string }> = {
+const LABELS: Record<Exclude<ConnectionStatus, "idle">, { text: string; title: string; dot: string }> = {
   connecting: { text: "Connecting…", title: "Connecting to live updates", dot: "bg-muted-foreground/40" },
   live: { text: "Live", title: "Connected — new messages appear instantly", dot: "bg-emerald-500" },
   reconnecting: {
@@ -17,10 +15,13 @@ const LABELS: Record<Shown, { text: string; title: string; dot: string }> = {
   offline: { text: "Offline", title: "No internet connection", dot: "bg-red-500" },
 };
 
+const isProblem = (status: ConnectionStatus) => status === "reconnecting" || status === "offline";
+
 /**
- * Live is shown quietly. Mobile networks hop between connections all the
- * time, so Reconnecting / Offline only appear once a drop has lasted
- * `graceMs` (and then stay calm — no flashing between states).
+ * Live is shown quietly; the first connect is never a warning. Mobile
+ * networks hop between connections all the time, so Reconnecting / Offline
+ * only appear once a drop has lasted `graceMs` — until then the previous
+ * state stays on screen (no flashing between states).
  */
 export function ConnectionBadge({
   status,
@@ -31,10 +32,10 @@ export function ConnectionBadge({
   className?: string;
   graceMs?: number;
 }) {
-  const [shown, setShown] = useState<Shown>(status === "live" || graceMs === 0 ? status : "connecting");
+  const [shown, setShown] = useState<ConnectionStatus>(isProblem(status) && graceMs > 0 ? "connecting" : status);
 
   useEffect(() => {
-    if (status === "live" || graceMs === 0) {
+    if (!(isProblem(status) && graceMs > 0)) {
       setShown(status);
       return;
     }
@@ -42,8 +43,9 @@ export function ConnectionBadge({
     return () => window.clearTimeout(timer);
   }, [status, graceMs]);
 
+  if (shown === "idle") return null;
   const label = LABELS[shown];
-  const problem = shown === "reconnecting" || shown === "offline";
+  const problem = isProblem(shown);
   return (
     <span
       className={cn(
@@ -54,6 +56,7 @@ export function ConnectionBadge({
       title={label.title}
       role="status"
       aria-live="polite"
+      data-connection={shown}
     >
       <span className={cn("size-2 rounded-full", label.dot)} aria-hidden />
       {label.text}
