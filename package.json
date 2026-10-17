@@ -12,6 +12,9 @@
     "test:order-access": "node scripts/test-order-access.mjs",
     "test:order-idempotency": "node scripts/test-order-idempotency.mjs",
     "test:order-chat": "node --test scripts/test-order-chat.mjs",
+    "test:chat": "node --test scripts/test-order-chat.mjs scripts/test-chat-core.mjs",
+    "test:db": "bash scripts/test-db.sh",
+    "test:e2e": "node --test --test-timeout=900000 scripts/e2e/shared-inbox.e2e.mjs",
     "test:order-integrity": "node --test scripts/test-order-snapshot.mjs scripts/test-order-access.mjs scripts/test-order-idempotency.mjs",
     "db:backfill-icons": "node --env-file=.env.local scripts/backfill-game-icons.mjs",
     "db:backfill-icons-deterministic": "node --env-file=.env.local scripts/backfill-game-icons-deterministic.mjs",
@@ -54,6 +57,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.22",
+    "pg": "8.13.1",
+    "playwright-core": "1.52.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

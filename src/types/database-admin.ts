@@ -144,6 +144,9 @@ export type StoreSettingsUpdate = {
 type AdminUserRow = {
   user_id: string;
   created_at: string;
+  // Migration 0021.
+  display_name: string | null;
+  unread_since: string;
 };
 
 type RobloxGamepassIconCacheRow = {
@@ -312,7 +315,7 @@ type StoreOrderSnapshotRow = {
   created_at: string;
 };
 
-type StoreOrderMessageKind = "slip" | "text" | "image";
+type StoreOrderMessageKind = "slip" | "text" | "image" | "payment";
 
 type StoreOrderMessageRow = {
   id: string;
@@ -325,6 +328,9 @@ type StoreOrderMessageRow = {
   attachment_mime: string | null;
   created_at: string;
   read_at: string | null;
+  // Migration 0021.
+  client_message_id: string | null;
+  payload: Record<string, unknown> | null;
 };
 
 type StoreOrderMessageInsert = {
@@ -345,6 +351,106 @@ type StoreOrderMessageUpdate = {
 type StoreOrderSnapshotUpdate = {
   owner_user_id?: string | null;
 };
+
+// ----- Migration 0021: shared admin inbox --------------------------------
+
+export type StoreOrderConversationRow = {
+  order_number: string;
+  id: string;
+  assigned_admin_id: string | null;
+  assigned_by: string | null;
+  assigned_at: string | null;
+  last_message_id: string;
+  last_message_at: string;
+  last_message_kind: StoreOrderMessageKind;
+  last_message_preview: string;
+  last_sender_role: "customer" | "admin";
+  customer_read_at: string | null;
+  customer_read_message_id: string | null;
+  admin_read_at: string | null;
+  admin_read_message_id: string | null;
+  payment_details_sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StoreQuickReplyRow = {
+  id: string;
+  shortcut: string;
+  title: string;
+  body: string;
+  is_enabled: boolean;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StorePaymentMethodRow = {
+  id: string;
+  provider: "gcash";
+  label: string;
+  account_name: string;
+  account_number: string;
+  qr_storage_path: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// Migration 0022.
+export type StoreOrderFulfillmentDetailRow = {
+  id: string;
+  order_number: string;
+  line_index: number | null;
+  unit_index: number;
+  field_key: string;
+  value: string;
+  external_id: string | null;
+  source: "customer" | "admin";
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StoreAdminInboxRpcRow = {
+  conversation_id: string;
+  order_number: string;
+  buyer_name: string;
+  buyer_roblox_username: string;
+  total_amount: number;
+  order_created_at: string;
+  order_status: string | null;
+  assigned_admin_id: string | null;
+  assigned_at: string | null;
+  last_message_id: string;
+  last_message_at: string;
+  last_message_kind: StoreOrderMessageKind;
+  last_message_preview: string;
+  last_sender_role: "customer" | "admin";
+  customer_read_at: string | null;
+  customer_read_message_id: string | null;
+  payment_details_sent_at: string | null;
+  my_read_at: string | null;
+  my_read_message_id: string | null;
+  unread_count: number;
+};
+
+export type StoreCustomerConversationRpcRow = {
+  conversation_id: string;
+  order_number: string;
+  last_message_at: string;
+  last_message_kind: StoreOrderMessageKind;
+  last_message_preview: string;
+  last_sender_role: "customer" | "admin";
+  payment_details_sent_at: string | null;
+  unread_count: number;
+};
+
+export type StoreOrderMessageRowExport = StoreOrderMessageRow;
 
 type StoreOrderLineSnapshotRow = {
   id: string;
@@ -511,6 +617,32 @@ export type AdminDatabase = {
         Update: StoreOrderMessageUpdate;
         Relationships: [];
       };
+      // 0021/0022 tables: read directly by server code; every write goes
+      // through a SECURITY DEFINER function (Insert/Update: never).
+      store_order_conversations: {
+        Row: StoreOrderConversationRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      store_quick_replies: {
+        Row: StoreQuickReplyRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      store_payment_methods: {
+        Row: StorePaymentMethodRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      store_order_fulfillment_details: {
+        Row: StoreOrderFulfillmentDetailRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       store_order_line_snapshots: {
         Row: StoreOrderLineSnapshotRow;
         Insert: never;
@@ -565,32 +697,107 @@ export type AdminDatabase = {
       };
     };
     Functions: {
-      store_order_chat_summaries: {
-        Args: { p_order_numbers: string[] };
-        Returns: {
-          order_number: string;
-          last_message_at: string;
-          last_message_kind: StoreOrderMessageKind;
-          last_message_body: string;
-          last_sender_role: "customer" | "admin";
-          unread_for_customer: number;
-          unread_for_admin: number;
-        }[];
+      store_admin_inbox: {
+        Args: {
+          p_admin: string;
+          p_filter?: string;
+          p_search?: string | null;
+          p_before_at?: string | null;
+          p_before_order?: string | null;
+          p_limit?: number;
+          p_order_number?: string | null;
+        };
+        Returns: StoreAdminInboxRpcRow[];
       };
-      store_admin_chat_inbox: {
-        Args: { p_limit?: number };
+      store_customer_conversations: {
+        Args: { p_user: string };
+        Returns: StoreCustomerConversationRpcRow[];
+      };
+      store_chat_messages_page: {
+        Args: {
+          p_order_number: string;
+          p_before_message_id?: string | null;
+          p_after_message_id?: string | null;
+          p_limit?: number;
+        };
+        Returns: StoreOrderMessageRow[];
+      };
+      store_post_message: {
+        Args: {
+          p_order_number: string;
+          p_sender_role: "customer" | "admin";
+          p_sender: string;
+          p_kind: "text" | "image";
+          p_body: string;
+          p_attachment_path: string | null;
+          p_attachment_mime: string | null;
+          p_client_message_id: string | null;
+        };
+        Returns: { created: boolean; message: StoreOrderMessageRow };
+      };
+      store_mark_admin_read: {
+        Args: { p_order_number: string; p_admin: string; p_message_id: string };
+        Returns: { last_read_at: string; last_read_message_id: string };
+      };
+      store_mark_customer_read: {
+        Args: { p_order_number: string; p_message_id: string };
+        Returns: { customer_read_at: string; customer_read_message_id: string };
+      };
+      store_assign_conversation: {
+        Args: { p_order_number: string; p_assignee: string | null; p_actor: string };
         Returns: {
+          conversation_id: string;
           order_number: string;
-          buyer_name: string;
-          buyer_roblox_username: string;
-          total_amount: number;
-          created_at: string;
-          last_message_at: string;
-          last_message_kind: StoreOrderMessageKind;
-          last_message_body: string;
-          last_sender_role: "customer" | "admin";
-          unread_for_admin: number;
-        }[];
+          assigned_admin_id: string | null;
+          assigned_by: string | null;
+          assigned_at: string | null;
+        };
+      };
+      store_save_quick_reply: {
+        Args: {
+          p_actor: string;
+          p_id: string | null;
+          p_shortcut: string;
+          p_title: string;
+          p_body: string;
+          p_is_enabled: boolean;
+        };
+        Returns: StoreQuickReplyRow;
+      };
+      store_save_payment_method: {
+        Args: {
+          p_actor: string;
+          p_id: string | null;
+          p_label: string;
+          p_account_name: string;
+          p_account_number: string;
+          p_qr_storage_path: string | null;
+          p_is_active: boolean;
+          p_sort_order?: number;
+        };
+        Returns: StorePaymentMethodRow;
+      };
+      store_send_payment_details: {
+        Args: {
+          p_order_number: string;
+          p_actor: string;
+          p_method_id: string;
+          p_client_message_id: string;
+        };
+        Returns: string;
+      };
+      store_set_fulfillment_detail: {
+        Args: {
+          p_order_number: string;
+          p_line_index: number | null;
+          p_unit_index: number;
+          p_field_key: string;
+          p_value: string;
+          p_external_id: string | null;
+          p_actor: string;
+          p_actor_role: "customer" | "admin";
+        };
+        Returns: StoreOrderFulfillmentDetailRow;
       };
       create_store_order: {
         Args: {
