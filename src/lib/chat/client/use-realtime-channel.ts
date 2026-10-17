@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { debugLog } from "@/lib/chat/client/debug";
 import {
   deriveConnectionStatus,
   pollIntervalFor,
@@ -74,12 +75,19 @@ function connect(entry: Entry) {
   entry.bound = new Set();
   for (const subscriber of entry.subscribers) for (const event of subscriber.events) bind(entry, event);
 
+  const startedAt = performance.now();
+  debugLog("rt", entry.topic, "connect", { attempt: entry.attempt });
   void (async () => {
     // Private channels are authorised with the user's JWT.
     await supabase.realtime.setAuth();
     if (entry.channel !== channel) return;
-    channel.subscribe((status) => {
+    channel.subscribe((status, error) => {
       if (entry.channel !== channel) return;
+      debugLog("rt", entry.topic, status, {
+        afterMs: Math.round(performance.now() - startedAt),
+        error: error?.message ?? null,
+        socketConnected: supabase.realtime.isConnected(),
+      });
       entry.state = status;
       if (status === "SUBSCRIBED") {
         entry.attempt = 0;
