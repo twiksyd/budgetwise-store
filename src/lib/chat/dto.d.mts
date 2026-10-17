@@ -31,6 +31,8 @@ export interface ChatMessageDto {
   payment: PaymentCard | null;
   album: AlbumDto | null;
   senderUserId?: string | null;
+  /** Customer view of an admin message: the admin's public username (never a real name or id). */
+  senderName?: string | null;
 }
 export interface AttachmentRowLike {
   id: string;
@@ -64,5 +66,7 @@ export function toChatMessage(
     viewerUserId?: string | null;
     /** Attachment rows of album messages, keyed by message id. */
     attachments?: Map<string, AttachmentRowLike[]>;
+    /** Admin user id -> public username, for the customer view. */
+    publicNames?: Map<string, string>;
   },
 ): ChatMessageDto;

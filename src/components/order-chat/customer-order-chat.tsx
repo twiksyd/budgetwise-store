@@ -22,6 +22,8 @@ import {
   type CustomerChatDetails,
 } from "@/lib/chat/client/customer-store";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
+import { assistantLine, currentAssistant } from "@/lib/chat/assistant.mjs";
+import { BrandAvatar } from "@/components/brand/brand-avatar";
 import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +32,8 @@ export type { CustomerOrderSummaryData } from "@/lib/chat/client/customer-store"
 type Cursor = { at: string | null; messageId: string | null };
 
 const MY_ORDERS = "/account/orders";
-const EVENTS = ["message", "seen", "fulfillment", "state"] as const;
+// "assistant": the assignment changed (migration 0025); the payload is empty.
+const EVENTS = ["message", "seen", "fulfillment", "state", "assistant"] as const;
 // Mobile networks drop and recover constantly; only a drop that lasts
 // this long is worth telling the customer about.
 const CONNECTION_GRACE_MS = 8000;
@@ -98,7 +101,7 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
         });
       }
       // The events only say "it changed"; what is shown always comes from the server.
-      if (event === "fulfillment" || event === "state") reloadDetails();
+      if (event === "fulfillment" || event === "state" || event === "assistant") reloadDetails();
     },
     onResync: () => {
       void fetchNewer();
@@ -125,9 +128,19 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
   );
 
   const isOwnSide = useCallback((message: ChatMessageDto) => message.senderRole === "customer", []);
+  // Support messages: the admin's public username (never a real name), once
+  // per consecutive group, with the BudgetWise logo as the avatar.
   const senderLabelFor = useCallback(
-    (message: ChatMessageDto) => (message.senderRole === "admin" ? "BudgetWise" : null),
+    (message: ChatMessageDto) => (message.senderRole === "admin" ? (message.senderName ?? "BudgetWise") : null),
     [],
+  );
+  const senderIconFor = useCallback(
+    (message: ChatMessageDto) => (message.senderRole === "admin" ? <BrandAvatar className="size-4" /> : null),
+    [],
+  );
+  const assistant = useMemo(
+    () => (details ? currentAssistant(details.assistant ?? null, thread.state.messages) : null),
+    [details, thread.state.messages],
   );
   const { markRead } = thread;
   const refreshBadges = messages?.refresh;
@@ -185,15 +198,16 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
         >
           <ArrowLeft className="size-5" />
         </Link>
-        <div className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-          BW
-        </div>
+        <BrandAvatar className="size-10" />
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 text-sm leading-tight font-bold">
             BudgetWise
             <ConnectionBadge status={status} graceMs={CONNECTION_GRACE_MS} className="text-[11px] font-normal" />
           </p>
-          <p className="text-muted-foreground truncate text-xs leading-tight">
+          <p className="text-foreground/80 mt-0.5 truncate text-xs leading-tight font-medium" data-testid="chat-assistant">
+            {details ? assistantLine(assistant) : " "}
+          </p>
+          <p className="text-muted-foreground mt-0.5 truncate text-[11px] leading-tight">
             Order <span className="[font-variant-numeric:tabular-nums]">{orderNumber}</span>
             {statusText && (
               <>
@@ -232,6 +246,7 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
             isOwnSide={isOwnSide}
             isMine={isOwnSide}
             senderLabelFor={senderLabelFor}
+            senderIconFor={senderIconFor}
             otherSideReadCursor={adminRead}
             initialReadCursor={ownRead.current ?? NO_CURSOR}
             onLoadOlder={() => void thread.loadOlder()}

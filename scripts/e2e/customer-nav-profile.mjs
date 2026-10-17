@@ -52,15 +52,20 @@ function messages(orderNumber) {
     id: `${orderNumber}-slip`, orderNumber, senderRole: "customer", kind: "slip", body: "", hasAttachment: false,
     createdAt: iso(300), clientMessageId: null, payment: null, album: null,
   }];
+  // The third order has no support reply yet ("Waiting for an assistant").
+  const replies = orderNumber !== ORDERS[2];
   for (let i = 0; i < 26; i += 1) {
+    const admin = replies && i % 3 !== 0;
     list.push({
-      id: `${orderNumber}-m${String(i).padStart(2, "0")}`, orderNumber, senderRole: i % 2 ? "admin" : "customer", kind: "text",
+      id: `${orderNumber}-m${String(i).padStart(2, "0")}`, orderNumber, senderRole: admin ? "admin" : "customer", kind: "text",
       body: i % 5 === 0 ? "Long message ".repeat(20) : `Message ${i} about the order`, hasAttachment: false,
-      createdAt: iso(280 - i * 10), clientMessageId: null, payment: null, album: null,
+      // One minute apart, so consecutive admin messages form one group; Twicks, then Zuno.
+      createdAt: iso(290 - i), clientMessageId: null, payment: null, album: null,
+      ...(admin ? { senderName: i < 13 ? "Twicks" : "Zuno" } : {}),
     });
   }
-  list.push({
-    id: `${orderNumber}-pay`, orderNumber, senderRole: "admin", kind: "payment", body: "", hasAttachment: false,
+  if (replies) list.push({
+    id: `${orderNumber}-pay`, orderNumber, senderRole: "admin", senderName: "Zuno", kind: "payment", body: "", hasAttachment: false,
     createdAt: iso(10), clientMessageId: null, album: null,
     payment: { provider: "gcash", label: "GCash", accountName: "BudgetWise", accountNumber: "09170000000", amount: 250, currency: "PHP", hasQr: false },
   });
@@ -78,6 +83,8 @@ function summary(orderNumber) {
     adminRead: { at: null, messageId: null },
     ownRead: { at: iso(100), messageId: `${orderNumber}-m10` },
     slots: [],
+    // First order: assigned to Zuno. Others: nobody assigned.
+    assistant: i === 0 ? { name: "Zuno", assigned: true } : null,
   };
 }
 
@@ -215,6 +222,28 @@ async function run(viewport) {
   await sleep(1500);
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/orders-${viewport.width}.png` });
 
+  // Support identity, per order: header line, group labels, no internal identity.
+  results.identity = {};
+  for (const order of ORDERS) {
+    await page.locator(`[data-order-card="${order}"]`).first().tap();
+    await page.waitForSelector('[data-testid="chat-assistant"]:not(:empty)');
+    await page.waitForFunction(() => document.querySelector('[data-testid="chat-assistant"]').textContent.trim().length > 1);
+    results.identity[order] = await page.evaluate(() => {
+      const screen = document.querySelector("[data-messenger-screen]");
+      const labels = [...screen.querySelectorAll("[data-sender-label]")].map((label) => label.textContent.trim());
+      const avatar = screen.querySelector("header [data-brand-avatar]");
+      return {
+        header: document.querySelector('[data-testid="chat-assistant"]').textContent.trim(),
+        labels,
+        logoLoaded: Boolean(avatar && avatar.complete && avatar.naturalWidth > 0),
+        bwTextAvatar: [...screen.querySelectorAll("header *")].some((node) => node.children.length === 0 && node.textContent.trim() === "BW"),
+      };
+    });
+    if (SHOTS && order === ORDERS[0]) await page.screenshot({ path: `${SHOTS}/identity-${viewport.width}.png` });
+    await page.locator('[data-testid="chat-back"]').tap();
+    await page.waitForSelector('[data-testid="active-orders"] [data-order-card]');
+  }
+
   for (let round = 0; round < ROUNDS; round += 1) {
     const order = ORDERS[round % 2];
     const chat = await tapAndMeasure(page, `[data-order-card="${order}"]`, { shell: SEL.chatShell, messages: SEL.firstMessages });
@@ -304,6 +333,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
   console.log("Document loads:", result.documentLoads, " RSC fetches:", result.rscFetches, " API requests:", result.requests);
   console.log("Requests by path:", result.requestsByPath);
   console.log("Realtime joins:", result.joins, " leaves:", result.leaves);
+  console.log("Identity:", JSON.stringify(result.identity));
   console.log("'Reconnecting' badges seen:", result.reconnectingShown, " catch-up fetches after a missed event:", result.catchUpAfterMissedEvent);
   if (result.errors.length) console.log("Page errors:", result.errors);
 }

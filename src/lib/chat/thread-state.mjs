@@ -188,6 +188,8 @@ export function buildDisplayItems(messages, { nowMs }) {
       previous &&
       previous.senderRole === message.senderRole &&
       (previous.senderUserId ?? null) === (message.senderUserId ?? null) &&
+      // Customer view: admins are told apart by public username only.
+      (previous.senderName ?? null) === (message.senderName ?? null) &&
       Date.parse(message.createdAt) - Date.parse(previous.createdAt) < GROUP_GAP_MS &&
       previous.kind !== "slip" && message.kind !== "slip";
     if (sameSender) {

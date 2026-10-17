@@ -43,6 +43,7 @@ export function MessageBubble({
   firstInGroup,
   lastInGroup,
   senderLabel,
+  senderIcon,
   statusLabel,
   orderNumber,
   slip,
@@ -54,6 +55,8 @@ export function MessageBubble({
   firstInGroup: boolean;
   lastInGroup: boolean;
   senderLabel: string | null;
+  /** Small avatar shown before the group's sender label (customer view: the brand logo). */
+  senderIcon?: React.ReactNode;
   statusLabel: string | null;
   orderNumber: string;
   slip?: SlipInfo | null;
@@ -68,7 +71,14 @@ export function MessageBubble({
       className={cn("flex flex-col", isMine ? "items-end" : "items-start", firstInGroup ? "mt-3" : "mt-0.5")}
     >
       {firstInGroup && senderLabel && (
-        <p className={cn("text-muted-foreground mb-1 px-1 text-[11px] font-semibold", isMine && "text-right")}>
+        <p
+          className={cn(
+            "text-muted-foreground mb-1 flex items-center gap-1.5 px-1 text-[11px] font-semibold",
+            isMine && "justify-end text-right",
+          )}
+          data-sender-label
+        >
+          {senderIcon}
           {senderLabel}
         </p>
       )}

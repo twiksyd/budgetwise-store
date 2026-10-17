@@ -192,6 +192,50 @@ export async function getConversation(
   return data;
 }
 
+// ------------------------------------------------ customer-facing identity
+
+const PUBLIC_NAMES_TTL_MS = 60_000;
+let publicNamesCache: { at: number; names: Map<string, string> } | null = null;
+
+/**
+ * Admin user id -> public username (admin_users.public_username, migration
+ * 0025): the only admin identity a customer ever sees. Read with select * so
+ * it keeps working, as an empty map, before 0025 adds the column. Never
+ * throws: without names the customer simply sees "BudgetWise".
+ */
+export async function loadPublicAdminNames(): Promise<Map<string, string>> {
+  if (publicNamesCache && Date.now() - publicNamesCache.at < PUBLIC_NAMES_TTL_MS) return publicNamesCache.names;
+  const names = new Map<string, string>();
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase.from("admin_users").select("*");
+    if (error) throw error;
+    for (const row of (data ?? []) as Array<{ user_id: string; public_username?: unknown }>) {
+      const name = typeof row.public_username === "string" ? row.public_username.trim() : "";
+      if (name) names.set(row.user_id, name);
+    }
+    publicNamesCache = { at: Date.now(), names };
+  } catch (error) {
+    console.error("Load public admin names failed", error);
+  }
+  return names;
+}
+
+/** The admin who sent the newest admin message on this order (server-side only). */
+export async function lastAdminSenderId(orderNumber: string): Promise<string | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("store_order_messages")
+    .select("sender_user_id")
+    .eq("order_number", orderNumber)
+    .eq("sender_role", "admin")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.sender_user_id ?? null;
+}
+
 // ------------------------------------------------------------------ messages
 
 export async function listMessages(
@@ -241,8 +285,13 @@ export async function toChatMessages(
   viewer: { viewer: ChatRole; viewerUserId: string },
 ): Promise<ChatMessageDto[]> {
   const albumIds = rows.filter((row) => row.kind === "album").map((row) => row.id);
-  const attachments = (await loadAlbumAttachments(albumIds)) as Map<string, AttachmentRowLike[]>;
-  return rows.map((row) => toChatMessage(row, { ...viewer, attachments }));
+  // Customers see an admin message's public username only (no id, no real name).
+  const needsNames = viewer.viewer === "customer" && rows.some((row) => row.sender_role === "admin");
+  const [attachments, publicNames] = await Promise.all([
+    loadAlbumAttachments(albumIds) as Promise<Map<string, AttachmentRowLike[]>>,
+    needsNames ? loadPublicAdminNames() : Promise.resolve(undefined),
+  ]);
+  return rows.map((row) => toChatMessage(row, { ...viewer, attachments, publicNames }));
 }
 
 export async function getAttachment(id: string): Promise<StoreOrderMessageAttachmentRow | null> {
