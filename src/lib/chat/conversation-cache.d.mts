@@ -19,6 +19,31 @@ export interface ConversationEntry<D = unknown> {
   detailsApplied: number;
 }
 
+export interface PendingAlbumImage {
+  name: string;
+  /** Original pick, released once uploaded. */
+  file: File | null;
+  /** Prepared upload (image + thumbnail), released once uploaded. */
+  prepared: { file: File; thumb: Blob; width: number | null; height: number | null } | null;
+  width: number | null;
+  height: number | null;
+  uploaded: boolean;
+}
+export type PendingFileEntry =
+  | { kind: "image"; file: File; caption: string }
+  | {
+      kind: "album";
+      images: PendingAlbumImage[];
+      caption: string;
+      label: "proof_of_delivery" | null;
+      /** Uploads still running (aborted on Cancel). */
+      requests?: Set<XMLHttpRequest>;
+      /** Set by Cancel: no further uploads, never posted. */
+      cancelled?: boolean;
+      /** The album message request is on its way (too late to cancel). */
+      posting?: boolean;
+    };
+
 export interface ConversationCache<D = unknown> {
   subscribe(listener: () => void): () => void;
   getVersion(): number;
@@ -27,7 +52,7 @@ export interface ConversationCache<D = unknown> {
   keys(): string[];
   readonly size: number;
   readonly pinned: string | null;
-  files: Map<string, { file: File; caption: string }>;
+  files: Map<string, PendingFileEntry>;
   inFlight: Set<string>;
   pin(orderNumber: string | null): void;
   touch(orderNumber: string): void;

@@ -26,6 +26,10 @@ export function sniffImageType(
   bytes: Uint8Array | null | undefined,
 ): "image/jpeg" | "image/png" | "image/webp" | null;
 
+export function inspectImage(
+  bytes: Uint8Array | null | undefined,
+): { type: "image/jpeg" | "image/png" | "image/webp"; width: number; height: number } | null;
+
 export function buildAttachmentPath(input: {
   orderNumber: string;
   messageId: string;

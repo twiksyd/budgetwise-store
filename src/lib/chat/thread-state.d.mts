@@ -1,14 +1,25 @@
 import type { ChatMessageDto } from "./dto.mjs";
 
+export interface PendingFileError {
+  position: number;
+  name: string;
+  error: string;
+}
 export interface PendingMessage {
   clientMessageId: string;
-  kind: "text" | "image";
+  kind: "text" | "image" | "album";
   body: string;
   previewUrl?: string | null;
+  /** Albums: local previews in order, and the optional label. */
+  previews?: string[];
+  label?: "proof_of_delivery" | null;
   createdAt: string;
   progress: number;
+  /** Albums: how many images are fully uploaded. */
+  uploaded: number;
   status: "sending" | "failed";
   error: string | null;
+  failedFiles: PendingFileError[];
 }
 export interface ThreadState {
   messages: ChatMessageDto[];
@@ -23,9 +34,9 @@ export type ThreadAction =
   | { type: "loading_older" }
   | { type: "older"; messages: ChatMessageDto[]; hasOlder: boolean }
   | { type: "received"; messages: ChatMessageDto[] }
-  | { type: "send"; item: Omit<PendingMessage, "progress" | "status" | "error"> }
-  | { type: "progress"; clientMessageId: string; progress: number }
-  | { type: "failed"; clientMessageId: string; error: string }
+  | { type: "send"; item: Omit<PendingMessage, "progress" | "status" | "error" | "uploaded" | "failedFiles"> }
+  | { type: "progress"; clientMessageId: string; progress: number; uploaded?: number }
+  | { type: "failed"; clientMessageId: string; error: string; failedFiles?: PendingFileError[] }
   | { type: "retry"; clientMessageId: string }
   | { type: "discard"; clientMessageId: string }
   | { type: "confirmed"; clientMessageId: string; message: ChatMessageDto };

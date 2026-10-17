@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { ArrowLeft, PanelRight, UserCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, PanelRight, RotateCcw, UserCheck } from "lucide-react";
+import { toast } from "sonner";
 import { useInbox } from "@/components/admin-inbox/inbox-provider";
 import { OrderDetailsPanel } from "@/components/admin-inbox/order-details-panel";
 import { PaymentDetailsDialog } from "@/components/admin-inbox/payment-details-dialog";
@@ -10,7 +11,7 @@ import { ChatThread } from "@/components/chat/chat-thread";
 import { Composer } from "@/components/chat/composer";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useChatThread } from "@/lib/chat/client/use-chat-thread";
-import { fetchJson } from "@/lib/chat/client/fetch-json";
+import { fetchJson, jsonInit, RequestError } from "@/lib/chat/client/fetch-json";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
 import type { OrderDetails } from "@/lib/chat/order-details.mjs";
 import type { InboxRow } from "@/lib/chat/inbox-state.mjs";
@@ -28,9 +29,13 @@ const TYPING_THROTTLE_MS = 2_500;
  * late response for another chat can never appear here.
  */
 export function ConversationView({ orderNumber }: { orderNumber: string }) {
-  const { me, directory, inbox, dispatch, presence, nowMs, quickReplies, sendSignal, activeRef, cache, loader, select, takeFocusRequest } =
+  const { me, directory, inbox, dispatch, presence, nowMs, quickReplies, sendSignal, activeRef, cache, loader, select, takeFocusRequest, subscribe } =
     useInbox();
-  const row: InboxRow | undefined = inbox.rows[orderNumber];
+  // The open chat can leave the current filter (e.g. marked Done while in
+  // Active); keep showing what we last knew about it.
+  const lastRow = useRef<InboxRow | undefined>(undefined);
+  if (inbox.rows[orderNumber]) lastRow.current = inbox.rows[orderNumber];
+  const row: InboxRow | undefined = inbox.rows[orderNumber] ?? lastRow.current;
   const thread = useChatThread({ orderNumber, viewer: "admin", cache, loader });
   const getEntry = useCallback(() => cache.get(orderNumber), [cache, orderNumber]);
   const entry = useSyncExternalStore(cache.subscribe, getEntry, getEntry);
@@ -167,6 +172,62 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
     [customerName, orderNumber, row?.buyerRobloxUsername, details?.customer.robloxUsername, total],
   );
 
+  // BudgetWise's own workflow state (Active / Done) — never XOB's status.
+  // A chat marked Done leaves the Active list (its row disappears there),
+  // so the open view also follows the realtime state events directly.
+  const [liveState, setLiveState] = useState<{ state: "active" | "done"; doneBy: string | null } | null>(null);
+  useEffect(
+    () =>
+      subscribe((event, payload) => {
+        if (event !== "conversation" || payload.order_number !== orderNumber) return;
+        if (payload.state === "active" || payload.state === "done") {
+          setLiveState({ state: payload.state, doneBy: (payload.done_by as string | null) ?? null });
+        }
+      }),
+    [subscribe, orderNumber],
+  );
+  const conversationState = liveState?.state ?? row?.state ?? details?.order.state ?? "active";
+  const [stateBusy, setStateBusy] = useState(false);
+  const changeState = useCallback(
+    async (next: "active" | "done") => {
+      if (stateBusy) return;
+      setStateBusy(true);
+      try {
+        const messages = messagesRef.current;
+        const result = await fetchJson<{ state: "active" | "done"; doneAt: string | null; doneBy: string | null }>(
+          `/api/admin/orders/${encodeURIComponent(orderNumber)}/state`,
+          jsonInit("POST", { state: next, lastSeenMessageId: messages[messages.length - 1]?.id ?? null }),
+        );
+        setLiveState({ state: result.state, doneBy: result.doneBy });
+        if (row) {
+          dispatch({
+            type: "upsert_row",
+            row: { ...row, state: result.state, doneAt: result.doneAt, doneBy: result.doneBy },
+            activeOrderNumber: orderNumber,
+          });
+        }
+        toast.success(next === "done" ? "Marked Done. It reopens by itself if the customer writes again." : "Reopened.");
+      } catch (error) {
+        toast.error(error instanceof RequestError ? error.message : "Could not update. Please try again.");
+        void thread.fetchNewer();
+      } finally {
+        setStateBusy(false);
+      }
+    },
+    [stateBusy, orderNumber, row, dispatch, thread],
+  );
+  const doneBy = liveState ? liveState.doneBy : (row?.doneBy ?? null);
+  const doneByName = doneBy ? (doneBy === me ? "you" : (directory[doneBy]?.displayName ?? "another admin")) : null;
+
+  const slip = useMemo(
+    () => ({
+      orderNumber,
+      robloxUsername: row?.buyerRobloxUsername ?? details?.customer.robloxUsername ?? null,
+      total: row?.totalAmount ?? details?.order.total ?? null,
+    }),
+    [orderNumber, row?.buyerRobloxUsername, details?.customer.robloxUsername, row?.totalAmount, details?.order.total],
+  );
+
   const panel = (
     <OrderDetailsPanel
       orderNumber={orderNumber}
@@ -197,6 +258,28 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
             </p>
           </div>
           <AssignmentControl orderNumber={orderNumber} assignedAdminId={assignedAdminId} className="hidden sm:flex xl:hidden" />
+          {conversationState === "active" ? (
+            <button
+              type="button"
+              onClick={() => void changeState("done")}
+              // Done means "I've seen this": not before the thread is on screen.
+              disabled={stateBusy || !thread.state.loaded}
+              className="border-border hover:bg-muted inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold disabled:opacity-60"
+            >
+              <CheckCircle2 className="size-4 text-emerald-600" />
+              <span>Mark Done</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void changeState("active")}
+              disabled={stateBusy}
+              className="border-border hover:bg-muted inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold disabled:opacity-60"
+            >
+              <RotateCcw className="size-4" />
+              <span>Reopen</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setDetailsOpen(true)}
@@ -207,7 +290,16 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           </button>
         </header>
 
-        {handlerName && (
+        {conversationState === "done" && (
+          <div className="flex items-center gap-2 border-b border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-medium text-emerald-900 dark:text-emerald-100">
+            <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+            <span className="flex-1">
+              Done{doneByName ? ` · marked by ${doneByName}` : ""}. It moves back to Active if the customer sends a message.
+            </span>
+          </div>
+        )}
+
+        {handlerName && conversationState !== "done" && (
           <div className="flex items-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-medium text-amber-900 dark:text-amber-100">
             <UserCheck className="size-4 shrink-0" />
             <span className="flex-1">{handlerName} is currently handling this conversation.</span>
@@ -216,6 +308,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
 
         <ChatThread
           state={thread.state}
+          slip={slip}
           loadError={thread.loadError}
           onReload={() => void thread.reload()}
           orderNumber={orderNumber}
@@ -238,7 +331,8 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
         <Composer
           placeholder="Reply… (/ for saved replies)"
           onSendText={thread.sendText}
-          onSendImage={thread.sendImage}
+          onSendImages={thread.sendAlbum}
+          allowProofLabel
           quickReplies={quickReplies}
           templateValues={templateValues}
           onTyping={onTyping}

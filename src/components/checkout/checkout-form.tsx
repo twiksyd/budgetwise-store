@@ -234,7 +234,8 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
       // while still on /checkout would race against navigation away.
       // The order is owned by the signed-in account, so its chat page needs
       // no secret in the URL.
-      router.push(`/orders/${encodeURIComponent(orderNumber)}`);
+      // ?placed=1: the order page shows first-time guidance (first order only).
+      router.push(`/orders/${encodeURIComponent(orderNumber)}?placed=1`);
       // isSubmitting intentionally stays true here: the order already
       // exists server-side, so the button must stay locked until the
       // navigation above actually lands, not reset while it's in flight.

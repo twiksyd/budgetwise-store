@@ -17,6 +17,11 @@ export const USERS = {
   kenneth: { email: "kenneth@bw.local", name: "Kenneth", admin: true },
   custa: { email: "custa@gmail.local", name: "Juan Dela Cruz", admin: false },
   custb: { email: "custb@gmail.local", name: "Maria Santos", admin: false },
+  custc: { email: "custc@gmail.local", name: "Paolo Reyes", admin: false },
+  // Used only by album-integrity.e2e.mjs, so it never disturbs the others.
+  custd: { email: "custd@gmail.local", name: "Ana Cruz", admin: false },
+  custe: { email: "custe@gmail.local", name: "Ben Lim", admin: false },
+  custf: { email: "custf@gmail.local", name: "Carla Tan", admin: false },
 };
 const VIA_LINK_GAME = "bf10c2e9-d9f2-4f86-8c7d-5c94b7354a75";
 
@@ -47,7 +52,7 @@ async function ensureUser(key) {
   return data.user.id;
 }
 
-function line(index, gameId, gameName, productName, robux, quantity, unitPrice) {
+export function line(index, gameId, gameName, productName, robux, quantity, unitPrice) {
   return {
     user_id: null, gamepass_id: crypto.randomUUID(), game_id: gameId, product_name: productName,
     game_name: gameName, robux_amount: robux, quantity, unit_price: unitPrice,
@@ -56,7 +61,7 @@ function line(index, gameId, gameName, productName, robux, quantity, unitPrice) 
   };
 }
 
-async function createOrder(orderNumber, owner, buyerName, roblox, lines) {
+export async function createOrder(orderNumber, owner, buyerName, roblox, lines) {
   const total = lines.reduce((sum, l) => sum + l.line_total, 0);
   const { error } = await supabase.rpc("create_store_order", {
     p_idempotency_key: `e2e-idempotency-${orderNumber}-xxxxxxxx`,
@@ -114,6 +119,7 @@ export async function seed() {
     });
     if (error) throw error;
   }
+  await seedArtworkFixtures();
   return ids;
 }
 
@@ -145,6 +151,75 @@ export async function seedPeak(ids, { count = 35, longEvery = 5, longLength = 30
     orders.push({ orderNumber, name, roblox, length });
   }
   return orders;
+}
+
+/**
+ * LOCAL-ONLY product artwork fixtures: the local stack has no catalog
+ * tables, so this creates the two the artwork resolver reads and gives every
+ * seeded order line a simple generated tile. Never runs against anything
+ * but localhost (see the guard at the top of this file).
+ */
+export async function seedArtworkFixtures() {
+  await sql(`create table if not exists public.roblox_gamepass_icon_cache (
+    gamepass_id uuid primary key, status text not null, icon_url text)`);
+  await sql(`create table if not exists public.product_artwork_overrides (
+    gamepass_id uuid primary key, source text, icon_url text)`);
+  await sql(`grant select on public.roblox_gamepass_icon_cache, public.product_artwork_overrides to service_role`);
+  const palette = ["%237c3aed", "%230ea5e9", "%2316a34a", "%23f59e0b", "%23e11d48", "%230d9488"];
+  const { rows } = await sql(`select distinct gamepass_id, product_name from public.store_order_line_snapshots where gamepass_id is not null`);
+  for (const [index, row] of rows.entries()) {
+    const initials = row.product_name.replace(/[^A-Za-z0-9 ]/g, "").split(/\s+/).map((w) => w[0] ?? "").join("").slice(0, 2).toUpperCase() || "BW";
+    const svg = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><rect width='96' height='96' rx='20' fill='${palette[index % palette.length]}'/><text x='48' y='60' font-size='32' font-weight='700' text-anchor='middle' fill='white' font-family='Arial'>${initials}</text></svg>`;
+    await sql(
+      `insert into public.roblox_gamepass_icon_cache (gamepass_id, status, icon_url) values ($1, 'matched', $2)
+       on conflict (gamepass_id) do update set icon_url = excluded.icon_url`,
+      [row.gamepass_id, svg],
+    );
+  }
+}
+
+/**
+ * The mobile/customer-experience scenarios:
+ *   custc (long-term): 23 completed, 2 in progress, 1 of them with an unread reply
+ *   custa: orders with 1, 3, 10 and 20 products; the 20-product one also has
+ *          a long text history and a payment card.
+ */
+export async function seedCustomerScenarios(ids) {
+  const games = ["Blox Fruits", "Grow a Garden", "Pet Simulator 99", "Adopt Me!", "Brookhaven", "Murder Mystery 2"];
+  const products = ["Money", "Mastery", "VIP", "2x Drops", "Fast Boats", "Fruit Notifier", "Dark Blade", "Storage", "Extra Pets", "Lucky Egg"];
+  const lines = (count) =>
+    Array.from({ length: count }, (_, i) => line(i, "55555555-5555-5555-5555-55555555555" + (i % 6), games[i % games.length], `${products[i % products.length]} ${Math.floor(i / products.length) + 1}`, 100 + i * 25, 1 + (i % 3 === 0 ? 2 : 0), 49 + i * 10));
+
+  for (const count of [1, 3, 10, 20]) {
+    await createOrder(`BW-X${String(count).padStart(2, "0")}`, ids.custa, "Juan Dela Cruz", "Juan123", lines(count));
+  }
+  // Long history + payment card on the 20-product order.
+  await sql(
+    `insert into public.store_order_messages (order_number, sender_role, sender_user_id, kind, body, created_at)
+     select 'BW-X20', case when g % 3 = 0 then 'customer' else 'admin' end,
+            case when g % 3 = 0 then $1::uuid else $2::uuid end, 'text',
+            'History message ' || g || case when g % 7 = 0 then ' — a longer message that wraps over a couple of lines on a phone screen to make sure long text never overflows sideways.' else '' end,
+            now() - interval '3 hours' + make_interval(secs => g * 20)
+       from generate_series(1, 120) g`,
+    [ids.custa, ids.robert],
+  );
+
+  const total = 23 + 2;
+  for (let i = 0; i < total; i += 1) {
+    const orderNumber = `BW-LT${String(i).padStart(3, "0")}`;
+    await createOrder(orderNumber, ids.custc, "Paolo Reyes", "paoloRBX", lines(1 + (i % 4)));
+  }
+  await sql(`update public.store_order_snapshots set created_at = now() - make_interval(days => 60 - substr(order_number, 6)::int)
+              where order_number like 'BW-LT%'`);
+  const { rows } = await sql(
+    `select c.order_number, c.last_message_id from public.store_order_conversations c
+      where c.order_number like 'BW-LT%' and c.order_number < 'BW-LT023' and c.state = 'active'`,
+  );
+  for (const row of rows) {
+    await sql(`select public.store_set_conversation_state($1, $2, 'done', $3)`, [row.order_number, ids.robert, row.last_message_id]);
+  }
+  await sql(`select public.store_post_message('BW-LT024', 'admin', $1, 'text', 'Hi po! We reviewed your order.', null, null, gen_random_uuid())`, [ids.robert]);
+  await seedArtworkFixtures();
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

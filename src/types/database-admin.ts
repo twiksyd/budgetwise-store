@@ -315,7 +315,7 @@ type StoreOrderSnapshotRow = {
   created_at: string;
 };
 
-type StoreOrderMessageKind = "slip" | "text" | "image" | "payment";
+type StoreOrderMessageKind = "slip" | "text" | "image" | "payment" | "album";
 
 type StoreOrderMessageRow = {
   id: string;
@@ -372,6 +372,45 @@ export type StoreOrderConversationRow = {
   payment_details_sent_at: string | null;
   created_at: string;
   updated_at: string;
+  // Migration 0024: BudgetWise's own workflow state (NOT XOB orders.status).
+  state: ConversationState;
+  done_at: string | null;
+  done_by: string | null;
+  reopened_at: string | null;
+  reopened_by: string | null;
+};
+
+// Migration 0024.
+export type ConversationState = "active" | "done";
+
+export type StoreOrderMessageAttachmentRow = {
+  id: string;
+  message_id: string;
+  order_number: string;
+  position: number;
+  storage_path: string;
+  mime: string;
+  byte_size: number;
+  thumb_path: string;
+  thumb_mime: string;
+  width: number | null;
+  height: number | null;
+  created_at: string;
+};
+
+export type StoreCustomerOrderRpcRow = {
+  order_number: string;
+  total_amount: number;
+  created_at: string;
+  buyer_roblox_username: string;
+  conversation_id: string | null;
+  state: ConversationState;
+  done_at: string | null;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+  last_sender_role: "customer" | "admin" | null;
+  payment_details_sent_at: string | null;
+  unread_count: number;
 };
 
 export type StoreQuickReplyRow = {
@@ -437,6 +476,10 @@ export type StoreAdminInboxRpcRow = {
   my_read_at: string | null;
   my_read_message_id: string | null;
   unread_count: number;
+  // Migration 0024.
+  state: ConversationState;
+  done_at: string | null;
+  done_by: string | null;
 };
 
 export type StoreCustomerConversationRpcRow = {
@@ -448,9 +491,23 @@ export type StoreCustomerConversationRpcRow = {
   last_sender_role: "customer" | "admin";
   payment_details_sent_at: string | null;
   unread_count: number;
+  // Migration 0024.
+  state: ConversationState;
+  done_at: string | null;
 };
 
 export type StoreOrderMessageRowExport = StoreOrderMessageRow;
+
+export type AlbumAttachmentInput = {
+  position: number;
+  path: string;
+  mime: string;
+  size: number;
+  thumb_path: string;
+  thumb_mime: string;
+  width: number | null;
+  height: number | null;
+};
 
 type StoreOrderLineSnapshotRow = {
   id: string;
@@ -625,6 +682,12 @@ export type AdminDatabase = {
         Update: never;
         Relationships: [];
       };
+      store_order_message_attachments: {
+        Row: StoreOrderMessageAttachmentRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       store_quick_replies: {
         Row: StoreQuickReplyRow;
         Insert: never;
@@ -712,6 +775,41 @@ export type AdminDatabase = {
       store_customer_conversations: {
         Args: { p_user: string };
         Returns: StoreCustomerConversationRpcRow[];
+      };
+      store_customer_orders: {
+        Args: {
+          p_user: string;
+          p_section: "open" | "completed";
+          p_before_at?: string | null;
+          p_before_order?: string | null;
+          p_limit?: number;
+        };
+        Returns: StoreCustomerOrderRpcRow[];
+      };
+      store_set_conversation_state: {
+        Args: {
+          p_order_number: string;
+          p_actor: string;
+          p_state: ConversationState;
+          p_last_seen_message_id: string | null;
+        };
+        Returns: Omit<StoreOrderConversationRow, "admin_read_at" | "admin_read_message_id">;
+      };
+      store_post_album: {
+        Args: {
+          p_order_number: string;
+          p_sender_role: "customer" | "admin";
+          p_sender: string;
+          p_body: string;
+          p_label: "proof_of_delivery" | null;
+          p_attachments: AlbumAttachmentInput[];
+          p_client_message_id: string;
+        };
+        Returns: { created: boolean; message: StoreOrderMessageRow };
+      };
+      store_list_orphan_chat_uploads: {
+        Args: { p_older_than_hours?: number; p_limit?: number };
+        Returns: { name: string; created_at: string }[];
       };
       store_chat_messages_page: {
         Args: {

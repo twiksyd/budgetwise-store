@@ -64,22 +64,53 @@ text). Assignment, per-admin unread counts, server-verified typing/viewing
 indicators, quick replies (`/shortcut`), structured payment details, and
 structured gamepass links for Robux (Via Link) orders.
 
+Conversations are **Active** (the working queue) or **Done** (handled).
+That is BudgetWise's own workflow state, separate from XOB's `orders.status`.
+A customer message reopens a Done conversation automatically; customers see
+In progress / Completed ✓. Messages can carry albums of up to 10 images
+(thumbnails made in the browser, files in the private bucket, served through
+`/api/order-chat/media/<id>` after an owner/admin check).
+
+Customers get a full-screen Messenger-style order chat on phones, a floating
+messages button with a live unread badge (private `customer:<user id>`
+realtime topic), My Orders in the header, and My Orders sorted into unread,
+active and completed (paginated).
+
 Database changes, in order (see each file's header):
 
 1. `supabase/migrations/0021_store_shared_admin_inbox.sql` — inbox foundation
 2. `supabase/migrations/0022_store_order_fulfillment_details.sql` — gamepass links
-3. Deploy the application code
-4. `supabase/migrations/0023_store_chat_legacy_cleanup.sql` — only after every
+3. `supabase/migrations/0024_store_conversation_workflow_and_albums.sql` —
+   Active/Done state, image albums, customer realtime topic (safe before the
+   code: the previous code ignores it)
+4. Deploy the application code
+5. `supabase/migrations/0023_store_chat_legacy_cleanup.sql` — only after every
    open browser tab runs the new code; then turn off Realtime "Allow public access"
 
 `supabase/rollback/0021_down.sql` undoes 0021 (only before 0023).
+`supabase/rollback/0024_down.sql` undoes 0024 (refused once any album exists).
+After albums were sent, a database rollback is: roll the app back first, then
+`supabase/rollback/0024_flatten_albums.sql` (each album becomes ordinary
+single-image messages pointing at the same files), then `0024_down.sql`.
+Rolling back only the application needs no SQL: older builds keep working,
+but show an album as its caption only (the photos are kept).
+
+Chat uploads are write-once. Abandoned uploads (cancelled, tab closed) are
+removed on Cancel when possible; the rest with
+`node scripts/cleanup-chat-uploads.mjs` (dry run; `--delete` to remove; only
+files no message uses and at least 24 h old). Nothing schedules it.
+
+Benchmarks (throwaway database only): `supabase/bench/active_queue_100k.sql`
+and `supabase/bench/my_orders_100k.sql`.
 
 Tests:
 
 - `pnpm test:chat` — application logic (routes, identity, state, validation)
 - `pnpm test:db` — database tests against a throwaway local Postgres
   (`PGHOST=... PGPORT=... PGUSER=postgres pnpm test:db`)
-- `pnpm test:e2e` — three admins + two customers in real browsers against a
-  LOCAL Supabase stack (`supabase start` with the migrations above) and
-  `next dev`; needs `E2E_BASE_URL` and `E2E_SUPABASE_SERVICE_ROLE_KEY`.
-  The seed script refuses non-localhost URLs.
+- `pnpm test:e2e` — three admins + customers in real browsers (phones at
+  390x844 and 430x932) against a LOCAL Supabase stack (`supabase start` with
+  the migrations above) and a local Next.js server; needs `E2E_BASE_URL` and
+  `E2E_SUPABASE_SERVICE_ROLE_KEY`. The seed script refuses non-localhost URLs.
+- `node scripts/e2e/inbox-switch-profile.mjs` — measures conversation
+  switching (timings, requests, realtime rejoins, peak-hour traffic).

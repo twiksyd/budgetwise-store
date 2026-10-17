@@ -1,4 +1,5 @@
-export type InboxFilter = "all" | "unread" | "unassigned" | "mine" | "under_review";
+export type InboxFilter = "active" | "unread" | "mine" | "unassigned" | "done" | "all" | "under_review";
+export type ConversationState = "active" | "done";
 export const INBOX_FILTERS: readonly InboxFilter[];
 export interface InboxRow {
   conversationId: string;
@@ -12,7 +13,7 @@ export interface InboxRow {
   assignedAt: string | null;
   lastMessageId: string;
   lastMessageAt: string;
-  lastMessageKind: "slip" | "text" | "image" | "payment";
+  lastMessageKind: "slip" | "text" | "image" | "payment" | "album";
   lastMessagePreview: string;
   lastSenderRole: "customer" | "admin";
   customerReadAt: string | null;
@@ -21,6 +22,10 @@ export interface InboxRow {
   myReadAt: string | null;
   myReadMessageId: string | null;
   unreadCount: number;
+  /** BudgetWise's own workflow state (never XOB's orders.status). */
+  state: ConversationState;
+  doneAt: string | null;
+  doneBy: string | null;
 }
 export interface InboxView {
   filter: InboxFilter;
@@ -58,6 +63,7 @@ export interface InboxMessageEvent {
     last_message_preview: string;
     last_sender_role: "customer" | "admin";
     payment_details_sent_at: string | null;
+    state?: ConversationState;
   };
 }
 export interface InboxConversationEvent {
@@ -70,6 +76,9 @@ export interface InboxConversationEvent {
   customer_read_message_id: string | null;
   admin_read_at: string | null;
   admin_read_message_id: string | null;
+  state?: ConversationState;
+  done_at?: string | null;
+  done_by?: string | null;
 }
 export interface InboxReadEvent {
   order_number: string;

@@ -56,6 +56,29 @@ export async function handleAttachment({ messageId, deps }) {
 }
 
 /**
+ * GET /api/order-chat/media/<attachmentId>?size=thumb|full
+ * One image of an album. The path comes from the attachment row, never the
+ * request; the viewer must own the order or be an admin, re-checked on
+ * every view. Thumbnails are what chat tiles load; full images only load
+ * in the viewer.
+ *   deps.loadAttachment(id) -> { order_number, storage_path, thumb_path } | null
+ *   deps.resolveViewer(orderNumber) -> { ok: true } | { ok: false, status }
+ *   deps.sign(path) -> short-lived signed URL
+ */
+export async function handleAlbumMedia({ attachmentId, size, deps }) {
+  if (!isUuid(attachmentId)) return NOT_FOUND;
+  const attachment = await deps.loadAttachment(attachmentId);
+  if (!attachment) return NOT_FOUND;
+
+  const viewer = await deps.resolveViewer(attachment.order_number);
+  if (!viewer.ok) return viewer.status === 401 ? { status: 401, body: { error: "Please sign in." } } : NOT_FOUND;
+
+  const path = size === "full" ? attachment.storage_path : attachment.thumb_path;
+  if (typeof path !== "string" || !path.startsWith(`${attachment.order_number}/`)) return NOT_FOUND;
+  return { status: 302, location: await deps.sign(path) };
+}
+
+/**
  * PUT fulfillment detail, customer (own order) or admin (correction).
  *   deps.resolveActor(orderNumber) -> { ok: true, userId } | { ok: false, status }
  *   deps.loadLines(orderNumber) -> [{ lineIndex, gameId, quantity }]

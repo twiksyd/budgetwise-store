@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useReducer, useRef, useState } from "react";
-import { ImagePlus, Loader2, Send, X } from "lucide-react";
+import { BadgeCheck, ImagePlus, Plus, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { prepareChatImage } from "@/lib/prepare-chat-image";
-import { MAX_MESSAGE_LENGTH, validateAttachmentMeta } from "@/lib/order-chat.mjs";
+import { MAX_MESSAGE_LENGTH } from "@/lib/order-chat.mjs";
+import { ALBUM_MAX_IMAGES } from "@/lib/chat/album.mjs";
 import {
   applyQuickReply,
   closedMenu,
@@ -16,6 +16,16 @@ import { renderTemplate, type TemplateVariable } from "@/lib/chat/template.mjs";
 import { cn } from "@/lib/utils";
 
 const MAX_HEIGHT_PX = 168;
+const ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+// Phone photos above 4 MB are downscaled before upload; anything this big
+// is not a normal photo.
+const MAX_PICK_BYTES = 30 * 1024 * 1024;
+
+interface Picked {
+  id: string;
+  file: File;
+  previewUrl: string;
+}
 
 function isTouchKeyboard() {
   return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
@@ -30,7 +40,8 @@ function isTouchKeyboard() {
 export function Composer({
   placeholder,
   onSendText,
-  onSendImage,
+  onSendImages,
+  allowProofLabel = false,
   quickReplies,
   templateValues,
   onTyping,
@@ -40,7 +51,10 @@ export function Composer({
 }: {
   placeholder: string;
   onSendText: (text: string) => void;
-  onSendImage: (file: File, caption: string) => void;
+  /** 1..10 images (with an optional caption) sent as ONE message. */
+  onSendImages: (files: File[], caption: string, label: "proof_of_delivery" | null) => void;
+  /** BudgetWise only: offer the "Proof of delivery" album label. */
+  allowProofLabel?: boolean;
   quickReplies?: QuickReplyItem[];
   templateValues?: Partial<Record<TemplateVariable, string | number | null>>;
   onTyping?: () => void;
@@ -52,15 +66,18 @@ export function Composer({
   const textRef = useRef("");
   const textarea = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
-  const [attachment, setAttachment] = useState<{ file: File; previewUrl: string } | null>(null);
-  const [preparing, setPreparing] = useState(false);
+  const [picked, setPicked] = useState<Picked[]>([]);
+  const pickedRef = useRef<Picked[]>([]);
+  pickedRef.current = picked;
+  const [proof, setProof] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [menu, dispatchMenu] = useReducer(quickReplyMenuReducer, closedMenu);
   const sendLock = useRef(false);
 
+  // Previews are released when removed, sent, or when the composer unmounts.
   useEffect(() => () => {
-    if (attachment) URL.revokeObjectURL(attachment.previewUrl);
-  }, [attachment]);
+    for (const item of pickedRef.current) URL.revokeObjectURL(item.previewUrl);
+  }, []);
 
   function resize() {
     const node = textarea.current;
@@ -80,36 +97,53 @@ export function Composer({
     requestAnimationFrame(resize);
   }
 
-  async function acceptFile(picked: File | null | undefined) {
-    if (!picked) return;
-    setError(null);
-    setPreparing(true);
-    try {
-      const prepared = await prepareChatImage(picked);
-      const check = validateAttachmentMeta({ type: prepared.type, size: prepared.size });
-      if (!check.ok) {
-        setError(check.error);
-        return;
+  function acceptFiles(files: File[]) {
+    if (files.length === 0) return;
+    const problems: string[] = [];
+    const accepted: Picked[] = [];
+    const room = ALBUM_MAX_IMAGES - pickedRef.current.length;
+    for (const file of files) {
+      if (!ACCEPTED_TYPES.has(file.type)) {
+        problems.push(`${file.name}: only JPG, PNG or WebP images can be sent.`);
+      } else if (file.size > MAX_PICK_BYTES) {
+        problems.push(`${file.name}: that image is too large.`);
+      } else if (accepted.length >= room) {
+        problems.push(`Up to ${ALBUM_MAX_IMAGES} images at a time — ${file.name} was left out.`);
+      } else {
+        accepted.push({ id: crypto.randomUUID(), file, previewUrl: URL.createObjectURL(file) });
       }
-      setAttachment({ file: prepared, previewUrl: URL.createObjectURL(prepared) });
-    } finally {
-      setPreparing(false);
     }
+    setError(problems.length ? problems.join(" ") : null);
+    if (accepted.length) setPicked((current) => [...current, ...accepted]);
+  }
+
+  function removePicked(id: string) {
+    setPicked((current) => {
+      const item = current.find((entry) => entry.id === id);
+      if (item) URL.revokeObjectURL(item.previewUrl);
+      return current.filter((entry) => entry.id !== id);
+    });
+  }
+
+  function clearPicked() {
+    for (const item of pickedRef.current) URL.revokeObjectURL(item.previewUrl);
+    setPicked([]);
+    setProof(false);
+    setError(null);
   }
 
   function send() {
     if (sendLock.current || disabled) return;
-    if (preparing) {
-      setError("Wait for the image to finish preparing.");
-      return;
-    }
     const value = textRef.current.trim();
-    if (!value && !attachment) return;
+    const images = pickedRef.current;
+    if (!value && images.length === 0) return;
     sendLock.current = true;
 
-    if (attachment) {
-      onSendImage(attachment.file, value);
-      setAttachment(null);
+    if (images.length) {
+      onSendImages(images.map((item) => item.file), value, allowProofLabel && proof ? "proof_of_delivery" : null);
+      for (const item of images) URL.revokeObjectURL(item.previewUrl);
+      setPicked([]);
+      setProof(false);
     } else {
       onSendText(value);
     }
@@ -166,7 +200,7 @@ export function Composer({
     }
   }
 
-  const canSend = !disabled && !preparing && (text.trim().length > 0 || attachment !== null);
+  const canSend = !disabled && (text.trim().length > 0 || picked.length > 0);
 
   return (
     <div className="border-border/60 bg-background relative border-t px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4">
@@ -205,14 +239,57 @@ export function Composer({
         </div>
       )}
 
-      {attachment && (
-        <div className="bg-muted/60 mb-2 flex items-center gap-3 rounded-xl p-2">
-          {/* eslint-disable-next-line @next/next/no-img-element -- local preview */}
-          <img src={attachment.previewUrl} alt="Selected image" className="size-14 rounded-lg object-cover" />
-          <p className="min-w-0 flex-1 truncate text-xs">{attachment.file.name}</p>
-          <Button type="button" variant="ghost" size="icon-sm" aria-label="Remove image" onClick={() => setAttachment(null)}>
-            <X className="size-4" />
-          </Button>
+      {picked.length > 0 && (
+        <div className="bg-muted/60 mb-2 rounded-xl p-2" aria-label="Selected images">
+          <div className="flex items-center justify-between gap-2 px-0.5 pb-1.5">
+            <p className="text-xs font-semibold">
+              {picked.length} image{picked.length === 1 ? "" : "s"} selected
+            </p>
+            <div className="flex items-center gap-1">
+              {allowProofLabel && (
+                <button
+                  type="button"
+                  onClick={() => setProof((value) => !value)}
+                  aria-pressed={proof}
+                  className={cn(
+                    "inline-flex min-h-8 items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold",
+                    proof ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground",
+                  )}
+                >
+                  <BadgeCheck className="size-3.5" /> Proof of delivery
+                </button>
+              )}
+              <button type="button" onClick={clearPicked} className="text-muted-foreground hover:text-foreground min-h-8 px-2 text-[11px] font-semibold">
+                Cancel
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+            {picked.map((item, index) => (
+              <div key={item.id} className="relative shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element -- local preview */}
+                <img src={item.previewUrl} alt={`Selected image ${index + 1}`} className="size-16 rounded-lg object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removePicked(item.id)}
+                  className="bg-foreground/80 text-background absolute -top-1 -right-1 inline-flex size-6 items-center justify-center rounded-full after:absolute after:-inset-2 after:content-['']"
+                  aria-label={`Remove image ${index + 1}`}
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            ))}
+            {picked.length < ALBUM_MAX_IMAGES && (
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                className="border-border text-muted-foreground hover:text-foreground inline-flex size-16 shrink-0 items-center justify-center rounded-lg border border-dashed"
+                aria-label="Add more images"
+              >
+                <Plus className="size-5" />
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -227,25 +304,27 @@ export function Composer({
           ref={fileInput}
           type="file"
           accept="image/jpeg,image/png,image/webp"
+          multiple
           className="sr-only"
           tabIndex={-1}
+          aria-label="Choose images"
           onChange={(event) => {
-            const picked = event.target.files?.[0];
+            const files = Array.from(event.target.files ?? []);
             event.target.value = "";
-            void acceptFile(picked);
+            acceptFiles(files);
           }}
         />
         <Button
           type="button"
           variant="outline"
           size="icon"
-          aria-label="Attach an image (JPG, PNG or WebP, up to 4 MB)"
-          title="Attach a photo or screenshot (JPG, PNG, WebP · max 4 MB)"
-          disabled={disabled || preparing}
+          aria-label="Attach images (JPG, PNG or WebP, up to 10, 4 MB each)"
+          title="Attach photos or screenshots (JPG, PNG, WebP · up to 10 · max 4 MB each)"
+          disabled={disabled || picked.length >= ALBUM_MAX_IMAGES}
           onClick={() => fileInput.current?.click()}
-          className="shrink-0 rounded-full"
+          className="size-11 shrink-0 rounded-full"
         >
-          {preparing ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
+          <ImagePlus className="size-5" />
         </Button>
         {actions}
         <textarea
@@ -263,10 +342,10 @@ export function Composer({
             onStopTyping?.();
           }}
           onPaste={(event) => {
-            const file = Array.from(event.clipboardData.files).find((item) => item.type.startsWith("image/"));
-            if (file) {
+            const files = Array.from(event.clipboardData.files).filter((item) => item.type.startsWith("image/"));
+            if (files.length) {
               event.preventDefault();
-              void acceptFile(file);
+              acceptFiles(files);
             }
           }}
           className="border-input bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/40 max-h-[168px] min-h-11 flex-1 resize-none rounded-2xl border px-3.5 py-2.5 text-base leading-snug outline-none focus-visible:ring-3 sm:text-sm"
@@ -277,7 +356,7 @@ export function Composer({
           aria-label="Send message"
           disabled={!canSend}
           onClick={send}
-          className="shrink-0 rounded-full"
+          className="size-11 shrink-0 rounded-full"
         >
           <Send className="size-4" />
         </Button>

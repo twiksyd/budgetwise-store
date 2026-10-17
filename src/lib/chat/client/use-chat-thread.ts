@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ThreadAction } from "@/lib/chat/thread-state.mjs";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
-import { createConversationCache, type ConversationCache } from "@/lib/chat/conversation-cache.mjs";
+import {
+  createConversationCache,
+  type ConversationCache,
+  type PendingAlbumImage,
+} from "@/lib/chat/conversation-cache.mjs";
+import { ALBUM_MAX_IMAGES, UPLOAD_CONCURRENCY } from "@/lib/chat/album.mjs";
+import { runUploadQueue } from "@/lib/chat/upload-queue.mjs";
+import { prepareAlbumImage, type PreparedAlbumImage } from "@/lib/prepare-chat-image";
 import { createConversationLoader, type ConversationLoader } from "@/lib/chat/conversation-loader.mjs";
 import { fetchJson, jsonInit, newClientId, RequestError } from "@/lib/chat/client/fetch-json";
 
@@ -60,8 +67,9 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
 
   // Local preview URLs are released once the server copy replaces them.
   const revokePreview = useCallback((clientMessageId: string) => {
-    const url = getThread().pending.find((item) => item.clientMessageId === clientMessageId)?.previewUrl;
-    if (url) URL.revokeObjectURL(url);
+    const item = getThread().pending.find((pending) => pending.clientMessageId === clientMessageId);
+    if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    for (const url of item?.previews ?? []) URL.revokeObjectURL(url);
   }, [getThread]);
 
   // Files for pending image sends, kept for retry (in the cache, so a retry
@@ -157,7 +165,7 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
   const sendImage = useCallback(
     (file: File, caption: string) => {
       const clientMessageId = newClientId();
-      files.set(clientMessageId, { file, caption });
+      files.set(clientMessageId, { kind: "image", file, caption });
       dispatch({
         type: "send",
         item: {
@@ -174,27 +182,204 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
     [postImage, dispatch, files],
   );
 
+  // ---- albums: up to 10 images as ONE message. Each image (+ thumbnail) is
+  // uploaded on its own request, two at a time; then one message is posted.
+  // A retry re-uploads only the images that failed, with the same id.
+  const uploadImage = useCallback(
+    (
+      clientMessageId: string,
+      position: number,
+      prepared: PreparedAlbumImage,
+      onProgress: (fraction: number) => void,
+      requests: Set<XMLHttpRequest>,
+    ) =>
+      new Promise<void>((resolve, reject) => {
+        const form = new FormData();
+        form.set("clientMessageId", clientMessageId);
+        form.set("position", String(position));
+        form.set("file", prepared.file);
+        form.set("thumb", new File([prepared.thumb], `${position}.thumb`, { type: prepared.thumb.type }));
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `${base}/uploads?${actingAs}`);
+        xhr.responseType = "json";
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) onProgress(event.loaded / event.total);
+        };
+        requests.add(xhr);
+        const done = () => requests.delete(xhr);
+        xhr.onload = () => {
+          done();
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error((xhr.response as { error?: string } | null)?.error ?? "Upload failed."));
+        };
+        xhr.onerror = () => {
+          done();
+          reject(new Error("No connection."));
+        };
+        xhr.onabort = () => {
+          done();
+          reject(new Error("Cancelled."));
+        };
+        xhr.send(form);
+      }),
+    [base, actingAs],
+  );
+
+  const postAlbumMessage = useCallback(
+    async (clientMessageId: string) => {
+      const entry = files.get(clientMessageId);
+      if (entry?.kind !== "album" || entry.cancelled || inFlight.has(clientMessageId)) return;
+      inFlight.add(clientMessageId);
+      const requests = (entry.requests ??= new Set());
+      const total = entry.images.length;
+      try {
+        const todo = entry.images
+          .map((image, position) => ({ image, position }))
+          .filter(({ image }) => !image.uploaded);
+        const alreadyUploaded = total - todo.length;
+        const results = await runUploadQueue(
+          todo,
+          async ({ image, position }, _index, onProgress) => {
+            if (entry.cancelled) throw new Error("Cancelled.");
+            if (!image.prepared) {
+              if (!image.file) throw new Error("Image no longer available.");
+              image.prepared = await prepareAlbumImage(image.file);
+              image.width = image.prepared.width;
+              image.height = image.prepared.height;
+            }
+            await uploadImage(clientMessageId, position, image.prepared, onProgress, requests);
+            image.uploaded = true;
+            // Release the big buffers as soon as each image is safely up.
+            image.prepared = null;
+            image.file = null;
+          },
+          {
+            concurrency: UPLOAD_CONCURRENCY,
+            onProgress: ({ completed, total: count, fraction }) =>
+              dispatch({
+                type: "progress",
+                clientMessageId,
+                progress: (alreadyUploaded + fraction * count) / total,
+                uploaded: alreadyUploaded + completed,
+              }),
+          },
+        );
+        // Cancelled meanwhile: the bubble is gone and the files are being deleted.
+        if (entry.cancelled) return;
+        const failedFiles = results.flatMap((result, index) =>
+          result.ok ? [] : [{ position: todo[index].position, name: todo[index].image.name, error: result.error }],
+        );
+        if (failedFiles.length) {
+          dispatch({
+            type: "failed",
+            clientMessageId,
+            error: failedFiles.length === 1 ? "1 image did not upload." : `${failedFiles.length} images did not upload.`,
+            failedFiles,
+          });
+          return;
+        }
+        entry.posting = true;
+        const body = await fetchJson<{ message: ChatMessageDto }>(
+          `${base}/messages?${actingAs}`,
+          jsonInit("POST", {
+            kind: "album",
+            clientMessageId,
+            body: entry.caption,
+            label: entry.label,
+            items: entry.images.map((image, position) => ({ position, width: image.width, height: image.height })),
+          }),
+        );
+        files.delete(clientMessageId);
+        revokePreview(clientMessageId);
+        dispatch({ type: "confirmed", clientMessageId, message: body.message });
+      } catch (error) {
+        if (!entry.cancelled) {
+          dispatch({
+            type: "failed",
+            clientMessageId,
+            error: error instanceof RequestError ? error.message : "Not sent.",
+          });
+        }
+      } finally {
+        entry.posting = false;
+        inFlight.delete(clientMessageId);
+      }
+    },
+    [base, actingAs, dispatch, files, inFlight, revokePreview, uploadImage],
+  );
+
+  const sendAlbum = useCallback(
+    (picked: File[], caption: string, label: "proof_of_delivery" | null = null) => {
+      const chosen = picked.slice(0, ALBUM_MAX_IMAGES);
+      if (chosen.length === 0) return null;
+      const clientMessageId = newClientId();
+      const images: PendingAlbumImage[] = chosen.map((file) => ({
+        name: file.name,
+        file,
+        prepared: null,
+        width: null,
+        height: null,
+        uploaded: false,
+      }));
+      files.set(clientMessageId, { kind: "album", images, caption, label });
+      dispatch({
+        type: "send",
+        item: {
+          clientMessageId,
+          kind: "album",
+          body: caption,
+          previews: chosen.map((file) => URL.createObjectURL(file)),
+          label,
+          createdAt: new Date().toISOString(),
+        },
+      });
+      void postAlbumMessage(clientMessageId);
+      return clientMessageId;
+    },
+    [dispatch, files, postAlbumMessage],
+  );
+
   /** Retries with the SAME client id, so a lost-response retry cannot duplicate. */
   const retry = useCallback(
     (clientMessageId: string) => {
       const item = getThread().pending.find((pending) => pending.clientMessageId === clientMessageId);
       if (!item || item.status !== "failed") return;
       dispatch({ type: "retry", clientMessageId });
-      if (item.kind === "image") {
-        const entry = files.get(clientMessageId);
-        if (entry) postImage(clientMessageId, entry.file, entry.caption);
+      const entry = files.get(clientMessageId);
+      if (item.kind === "album") {
+        void postAlbumMessage(clientMessageId);
+      } else if (item.kind === "image") {
+        if (entry?.kind === "image") postImage(clientMessageId, entry.file, entry.caption);
       } else {
         void postText(clientMessageId, item.body);
       }
     },
-    [postImage, postText, getThread, dispatch, files],
+    [postImage, postText, postAlbumMessage, getThread, dispatch, files],
   );
 
+  /**
+   * Removes an unsent message. For an album this is also Cancel while it
+   * uploads: running uploads are aborted and whatever already reached the
+   * server is deleted (best-effort; the cleanup job catches the rest).
+   * Once the album message itself is on its way it can no longer be cancelled.
+   */
   const discard = useCallback((clientMessageId: string) => {
+    const entry = files.get(clientMessageId);
+    if (entry?.kind === "album") {
+      if (entry.posting) return;
+      entry.cancelled = true;
+      for (const xhr of entry.requests ?? []) xhr.abort();
+      for (const image of entry.images) {
+        image.file = null;
+        image.prepared = null;
+      }
+      const params = new URLSearchParams({ as: viewer, clientMessageId });
+      void fetch(`${base}/uploads?${params}`, { method: "DELETE" }).catch(() => undefined);
+    }
     files.delete(clientMessageId);
     revokePreview(clientMessageId);
     dispatch({ type: "discard", clientMessageId });
-  }, [revokePreview, dispatch, files]);
+  }, [revokePreview, dispatch, files, base, viewer]);
 
   /** Adds a message the server already created (e.g. payment details). */
   const addConfirmed = useCallback((message: ChatMessageDto) => {
@@ -219,5 +404,5 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
     [base, actingAs],
   );
 
-  return { state, loadError, reload, loadOlder, fetchNewer, sendText, sendImage, retry, discard, addConfirmed, markRead };
+  return { state, loadError, reload, loadOlder, fetchNewer, sendText, sendImage, sendAlbum, retry, discard, addConfirmed, markRead };
 }

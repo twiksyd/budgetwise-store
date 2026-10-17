@@ -1,19 +1,23 @@
 import {
   MAX_ATTACHMENT_BYTES,
   isUuid,
-  sniffImageType,
+  inspectImage,
   validateAttachmentMeta,
   validateMessageBody,
 } from "@/lib/order-chat.mjs";
-import { toChatMessage } from "@/lib/chat/dto.mjs";
+import { buildAlbumAttachments, parseAlbumRequest } from "@/lib/chat/album.mjs";
 import {
   MESSAGE_PAGE_SIZE,
+  albumFolderFor,
   attachmentPathFor,
   isOverMessageRateLimit,
+  listAlbumUploads,
   listMessages,
   listMessagesSinceTimestamp,
+  postAlbum,
   postMessage,
   resolveChatActor,
+  toChatMessages,
   uploadAttachment,
 } from "@/lib/queries/order-chat";
 import {
@@ -51,7 +55,7 @@ export async function GET(request: Request, { params }: Context) {
     if (after && !isUuid(after)) {
       if (Number.isNaN(Date.parse(after))) return chatError("Invalid cursor.", 400);
       const rows = await listMessagesSinceTimestamp(orderNumber, after);
-      return chatJson({ messages: rows.map((row) => toChatMessage(row, viewer)) });
+      return chatJson({ messages: await toChatMessages(rows, viewer) });
     }
     if (before && !isUuid(before)) return chatError("Invalid cursor.", 400);
 
@@ -61,7 +65,7 @@ export async function GET(request: Request, { params }: Context) {
       limit: MESSAGE_PAGE_SIZE,
     });
     return chatJson({
-      messages: rows.map((row) => toChatMessage(row, viewer)),
+      messages: await toChatMessages(rows, viewer),
       // Newest/older pages: a full page means there may be more before it.
       hasOlder: after ? undefined : rows.length === MESSAGE_PAGE_SIZE,
     });
@@ -74,6 +78,10 @@ export async function GET(request: Request, { params }: Context) {
  * POST ?as=customer|admin — JSON {body, clientMessageId} or multipart
  * (body, file, clientMessageId). A retry with the same clientMessageId
  * returns the original message (200) instead of creating another (201).
+ *
+ * Albums (JSON {kind: "album", clientMessageId, body, label?, items}):
+ * the images were uploaded first, one per request, through
+ * /api/order-chat/<order>/uploads; this turns them into ONE message.
  */
 export async function POST(request: Request, { params }: Context) {
   if (!isSameOriginRequest(request)) return chatError("Not allowed.", 403);
@@ -91,6 +99,7 @@ export async function POST(request: Request, { params }: Context) {
   let rawBody: unknown;
   let rawClientId: unknown = null;
   let file: File | null = null;
+  let albumRequest: unknown = null;
 
   try {
     if (contentType.startsWith("multipart/form-data")) {
@@ -100,7 +109,8 @@ export async function POST(request: Request, { params }: Context) {
       const maybeFile = form.get("file");
       if (maybeFile instanceof File && maybeFile.size > 0) file = maybeFile;
     } else if (contentType.startsWith("application/json")) {
-      const json = (await request.json()) as { body?: unknown; clientMessageId?: unknown } | null;
+      const json = (await request.json()) as { kind?: unknown; body?: unknown; clientMessageId?: unknown } | null;
+      if (json?.kind === "album") albumRequest = json;
       rawBody = json?.body;
       rawClientId = json?.clientMessageId ?? null;
     } else {
@@ -109,6 +119,8 @@ export async function POST(request: Request, { params }: Context) {
   } catch {
     return chatError("That message could not be read.", 400);
   }
+
+  if (albumRequest) return sendAlbum(orderNumber, actor, albumRequest);
 
   // Older open tabs send no id; new clients always do.
   if (rawClientId !== null && rawClientId !== "" && !isUuid(rawClientId)) {
@@ -135,10 +147,8 @@ export async function POST(request: Request, { params }: Context) {
         body: body.body,
         clientMessageId,
       });
-      return chatJson(
-        { message: toChatMessage(result.message, viewer) },
-        result.created ? 201 : 200,
-      );
+      const [message] = await toChatMessages([result.message], viewer);
+      return chatJson({ message }, result.created ? 201 : 200);
     }
 
     const meta = validateAttachmentMeta({ type: file.type, size: file.size });
@@ -148,8 +158,8 @@ export async function POST(request: Request, { params }: Context) {
     if (bytes.byteLength > MAX_ATTACHMENT_BYTES) {
       return chatError("That image is too large (4 MB max).", 413);
     }
-    // The declared type is a hint; the bytes decide.
-    const sniffed = sniffImageType(bytes);
+    // The declared type is a hint; the bytes (and their structure) decide.
+    const sniffed = inspectImage(bytes)?.type ?? null;
     if (!sniffed || sniffed !== file.type) {
       return chatError("Only JPG, PNG, or WebP images can be sent.", 400);
     }
@@ -172,11 +182,40 @@ export async function POST(request: Request, { params }: Context) {
       attachmentMime: sniffed,
       clientMessageId,
     });
-    return chatJson(
-      { message: toChatMessage(result.message, viewer) },
-      result.created ? 201 : 200,
-    );
+    const [message] = await toChatMessages([result.message], viewer);
+    return chatJson({ message }, result.created ? 201 : 200);
   } catch (error) {
     return routeErrorResponse(error, "Send chat message");
+  }
+}
+
+async function sendAlbum(
+  orderNumber: string,
+  actor: { role: "admin" | "customer"; userId: string },
+  input: unknown,
+) {
+  const parsed = parseAlbumRequest(input, { role: actor.role });
+  if (!parsed.ok) return chatError(parsed.error, parsed.status ?? 400);
+  try {
+    if (await isOverMessageRateLimit(orderNumber, actor.userId)) {
+      return chatError("Sending too fast. Please wait a moment.", 429);
+    }
+    const folder = albumFolderFor({ orderNumber, userId: actor.userId, clientMessageId: parsed.clientMessageId });
+    const built = buildAlbumAttachments(parsed.items, await listAlbumUploads(folder));
+    if (!built.ok) return chatJson({ error: built.error, missing: built.missing }, 409);
+
+    const result = await postAlbum({
+      orderNumber,
+      role: actor.role,
+      userId: actor.userId,
+      body: parsed.body,
+      label: parsed.label,
+      attachments: built.attachments,
+      clientMessageId: parsed.clientMessageId,
+    });
+    const [message] = await toChatMessages([result.message], { viewer: actor.role, viewerUserId: actor.userId });
+    return chatJson({ message }, result.created ? 201 : 200);
+  } catch (error) {
+    return routeErrorResponse(error, "Send album");
   }
 }

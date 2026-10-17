@@ -4,6 +4,7 @@ import { BrandMark } from "@/components/brand/brand-mark";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { CartTrigger } from "@/components/cart/cart-trigger";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { MyOrdersHeaderLink, MyOrdersNavBadge } from "@/components/customer-messages/my-orders-link";
 
 export function SiteHeader() {
   return (
@@ -23,10 +24,12 @@ export function SiteHeader() {
               className="text-muted-foreground hover:text-foreground bg-[linear-gradient(currentColor,currentColor)] bg-position-[0%_100%] bg-no-repeat bg-[length:0%_1px] py-0.5 transition-[background-size,color] duration-300 ease-out hover:bg-[length:100%_1px]"
             >
               {item.label}
+              {item.href === "/account/orders" && <MyOrdersNavBadge />}
             </Link>
           ))}
         </nav>
         <div className="flex items-center gap-1 sm:gap-0.5">
+          <MyOrdersHeaderLink />
           <CartTrigger />
           <ThemeToggle />
         </div>

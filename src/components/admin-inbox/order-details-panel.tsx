@@ -150,17 +150,22 @@ function LineItem({
 }) {
   return (
     <li className="bg-muted/40 rounded-xl p-2.5">
-      <div className="flex justify-between gap-2 text-sm">
-        <span className="min-w-0 font-semibold">
-          {line.quantity > 1 && <span className="text-primary">{line.quantity}× </span>}
-          {line.productName}
-        </span>
-        <span className="shrink-0 font-semibold">{formatPrice(line.lineTotal)}</span>
+      <div className="flex gap-2.5">
+        <ProductThumb src={line.imageUrl} name={line.productName} />
+        <div className="min-w-0 flex-1">
+          <div className="flex justify-between gap-2 text-sm">
+            <span className="min-w-0 font-semibold">{line.productName}</span>
+            <span className="shrink-0 font-semibold">{formatPrice(line.lineTotal)}</span>
+          </div>
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            {line.robuxAmount.toLocaleString()} Robux{line.quantity > 1 ? ` each · ${line.totalRobux.toLocaleString()} total` : ""}
+          </p>
+          <p className="text-muted-foreground text-xs">
+            <span className={line.quantity > 1 ? "text-primary font-semibold" : ""}>Qty {line.quantity}</span> ·{" "}
+            {formatPrice(line.unitPrice)} each
+          </p>
+        </div>
       </div>
-      <p className="text-muted-foreground mt-0.5 text-xs">
-        {line.robuxAmount.toLocaleString()} Robux{line.quantity > 1 ? ` each · ${line.totalRobux.toLocaleString()} total` : ""} ·{" "}
-        {formatPrice(line.unitPrice)} each
-      </p>
       {line.fulfillment.map((slot) => (
         <FulfillmentSlot
           key={`${slot.unitIndex}-${slot.fieldKey}`}
@@ -270,6 +275,20 @@ function FulfillmentSlot({
         >
           <Pencil className="size-3" /> Enter on customer&apos;s behalf
         </button>
+      )}
+    </div>
+  );
+}
+
+/** The catalog's own product artwork (never generated); initials if none. */
+export function ProductThumb({ src, name, className }: { src: string | null; name: string; className?: string }) {
+  return (
+    <div className={`bg-background border-border/60 flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border ${className ?? ""}`}>
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element -- catalog artwork from several hosts
+        <img src={src} alt="" loading="lazy" className="size-full object-cover" />
+      ) : (
+        <span className="text-muted-foreground text-[10px] font-bold uppercase">{name.slice(0, 2)}</span>
       )}
     </div>
   );

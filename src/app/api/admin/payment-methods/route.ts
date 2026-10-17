@@ -1,4 +1,4 @@
-import { isUuid, sniffImageType, validateAttachmentMeta } from "@/lib/order-chat.mjs";
+import { inspectImage, isUuid, validateAttachmentMeta } from "@/lib/order-chat.mjs";
 import { validatePaymentMethodInput } from "@/lib/chat/admin-input.mjs";
 import { listPaymentMethods, savePaymentMethod, uploadPaymentQr } from "@/lib/queries/order-chat";
 import { chatError, chatJson, requireAdminApi, routeErrorResponse } from "@/lib/order-chat-http";
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       const meta = validateAttachmentMeta({ type: qr.type, size: qr.size });
       if (!meta.ok) return chatError(meta.error, 400);
       const bytes = new Uint8Array(await qr.arrayBuffer());
-      const sniffed = sniffImageType(bytes);
+      const sniffed = inspectImage(bytes)?.type ?? null;
       if (!sniffed || sniffed !== qr.type) return chatError("Only JPG, PNG, or WebP images.", 400);
       newQrPath = await uploadPaymentQr(bytes, sniffed, meta.extension);
     }

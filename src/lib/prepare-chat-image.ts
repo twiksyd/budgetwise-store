@@ -56,3 +56,42 @@ export async function prepareChatImage(file: File): Promise<File> {
     return file;
   }
 }
+
+const THUMB_MAX_DIMENSION = 480;
+
+export interface PreparedAlbumImage {
+  file: File;
+  thumb: Blob;
+  width: number | null;
+  height: number | null;
+}
+
+async function encode(canvas: HTMLCanvasElement, type: string, quality: number) {
+  return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
+}
+
+/**
+ * An album image ready to upload: the (possibly downscaled) image plus a
+ * small thumbnail for chat tiles, made here in the browser so the chat
+ * never downloads full images just to show a grid. WebP where the browser
+ * can encode it, JPEG otherwise (older iOS Safari).
+ */
+export async function prepareAlbumImage(original: File): Promise<PreparedAlbumImage> {
+  const file = await prepareChatImage(original);
+  const image = await loadImage(file);
+  const width = image.naturalWidth || null;
+  const height = image.naturalHeight || null;
+  const scale = Math.min(1, THUMB_MAX_DIMENSION / Math.max(image.naturalWidth || 1, image.naturalHeight || 1));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round((image.naturalWidth || 1) * scale));
+  canvas.height = Math.max(1, Math.round((image.naturalHeight || 1) * scale));
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("This browser cannot prepare images.");
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  let thumb = await encode(canvas, "image/webp", 0.72);
+  if (!thumb || thumb.type !== "image/webp") thumb = await encode(canvas, "image/jpeg", 0.72);
+  if (!thumb) throw new Error("This image could not be read.");
+  canvas.width = 0;
+  canvas.height = 0;
+  return { file, thumb, width, height };
+}

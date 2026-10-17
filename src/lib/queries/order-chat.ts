@@ -7,10 +7,17 @@ import { buildOrderDetails } from "@/lib/chat/order-details.mjs";
 import type { OrderDetails } from "@/lib/chat/order-details.mjs";
 import { buildFulfillmentView } from "@/lib/chat/fulfillment-fields.mjs";
 import type { FulfillmentSlotView } from "@/lib/chat/fulfillment-fields.mjs";
+import { INBOX_FILTERS } from "@/lib/chat/inbox-state.mjs";
 import type { InboxCursor, InboxFilter, InboxRow } from "@/lib/chat/inbox-state.mjs";
+import { toChatMessage, type AttachmentRowLike, type ChatMessageDto } from "@/lib/chat/dto.mjs";
+import { describeOrderItems, summarizeLines, type SummaryLine } from "@/lib/chat/order-summary.mjs";
+import { getProductArtworkMapSafe, getProductArtworkUrlMap } from "@/lib/queries/product-artwork";
 import type {
+  AlbumAttachmentInput,
+  ConversationState,
   StoreAdminInboxRpcRow,
   StoreOrderConversationRow,
+  StoreOrderMessageAttachmentRow,
   StoreOrderMessageRowExport,
   StorePaymentMethodRow,
   StoreQuickReplyRow,
@@ -57,6 +64,10 @@ export function toChatDataError(error: { code?: string; message?: string }) {
       return new ChatDataError("That already exists.", 409);
     case "BW010":
       return new ChatDataError("That message was already sent with different content.", 409);
+    case "BW011":
+      return new ChatDataError("The customer just sent a new message. Read it before marking this Done.", 409);
+    case "BW012":
+      return new ChatDataError("These photos took too long to send. Please choose them again.", 410);
     default:
       return new ChatDataError("Something went wrong. Please try again.", 500);
   }
@@ -203,6 +214,49 @@ export async function listMessages(
 }
 
 /** For browser tabs still running the previous build (timestamp cursor). */
+/** Attachment rows of album messages, keyed by message id (one query). */
+export async function loadAlbumAttachments(
+  messageIds: string[],
+): Promise<Map<string, StoreOrderMessageAttachmentRow[]>> {
+  const byMessage = new Map<string, StoreOrderMessageAttachmentRow[]>();
+  if (messageIds.length === 0) return byMessage;
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("store_order_message_attachments")
+    .select("*")
+    .in("message_id", messageIds)
+    .order("position", { ascending: true });
+  if (error) throw error;
+  for (const row of data ?? []) {
+    const list = byMessage.get(row.message_id) ?? [];
+    list.push(row);
+    byMessage.set(row.message_id, list);
+  }
+  return byMessage;
+}
+
+/** Rows -> DTOs for one viewer, with album items (no extra query without albums). */
+export async function toChatMessages(
+  rows: MessageRow[],
+  viewer: { viewer: ChatRole; viewerUserId: string },
+): Promise<ChatMessageDto[]> {
+  const albumIds = rows.filter((row) => row.kind === "album").map((row) => row.id);
+  const attachments = (await loadAlbumAttachments(albumIds)) as Map<string, AttachmentRowLike[]>;
+  return rows.map((row) => toChatMessage(row, { ...viewer, attachments }));
+}
+
+export async function getAttachment(id: string): Promise<StoreOrderMessageAttachmentRow | null> {
+  if (!isUuid(id)) return null;
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("store_order_message_attachments")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function listMessagesSinceTimestamp(
   orderNumber: string,
   isoAfter: string,
@@ -300,11 +354,152 @@ export function attachmentPathFor(input: {
   return `${input.orderNumber}/${input.userId}/${input.clientMessageId}.${input.extension}`;
 }
 
-export async function uploadAttachment(path: string, bytes: Uint8Array, mime: string) {
+/**
+ * Album files: <order>/<sender>/<client message id>/<position>.<ext> and
+ * <position>.thumb.<ext>. Deterministic, so a retried upload overwrites the
+ * same object, and the database re-checks the prefix belongs to the sender.
+ */
+export function albumFolderFor(input: { orderNumber: string; userId: string; clientMessageId: string }) {
+  return `${input.orderNumber}/${input.userId}/${input.clientMessageId}/`;
+}
+
+export interface AlbumUpload {
+  position: number;
+  path: string;
+  mime: string;
+  size: number;
+  thumbPath: string | null;
+  thumbMime: string | null;
+}
+
+const EXTENSION_MIME: Record<string, string> = { jpg: "image/jpeg", png: "image/png", webp: "image/webp" };
+
+/** What has been uploaded (and validated by our upload route) for one album. */
+export async function listAlbumUploads(folder: string): Promise<Map<number, AlbumUpload>> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.storage
+    .from(ORDER_CHAT_BUCKET)
+    .list(folder.replace(/\/$/, ""), { limit: 100 });
+  if (error) throw error;
+  const uploads = new Map<number, AlbumUpload>();
+  for (const object of data ?? []) {
+    const match = /^(\d)(\.thumb)?\.(jpg|png|webp)$/.exec(object.name);
+    if (!match) continue;
+    const position = Number(match[1]);
+    const entry = uploads.get(position) ?? { position, path: "", mime: "", size: 0, thumbPath: null, thumbMime: null };
+    if (match[2]) {
+      entry.thumbPath = folder + object.name;
+      entry.thumbMime = EXTENSION_MIME[match[3]];
+    } else {
+      entry.path = folder + object.name;
+      entry.mime = EXTENSION_MIME[match[3]];
+      entry.size = Number((object.metadata as { size?: number } | null)?.size ?? 0);
+    }
+    uploads.set(position, entry);
+  }
+  return uploads;
+}
+
+export async function postAlbum(input: {
+  orderNumber: string;
+  role: ChatRole;
+  userId: string;
+  body: string;
+  label: "proof_of_delivery" | null;
+  attachments: AlbumAttachmentInput[];
+  clientMessageId: string;
+}) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("store_post_album", {
+    p_order_number: input.orderNumber,
+    p_sender_role: input.role,
+    p_sender: input.userId,
+    p_body: input.body,
+    p_label: input.label,
+    p_attachments: input.attachments,
+    p_client_message_id: input.clientMessageId,
+  });
+  if (error) throw toChatDataError(error);
+  return data as { created: boolean; message: MessageRow };
+}
+
+/**
+ * Chat files are write-once: an existing object is never replaced, so a
+ * receipt or proof photo cannot be swapped after BudgetWise has seen it.
+ * A retry of the same upload (same deterministic path) finds the object
+ * already there and is treated as done — "created" vs "exists".
+ */
+export async function uploadAttachment(path: string, bytes: Uint8Array, mime: string): Promise<"created" | "exists"> {
   const supabase = createAdminClient();
   const { error } = await supabase.storage
     .from(ORDER_CHAT_BUCKET)
-    .upload(path, bytes, { contentType: mime, upsert: true });
+    .upload(path, bytes, { contentType: mime, upsert: false });
+  if (!error) return "created";
+  if (isStorageDuplicate(error)) return "exists";
+  throw error;
+}
+
+function isStorageDuplicate(error: unknown) {
+  const e = error as { statusCode?: string | number; status?: number; error?: string; message?: string } | null;
+  return (
+    String(e?.statusCode ?? e?.status ?? "") === "409" ||
+    e?.error === "Duplicate" ||
+    /already exists/i.test(e?.message ?? "")
+  );
+}
+
+/** Whether this sender already posted a message with this client id. */
+export async function messageExistsForClientId(orderNumber: string, userId: string, clientMessageId: string) {
+  const supabase = createAdminClient();
+  const { count, error } = await supabase
+    .from("store_order_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("order_number", orderNumber)
+    .eq("sender_user_id", userId)
+    .eq("client_message_id", clientMessageId);
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
+
+/**
+ * Deletes the sender's own not-yet-posted album uploads (Cancel / discard).
+ * Never touches a folder whose album was posted.
+ */
+export async function deletePendingAlbumUploads(orderNumber: string, userId: string, clientMessageId: string) {
+  if (await messageExistsForClientId(orderNumber, userId, clientMessageId)) return { deleted: 0, posted: true };
+  const folder = albumFolderFor({ orderNumber, userId, clientMessageId });
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.storage
+    .from(ORDER_CHAT_BUCKET)
+    .list(folder.replace(/\/$/, ""), { limit: 100 });
+  if (error) throw error;
+  const paths = (data ?? []).filter((object) => object.id).map((object) => folder + object.name);
+  if (paths.length) {
+    const { error: removeError } = await supabase.storage.from(ORDER_CHAT_BUCKET).remove(paths);
+    if (removeError) throw removeError;
+  }
+  return { deleted: paths.length, posted: false };
+}
+
+/**
+ * Chat files no message references, uploaded more than `olderThanHours`
+ * ago (abandoned albums: closed tab, cancelled, failed). The database
+ * enforces a minimum age, so an upload still in progress is never listed.
+ */
+export async function listOrphanChatUploads(olderThanHours: number, limit: number) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("store_list_orphan_chat_uploads", {
+    p_older_than_hours: olderThanHours,
+    p_limit: limit,
+  });
+  if (error) throw toChatDataError(error);
+  return data ?? [];
+}
+
+export async function removeChatUploads(paths: string[]) {
+  if (paths.length === 0) return;
+  const supabase = createAdminClient();
+  const { error } = await supabase.storage.from(ORDER_CHAT_BUCKET).remove(paths);
   if (error) throw error;
 }
 
@@ -373,21 +568,19 @@ export function toInboxRow(row: StoreAdminInboxRpcRow): InboxRow {
     myReadAt: row.my_read_at,
     myReadMessageId: row.my_read_message_id,
     unreadCount: row.unread_count,
+    state: row.state ?? "active",
+    doneAt: row.done_at ?? null,
+    doneBy: row.done_by ?? null,
   };
 }
 
-const INBOX_FILTER_SET = new Set<InboxFilter>([
-  "all",
-  "unread",
-  "unassigned",
-  "mine",
-  "under_review",
-]);
+const INBOX_FILTER_SET = new Set<InboxFilter>(INBOX_FILTERS);
 
+/** Unknown or missing filters mean the Active working queue. */
 export function parseInboxFilter(value: unknown): InboxFilter {
   return typeof value === "string" && INBOX_FILTER_SET.has(value as InboxFilter)
     ? (value as InboxFilter)
-    : "all";
+    : "active";
 }
 
 function escapeLike(value: string) {
@@ -397,7 +590,7 @@ function escapeLike(value: string) {
 export async function loadInboxPage(
   adminId: string,
   {
-    filter = "all",
+    filter = "active",
     search = "",
     before = null,
   }: { filter?: InboxFilter; search?: string; before?: InboxCursor | null } = {},
@@ -455,6 +648,24 @@ export async function assignConversation(
 
 // ------------------------------------------------------------ admin directory
 
+/** Mark Done / Reopen. The database re-checks the admin and the race. */
+export async function setConversationState(input: {
+  orderNumber: string;
+  actorId: string;
+  state: ConversationState;
+  lastSeenMessageId: string | null;
+}) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("store_set_conversation_state", {
+    p_order_number: input.orderNumber,
+    p_actor: input.actorId,
+    p_state: input.state,
+    p_last_seen_message_id: input.lastSeenMessageId,
+  });
+  if (error) throw toChatDataError(error);
+  return data;
+}
+
 export interface AdminDirectoryEntry {
   userId: string;
   displayName: string;
@@ -496,7 +707,7 @@ export async function loadOrderLines(orderNumber: string) {
   const { data, error } = await supabase
     .from("store_order_line_snapshots")
     .select(
-      "line_index, game_id, game_name, product_name, quantity, robux_amount, unit_price, line_total, is_via_plus",
+      "line_index, gamepass_id, game_id, game_name, product_name, quantity, robux_amount, unit_price, line_total, is_via_plus",
     )
     .eq("order_number", orderNumber)
     .order("line_index", { ascending: true });
@@ -539,6 +750,18 @@ async function loadViaPlus(orderNumber: string) {
   return data ?? null;
 }
 
+/**
+ * The catalog's own product artwork for the frozen gamepass ids on an order
+ * (never generated or modified). Decorative: a failure means no images.
+ */
+export async function loadLineArtwork(lines: Array<{ gamepass_id?: string | null }>) {
+  const ids = [...new Set(lines.map((line) => line.gamepass_id).filter((id): id is string => Boolean(id)))];
+  if (ids.length === 0) return new Map<string, string>();
+  // identity: null skips the slower Roblox universe-name fallback: override
+  // and icon-cache artwork only, in one parallel round trip.
+  return getProductArtworkUrlMap(await getProductArtworkMapSafe(ids, { identity: null }));
+}
+
 /** Admin Order Details panel. Built from order records only — never chat. */
 export async function loadOrderDetails(orderNumber: string): Promise<OrderDetails | null> {
   if (!isValidOrderNumber(orderNumber)) return null;
@@ -563,6 +786,7 @@ export async function loadOrderDetails(orderNumber: string): Promise<OrderDetail
       ? supabase.auth.admin.getUserById(snapshot.owner_user_id)
       : Promise.resolve(null),
   ]);
+  const artwork = await loadLineArtwork(lines);
 
   return buildOrderDetails({
     snapshot,
@@ -572,6 +796,7 @@ export async function loadOrderDetails(orderNumber: string): Promise<OrderDetail
     status,
     conversation,
     customerEmail: owner?.data?.user?.email ?? null,
+    artwork,
   });
 }
 
@@ -818,18 +1043,6 @@ export async function sendPaymentDetails(input: {
 
 // ------------------------------------------------------------------ customer
 
-export interface CustomerOrderListItem {
-  orderNumber: string;
-  totalAmount: number;
-  createdAt: string;
-  status: string;
-  unreadCount: number;
-  lastMessageAt: string | null;
-  lastMessageKind: "slip" | "text" | "image" | "payment" | null;
-  lastMessagePreview: string | null;
-  lastSenderRole: ChatRole | null;
-}
-
 async function loadOrderStatuses(orderNumbers: string[]) {
   const statusByOrder = new Map<string, string>();
   if (orderNumbers.length === 0) return statusByOrder;
@@ -845,41 +1058,182 @@ async function loadOrderStatuses(orderNumbers: string[]) {
   return statusByOrder;
 }
 
-export async function listCustomerOrders(userId: string): Promise<CustomerOrderListItem[]> {
+/** One row per conversation the customer has: drives the floating button. */
+export interface CustomerConversationSummary {
+  conversationId: string;
+  orderNumber: string;
+  state: ConversationState;
+  unreadCount: number;
+  lastMessageAt: string | null;
+  lastMessagePreview: string | null;
+  lastSenderRole: ChatRole | null;
+}
+
+export async function listCustomerConversations(userId: string): Promise<CustomerConversationSummary[]> {
   const supabase = createAdminClient();
-  const [{ data: orders, error }, { data: conversations, error: conversationError }] =
-    await Promise.all([
-      supabase
-        .from("store_order_snapshots")
-        .select("order_number, total_amount, created_at")
-        .eq("owner_user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(100),
-      supabase.rpc("store_customer_conversations", { p_user: userId }),
-    ]);
-  if (error) throw error;
-  if (conversationError) throw toChatDataError(conversationError);
-  if (!orders || orders.length === 0) return [];
+  const { data, error } = await supabase.rpc("store_customer_conversations", { p_user: userId });
+  if (error) throw toChatDataError(error);
+  return (data ?? []).map((row) => ({
+    conversationId: row.conversation_id,
+    orderNumber: row.order_number,
+    state: row.state ?? "active",
+    unreadCount: row.unread_count,
+    lastMessageAt: row.last_message_at,
+    lastMessagePreview: row.last_message_preview,
+    lastSenderRole: row.last_sender_role,
+  }));
+}
 
-  const statusByOrder = await loadOrderStatuses(orders.map((order) => order.order_number));
-  const conversationByOrder = new Map(
-    (conversations ?? []).map((conversation) => [conversation.order_number, conversation]),
-  );
+/** A My Orders card. */
+export interface CustomerOrderCard {
+  orderNumber: string;
+  totalAmount: number;
+  createdAt: string;
+  robloxUsername: string;
+  /** XOB's order status (read-only). */
+  status: string;
+  /** BudgetWise's workflow state: In progress / Completed. */
+  state: ConversationState;
+  doneAt: string | null;
+  unreadCount: number;
+  lastMessageAt: string | null;
+  lastMessagePreview: string | null;
+  lastSenderRole: ChatRole | null;
+  paymentSent: boolean;
+  summary: string;
+  thumbnails: string[];
+}
 
-  return orders.map((order) => {
-    const conversation = conversationByOrder.get(order.order_number);
+export interface CustomerOrderCursor {
+  at: string;
+  orderNumber: string;
+}
+
+export const COMPLETED_PAGE_SIZE = 20;
+
+/**
+ * My Orders, one section at a time: "open" (everything in progress, at most
+ * 100, newest activity first) or "completed" (keyset pages of 20, most
+ * recently completed first). Item summaries and thumbnails come from the
+ * frozen order lines for just the orders on the page.
+ */
+export async function loadCustomerOrderSection(
+  userId: string,
+  section: "open" | "completed",
+  cursor: CustomerOrderCursor | null = null,
+): Promise<{ rows: CustomerOrderCard[]; nextCursor: CustomerOrderCursor | null }> {
+  const supabase = createAdminClient();
+  const limit = section === "completed" ? COMPLETED_PAGE_SIZE + 1 : 100;
+  const { data, error } = await supabase.rpc("store_customer_orders", {
+    p_user: userId,
+    p_section: section,
+    p_before_at: cursor?.at ?? null,
+    p_before_order: cursor?.orderNumber ?? null,
+    p_limit: limit,
+  });
+  if (error) throw toChatDataError(error);
+  const all = data ?? [];
+  const page = section === "completed" ? all.slice(0, COMPLETED_PAGE_SIZE) : all;
+  const orderNumbers = page.map((row) => row.order_number);
+
+  const loadLines = async () => {
+    if (orderNumbers.length === 0) return [];
+    const { data: lineRows, error: lineError } = await supabase
+      .from("store_order_line_snapshots")
+      .select("order_number, line_index, gamepass_id, game_name, product_name, quantity, robux_amount, unit_price, line_total")
+      .in("order_number", orderNumbers);
+    if (lineError) throw lineError;
+    return lineRows ?? [];
+  };
+  const [statuses, allLines] = await Promise.all([loadOrderStatuses(orderNumbers), loadLines()]);
+  const linesByOrder = new Map<string, typeof allLines>();
+  for (const line of allLines) {
+    const list = linesByOrder.get(line.order_number) ?? [];
+    list.push(line);
+    linesByOrder.set(line.order_number, list);
+  }
+  const artwork = await loadLineArtwork(allLines);
+
+  const rows = page.map((row): CustomerOrderCard => {
+    const lines = summarizeLines(linesByOrder.get(row.order_number) ?? [], artwork);
     return {
-      orderNumber: order.order_number,
-      totalAmount: Number(order.total_amount),
-      createdAt: order.created_at,
-      status: statusByOrder.get(order.order_number) ?? "pending",
-      unreadCount: conversation?.unread_count ?? 0,
-      lastMessageAt: conversation?.last_message_at ?? null,
-      lastMessageKind: conversation?.last_message_kind ?? null,
-      lastMessagePreview: conversation?.last_message_preview ?? null,
-      lastSenderRole: conversation?.last_sender_role ?? null,
+      orderNumber: row.order_number,
+      totalAmount: Number(row.total_amount),
+      createdAt: row.created_at,
+      robloxUsername: row.buyer_roblox_username,
+      status: statuses.get(row.order_number) ?? "pending",
+      state: row.state ?? "active",
+      doneAt: row.done_at,
+      unreadCount: row.unread_count,
+      lastMessageAt: row.last_message_at,
+      lastMessagePreview: row.last_message_preview,
+      lastSenderRole: row.last_sender_role,
+      paymentSent: Boolean(row.payment_details_sent_at),
+      summary: describeOrderItems(lines),
+      thumbnails: [...new Set(lines.map((line) => line.imageUrl).filter((url): url is string => Boolean(url)))].slice(0, 3),
     };
   });
+
+  const last = page[page.length - 1];
+  return {
+    rows,
+    nextCursor:
+      section === "completed" && all.length > COMPLETED_PAGE_SIZE && last?.done_at
+        ? { at: last.done_at, orderNumber: last.order_number }
+        : null,
+  };
+}
+
+/** Structured summary pinned above the customer's conversation. */
+export interface CustomerOrderSummary {
+  orderNumber: string;
+  conversationId: string | null;
+  totalAmount: number;
+  createdAt: string;
+  buyerName: string;
+  robloxUsername: string;
+  status: string;
+  state: ConversationState;
+  paymentSent: boolean;
+  itemCount: number;
+  summary: string;
+  lines: SummaryLine[];
+}
+
+export async function loadCustomerOrderSummary(orderNumber: string): Promise<CustomerOrderSummary | null> {
+  const [order, lines, conversation, status] = await Promise.all([
+    getChatOrder(orderNumber),
+    loadOrderLines(orderNumber),
+    getConversation(orderNumber),
+    loadOrderStatus(orderNumber),
+  ]);
+  if (!order) return null;
+  const summarized = summarizeLines(lines, await loadLineArtwork(lines));
+  return {
+    orderNumber: order.orderNumber,
+    conversationId: conversation?.id ?? null,
+    totalAmount: order.totalAmount,
+    createdAt: order.createdAt,
+    buyerName: order.buyerName,
+    robloxUsername: order.buyerRobloxUsername,
+    status: status ?? "pending",
+    state: conversation?.state ?? "active",
+    paymentSent: Boolean(conversation?.payment_details_sent_at),
+    itemCount: summarized.reduce((sum, line) => sum + line.quantity, 0),
+    summary: describeOrderItems(summarized),
+    lines: summarized,
+  };
+}
+
+/** How many orders this account has placed (first-order guidance). */
+export async function countCustomerOrders(userId: string): Promise<number> {
+  const supabase = createAdminClient();
+  const { count, error } = await supabase
+    .from("store_order_snapshots")
+    .select("order_number", { count: "exact", head: true })
+    .eq("owner_user_id", userId);
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function getOrderStatus(orderNumber: string) {
