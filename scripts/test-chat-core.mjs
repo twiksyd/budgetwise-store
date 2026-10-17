@@ -576,6 +576,14 @@ describe("shared inbox state", () => {
     assert.deepEqual(next.stale, [], "no refetch needed");
   });
 
+  test("optimistic mark-read clears my badge; reporting the same message again changes nothing", () => {
+    const unread = inboxReducer(base(), { type: "message_event", event: messageEvent("BW-AAAAAA", "m2", "2026-10-17T10:00:00+00:00") });
+    const read = inboxReducer(unread, { type: "mark_read", orderNumber: "BW-AAAAAA", at: "2026-10-17T10:00:00+00:00", messageId: "m2" });
+    assert.equal(read.rows["BW-AAAAAA"].unreadCount, 0);
+    const again = inboxReducer(read, { type: "mark_read", orderNumber: "BW-AAAAAA", at: "2026-10-17T10:00:00+00:00", messageId: "m2" });
+    assert.equal(again, read, "same state object: no re-render of the list");
+  });
+
   test("the same event twice does not double-count", () => {
     const event = messageEvent("BW-AAAAAA", "m2", "2026-10-17T10:00:00+00:00");
     let next = inboxReducer(base(), { type: "message_event", event });

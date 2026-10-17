@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowLeft, PanelRight, UserCheck } from "lucide-react";
 import { useInbox } from "@/components/admin-inbox/inbox-provider";
 import { OrderDetailsPanel } from "@/components/admin-inbox/order-details-panel";
@@ -19,15 +18,35 @@ import { describeConversationPresence } from "@/lib/chat/presence-state.mjs";
 import { formatPrice } from "@/lib/pricing";
 
 const VIEWING_HEARTBEAT_MS = 20_000;
+const VIEWING_SETTLE_MS = 250;
 const TYPING_THROTTLE_MS = 2_500;
 
+/**
+ * One open conversation. Everything it shows comes from the inbox's
+ * conversation cache (keyed by order number), so a chat opened before — or
+ * prefetched — renders instantly and refreshes in the background, and a
+ * late response for another chat can never appear here.
+ */
 export function ConversationView({ orderNumber }: { orderNumber: string }) {
-  const { me, directory, inbox, dispatch, presence, nowMs, quickReplies, subscribe, sendSignal, activeRef } = useInbox();
+  const { me, directory, inbox, dispatch, presence, nowMs, quickReplies, sendSignal, activeRef, cache, loader, select, takeFocusRequest } =
+    useInbox();
   const row: InboxRow | undefined = inbox.rows[orderNumber];
-  const thread = useChatThread({ orderNumber, viewer: "admin" });
-  const [details, setDetails] = useState<OrderDetails | null>(null);
-  const [detailsLoading, setDetailsLoading] = useState(true);
+  const thread = useChatThread({ orderNumber, viewer: "admin", cache, loader });
+  const getEntry = useCallback(() => cache.get(orderNumber), [cache, orderNumber]);
+  const entry = useSyncExternalStore(cache.subscribe, getEntry, getEntry);
+  const details: OrderDetails | null = entry?.details ?? null;
+  const detailsLoading = !details && !entry?.detailsError;
+  const setDetails = useCallback((next: OrderDetails) => cache.setDetailsLocal(orderNumber, next), [cache, orderNumber]);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Opened by click/Enter: put the cursor in the reply box (desktop only —
+  // on phones that would pop the keyboard over the chat).
+  useEffect(() => {
+    if (!takeFocusRequest(orderNumber)) return;
+    if (!window.matchMedia("(min-width: 768px)").matches) return;
+    sectionRef.current?.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]')?.focus({ preventScroll: true });
+  }, [orderNumber, takeFocusRequest]);
 
   // My read position when the chat was opened (for the "Unread" divider).
   const initialRead = useRef<{ at: string | null; messageId: string | null } | null>(null);
@@ -43,63 +62,47 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
       .catch(() => undefined);
   }, [row, orderNumber, dispatch]);
 
-  const loadDetails = useCallback(async () => {
-    try {
-      const body = await fetchJson<{ details: OrderDetails }>(`/api/admin/orders/${encodeURIComponent(orderNumber)}/details`);
-      setDetails(body.details);
-    } catch {
-      // keep the last good copy
-    } finally {
-      setDetailsLoading(false);
-    }
-  }, [orderNumber]);
-
-  useEffect(() => {
-    void loadDetails();
-  }, [loadDetails]);
-
-  // Realtime: only this conversation's events touch this view.
-  const { fetchNewer } = thread;
-  useEffect(
-    () =>
-      subscribe((event, payload) => {
-        if (event === "resync") {
-          void fetchNewer();
-          void loadDetails();
-          return;
-        }
-        if (payload.order_number !== orderNumber) return;
-        if (event === "message") void fetchNewer();
-        if (event === "fulfillment") void loadDetails();
-      }),
-    [subscribe, orderNumber, fetchNewer, loadDetails],
-  );
+  // Loading is started by the inbox when the chat is selected (thread and
+  // details in parallel); realtime updates are merged by the inbox too.
+  const loadDetails = useCallback(() => loader.ensureDetails(orderNumber, { force: true }), [loader, orderNumber]);
 
   // Tell the inbox which chat is open (its messages don't add unread).
   useEffect(() => {
     activeRef.current = { orderNumber, isRead: document.visibilityState === "visible" };
     const onVisibility = () => {
+      if (activeRef.current.orderNumber !== orderNumber) return;
       activeRef.current = { orderNumber, isRead: document.visibilityState === "visible" };
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
-      activeRef.current = { orderNumber: null, isRead: false };
+      // Switching: the next chat has already claimed activeRef.
+      if (activeRef.current.orderNumber === orderNumber) activeRef.current = { orderNumber: null, isRead: false };
     };
   }, [orderNumber, activeRef]);
 
   // Viewing signal + heartbeat; "left" when switching away or closing.
+  // Only announced once the chat stays open briefly: flicking through ten
+  // chats should not send twenty signals (and hit the signal rate limit).
   useEffect(() => {
-    sendSignal("viewing", orderNumber);
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") sendSignal("viewing", orderNumber);
-    }, VIEWING_HEARTBEAT_MS);
-    const onHide = () => sendSignal("left", orderNumber, { beacon: true });
+    let announced = false;
+    let heartbeat: number | undefined;
+    const settle = window.setTimeout(() => {
+      announced = true;
+      sendSignal("viewing", orderNumber);
+      heartbeat = window.setInterval(() => {
+        if (document.visibilityState === "visible") sendSignal("viewing", orderNumber);
+      }, VIEWING_HEARTBEAT_MS);
+    }, VIEWING_SETTLE_MS);
+    const onHide = () => {
+      if (announced) sendSignal("left", orderNumber, { beacon: true });
+    };
     window.addEventListener("pagehide", onHide);
     return () => {
-      window.clearInterval(timer);
+      window.clearTimeout(settle);
+      window.clearInterval(heartbeat);
       window.removeEventListener("pagehide", onHide);
-      sendSignal("left", orderNumber);
+      if (announced) sendSignal("left", orderNumber);
     };
   }, [orderNumber, sendSignal]);
 
@@ -120,13 +123,19 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   const { markRead } = thread;
   const messagesRef = useRef<ChatMessageDto[]>([]);
   messagesRef.current = thread.state.messages;
+  // Optimistic: my badge clears at once; the server call runs in the
+  // background and, if it fails, my real count is fetched back.
   const onReadUpTo = useCallback(
     (messageId: string) => {
       const message = messagesRef.current.find((item) => item.id === messageId);
       if (!message) return;
       void markRead(messageId).then((result) => {
-        if (result) dispatch({ type: "mark_read", orderNumber, at: message.createdAt, messageId });
+        if (result !== "failed") return;
+        void fetchJson<{ row: InboxRow }>(`/api/admin/inbox/${encodeURIComponent(orderNumber)}`)
+          .then(({ row: fresh }) => dispatch({ type: "upsert_row", row: fresh, activeOrderNumber: orderNumber }))
+          .catch(() => undefined);
       });
+      dispatch({ type: "mark_read", orderNumber, at: message.createdAt, messageId });
     },
     [markRead, dispatch, orderNumber],
   );
@@ -170,11 +179,16 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
 
   return (
     <div className="flex min-h-0 flex-1">
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={`Chat with ${customerName}`}>
+      <section ref={sectionRef} className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={`Chat with ${customerName}`}>
         <header className="border-border/60 flex items-center gap-2 border-b px-3 py-2.5 sm:px-4">
-          <Link href="/admin/orders" className="hover:bg-muted -ml-1 rounded-lg p-2 md:hidden" aria-label="Back to all chats">
+          <button
+            type="button"
+            onClick={() => select(null)}
+            className="hover:bg-muted -ml-1 rounded-lg p-2 md:hidden"
+            aria-label="Back to all chats"
+          >
             <ArrowLeft className="size-4" />
-          </Link>
+          </button>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold">{customerName}</p>
             <p className="text-muted-foreground truncate text-xs">
@@ -202,6 +216,8 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
 
         <ChatThread
           state={thread.state}
+          loadError={thread.loadError}
+          onReload={() => void thread.reload()}
           orderNumber={orderNumber}
           isOwnSide={isOwnSide}
           isMine={isMine}
