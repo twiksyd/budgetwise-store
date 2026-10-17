@@ -29,7 +29,7 @@ const contactSchema = z
       if (value.length === 0) {
         context.addIssue({
           code: "custom",
-          message: "Enter your Facebook name.",
+          message: "Enter your name.",
         });
         return;
       }
@@ -37,7 +37,7 @@ const contactSchema = z
       if (value.length > 80) {
         context.addIssue({
           code: "custom",
-          message: "Facebook name must be 80 characters or fewer.",
+          message: "Name must be 80 characters or fewer.",
         });
         return;
       }
@@ -45,7 +45,7 @@ const contactSchema = z
       if (CONTROL_CHARACTER_RE.test(value)) {
         context.addIssue({
           code: "custom",
-          message: "Facebook name contains unsupported characters.",
+          message: "Name contains unsupported characters.",
         });
       }
     }),

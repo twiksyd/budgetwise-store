@@ -28,7 +28,7 @@ type ViaPlusErrors = {
   verifiedAccountConfirmed?: string;
 };
 
-export function CheckoutForm() {
+export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const removeItem = useCartStore((state) => state.removeItem);
@@ -50,7 +50,7 @@ export function CheckoutForm() {
     0,
   );
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState(defaultName);
   const [robloxUsername, setRobloxUsername] = useState("");
   const [robloxDisplayName, setRobloxDisplayName] = useState("");
   const [age16Confirmed, setAge16Confirmed] = useState(false);
@@ -204,6 +204,12 @@ export function CheckoutForm() {
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);
+        if (response.status === 401) {
+          // Session expired while filling in the form — sign in again and
+          // come straight back; the cart is still in this browser.
+          router.push("/login?next=%2Fcheckout");
+          return;
+        }
         if (
           response.status === 409 &&
           Array.isArray(body?.unavailableGamepassIds)
@@ -226,11 +232,9 @@ export function CheckoutForm() {
       writePendingOrderClear(orderNumber, submittedItems);
       // The cart is cleared on the success page itself, not here. Clearing it
       // while still on /checkout would race against navigation away.
-      // The order number names the order; the token is what authorises
-      // viewing it, so the slip URL carries both.
-      router.push(
-        `/checkout/success/${encodeURIComponent(orderNumber)}?t=${encodeURIComponent(attempt.viewToken)}`,
-      );
+      // The order is owned by the signed-in account, so its chat page needs
+      // no secret in the URL.
+      router.push(`/orders/${encodeURIComponent(orderNumber)}`);
       // isSubmitting intentionally stays true here: the order already
       // exists server-side, so the button must stay locked until the
       // navigation above actually lands, not reset while it's in flight.
@@ -246,19 +250,19 @@ export function CheckoutForm() {
       <h2 className="font-heading text-sm font-semibold">Details</h2>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="name">Facebook Name</Label>
+        <Label htmlFor="name">Your Name</Label>
         <Input
           id="name"
           ref={nameInputRef}
           className="h-11"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Exact Facebook Name"
+          placeholder="Your name"
           required
           maxLength={80}
         />
         <p className="text-muted-foreground text-xs leading-relaxed">
-          Exact Facebook Name na gagamitin sa Messenger.
+          Ang pangalang itatawag namin sa inyo sa chat.
         </p>
       </div>
 
@@ -474,7 +478,7 @@ export function CheckoutForm() {
 
       <p className="text-muted-foreground flex items-center gap-1.5 text-xs leading-relaxed">
         <ShieldAlert className="size-3.5 shrink-0" />
-        Susunod: i-send ang Order Message sa Messenger.
+        Susunod: makikipag-chat kayo sa amin dito mismo sa website.
       </p>
 
       <Button

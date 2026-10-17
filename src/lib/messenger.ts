@@ -9,6 +9,11 @@ export function buildOrderMessage(order: OrderConfirmation): string {
   return normalizeOrderMessageForMessenger(buildPlainTextOrderMessage(order));
 }
 
+// The slip posted as the first message of an order's on-site chat.
+export function buildChatSlipMessage(order: OrderConfirmation): string {
+  return buildPlainTextOrderMessage(order, { nameLabel: "Name" });
+}
+
 // Plain contact link for pre-purchase questions, no order to reference yet.
 export function getGeneralMessengerLink(): string | null {
   if (!siteConfig.messengerPageId) return null;

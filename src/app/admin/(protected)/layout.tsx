@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Activity, LayoutGrid, RefreshCw, Wrench } from "lucide-react";
+import {
+  Activity,
+  LayoutGrid,
+  MessageSquare,
+  RefreshCw,
+  Wrench,
+} from "lucide-react";
 import { requireAdmin } from "@/lib/auth/admin";
 import { SignOutButton } from "@/components/admin/sign-out-button";
 
@@ -27,6 +33,13 @@ export default async function AdminProtectedLayout({
           </div>
           <div className="flex items-center justify-between gap-2 sm:justify-end">
             <nav className="flex items-center gap-1 text-sm">
+              <Link
+                href="/admin/orders"
+                className="hover:bg-muted inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
+              >
+                <MessageSquare className="size-3.5" />
+                Order Chats
+              </Link>
               <Link
                 href="/admin/store-operations"
                 className="hover:bg-muted rounded-lg px-2.5 py-1.5"

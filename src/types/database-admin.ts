@@ -306,7 +306,44 @@ type StoreOrderSnapshotRow = {
   buyer_name: string;
   buyer_roblox_username: string;
   total_amount: number;
+  // Supabase Auth account that placed the order (migration 0020). Null for
+  // orders created before customer accounts existed.
+  owner_user_id: string | null;
   created_at: string;
+};
+
+type StoreOrderMessageKind = "slip" | "text" | "image";
+
+type StoreOrderMessageRow = {
+  id: string;
+  order_number: string;
+  sender_role: "customer" | "admin";
+  sender_user_id: string | null;
+  kind: StoreOrderMessageKind;
+  body: string;
+  attachment_path: string | null;
+  attachment_mime: string | null;
+  created_at: string;
+  read_at: string | null;
+};
+
+type StoreOrderMessageInsert = {
+  id?: string;
+  order_number: string;
+  sender_role: "customer" | "admin";
+  sender_user_id: string | null;
+  kind: StoreOrderMessageKind;
+  body: string;
+  attachment_path?: string | null;
+  attachment_mime?: string | null;
+};
+
+type StoreOrderMessageUpdate = {
+  read_at?: string | null;
+};
+
+type StoreOrderSnapshotUpdate = {
+  owner_user_id?: string | null;
 };
 
 type StoreOrderLineSnapshotRow = {
@@ -463,7 +500,15 @@ export type AdminDatabase = {
       store_order_snapshots: {
         Row: StoreOrderSnapshotRow;
         Insert: never;
-        Update: never;
+        // Only the owner may be set after creation (and only while unset —
+        // see attachOrderOwner), never the contents of the slip.
+        Update: StoreOrderSnapshotUpdate;
+        Relationships: [];
+      };
+      store_order_messages: {
+        Row: StoreOrderMessageRow;
+        Insert: StoreOrderMessageInsert;
+        Update: StoreOrderMessageUpdate;
         Relationships: [];
       };
       store_order_line_snapshots: {
@@ -520,6 +565,33 @@ export type AdminDatabase = {
       };
     };
     Functions: {
+      store_order_chat_summaries: {
+        Args: { p_order_numbers: string[] };
+        Returns: {
+          order_number: string;
+          last_message_at: string;
+          last_message_kind: StoreOrderMessageKind;
+          last_message_body: string;
+          last_sender_role: "customer" | "admin";
+          unread_for_customer: number;
+          unread_for_admin: number;
+        }[];
+      };
+      store_admin_chat_inbox: {
+        Args: { p_limit?: number };
+        Returns: {
+          order_number: string;
+          buyer_name: string;
+          buyer_roblox_username: string;
+          total_amount: number;
+          created_at: string;
+          last_message_at: string;
+          last_message_kind: StoreOrderMessageKind;
+          last_message_body: string;
+          last_sender_role: "customer" | "admin";
+          unread_for_admin: number;
+        }[];
+      };
       create_store_order: {
         Args: {
           p_idempotency_key: string;
