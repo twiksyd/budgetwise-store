@@ -28,3 +28,10 @@ insert into public.store_order_messages (order_number, sender_role, sender_user_
   ('BW-AAAAAA', 'admin', '00000000-0000-0000-0000-0000000000a1', 'text', 'Hello po', now() - interval '100 min', now() - interval '90 min'),
   ('BW-AAAAAA', 'customer', '00000000-0000-0000-0000-0000000000c1', 'text', 'ok thanks', now() - interval '90 min', now() - interval '80 min'),
   ('BW-BBBBBB', 'customer', '00000000-0000-0000-0000-0000000000c2', 'slip', 'ORDER SLIP B', now() - interval '50 min', null);
+
+-- An order placed on the old flow: snapshot, no owner, no chat.
+insert into public.store_order_snapshots
+  (order_number, idempotency_key, request_fingerprint, view_token_hash,
+   buyer_name, buyer_roblox_username, total_amount, owner_user_id)
+values ('BW-NOCHAT', 'idem-key-nochatnochatnoch', repeat('d',64), repeat('d',64),
+        'Old Flow', 'oldflow', 50, null);
