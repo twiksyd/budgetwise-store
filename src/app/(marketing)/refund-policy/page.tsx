@@ -90,8 +90,8 @@ export default function RefundPolicyPage() {
             How order processing works
           </h2>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-            Orders are reviewed and confirmed manually after you send them to
-            us on Messenger — there&apos;s a real person on the other end, not an
+            Orders are reviewed and confirmed manually in your
+            Order Chat — there&apos;s a real person on the other end, not an
             automated queue. If your order is going to take longer than
             usual, we&apos;ll tell you directly rather than leave you without an
             update.
@@ -106,16 +106,14 @@ export default function RefundPolicyPage() {
             Requesting a refund
           </h2>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-            Message us on{" "}
-            <Link href="/contact" className="text-primary hover:underline">
-              Messenger
-            </Link>{" "}
-            with your order number and what went wrong. We&apos;ll look into it
-            and get back to you.
+            Tell us in that order&apos;s Order Chat (find it under{" "}
+            <Link href="/account/orders" className="text-primary hover:underline">
+              My Orders
+            </Link>
+            ) what went wrong. We&apos;ll look into it and get back to you.
           </p>
           <Taglish>
-            Message mo lang kami sa Messenger kasama yung Order Number at
-            sabihin kung anong nangyari.
+            Sabihin mo lang sa Order Chat ng order mo kung anong nangyari.
           </Taglish>
         </div>
       </div>

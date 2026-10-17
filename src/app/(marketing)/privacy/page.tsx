@@ -19,9 +19,9 @@ const sections = [
     taglish: `Ginagamit lang namin yung info mo para sa order mo. Hindi namin ito binebenta o ginagamit sa advertising.`,
   },
   {
-    title: "Messenger conversations",
-    body: `Once you send your order to us on Messenger, that conversation is also subject to Meta's own privacy policy, since it takes place on their platform rather than ours.`,
-    taglish: `Pag nasa Messenger na ang usapan, covered na rin ito ng privacy policy ng Meta.`,
+    title: "Sign-in and Order Chat",
+    body: `You sign in with Google, and we store the name and email Google shares so your orders and chats are tied to your account. We never see your Google password. Messages and receipt images you send in an Order Chat are stored with your order, are visible only to you and the BudgetWise team, and are used only to process that order.`,
+    taglish: `Google ang gamit sa sign in at hindi namin nakikita ang password mo. Ang mga message at receipt na ipinadala mo sa Order Chat ay nakikita lang ng team at ikaw, at ginagamit lang para sa order mo.`,
   },
   {
     title: "Who we share it with",
@@ -35,8 +35,8 @@ const sections = [
   },
   {
     title: "Questions about your data",
-    body: `Message us any time if you want to know what information we have on file for you, or if you'd like it removed.`,
-    taglish: `May tanong tungkol sa data mo? Message mo lang kami at tutulungan ka namin.`,
+    body: `Contact us any time if you want to know what information we have on file for you, or if you'd like it removed.`,
+    taglish: `May tanong tungkol sa data mo? Contact mo lang kami at tutulungan ka namin.`,
   },
 ];
 

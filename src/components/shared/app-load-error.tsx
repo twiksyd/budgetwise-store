@@ -2,13 +2,8 @@
 
 import { MessageCircle, RefreshCcw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { siteConfig } from "@/config/site";
+import { getTikTokSupportLink } from "@/lib/support-links";
 
-function messengerHref() {
-  return siteConfig.messengerPageId
-    ? `https://m.me/${siteConfig.messengerPageId}`
-    : null;
-}
 
 export function AppLoadError({
   onRetry,
@@ -17,7 +12,7 @@ export function AppLoadError({
   onRetry?: () => void;
   detail?: string;
 }) {
-  const messengerLink = messengerHref();
+  const supportLink = getTikTokSupportLink();
 
   return (
     <div className="bg-background text-foreground flex min-h-[70vh] items-center justify-center px-6 py-16">
@@ -47,11 +42,11 @@ export function AppLoadError({
             <RefreshCcw className="size-4" />
             Reload Website
           </Button>
-          {messengerLink ? (
+          {supportLink ? (
             <Button type="button" variant="outline" asChild className="h-11 w-full">
-              <a href={messengerLink} target="_blank" rel="noopener noreferrer">
+              <a href={supportLink} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="size-4" />
-                Open Messenger
+                Contact us on TikTok
               </a>
             </Button>
           ) : null}

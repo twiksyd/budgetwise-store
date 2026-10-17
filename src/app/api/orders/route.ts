@@ -4,14 +4,22 @@ import {
   MAX_DISTINCT_ORDER_ITEMS,
   MAX_QUANTITY_PER_PRODUCT,
 } from "@/lib/validations/order";
-import { createOrder, OrderCreationError } from "@/lib/queries/orders";
+import {
+  createOrder,
+  getOrderConfirmation,
+  OrderCreationError,
+} from "@/lib/queries/orders";
+import { attachOrderOwnerAndSlip } from "@/lib/queries/order-chat";
+import { buildChatSlipMessage } from "@/lib/messenger";
+import { getCustomerUser } from "@/lib/auth/customer";
 
 // A legitimate checkout payload is small: 20 UUID line items plus contact
 // details is roughly 1.5-2 KB. 16 KB leaves room for normal JSON formatting
 // without allowing arbitrary request bodies to be buffered in memory.
-export const ORDER_REQUEST_BODY_LIMIT_BYTES = 16 * 1024;
+const ORDER_REQUEST_BODY_LIMIT_BYTES = 16 * 1024;
 
 type PublicOrderErrorCode =
+  | "UNAUTHENTICATED"
   | "UNSUPPORTED_CONTENT_TYPE"
   | "REQUEST_TOO_LARGE"
   | "MALFORMED_JSON"
@@ -107,7 +115,7 @@ function validationMessage(
   }
 
   if (firstPath.startsWith("contact.name")) {
-    return "Enter the Facebook name you will use to message us.";
+    return firstIssue.message;
   }
 
   if (firstPath.startsWith("viaPlus")) {
@@ -208,6 +216,18 @@ export async function POST(request: Request) {
     );
   }
 
+  // Orders belong to a signed-in account: that is what lets the customer
+  // come back to this order's chat later. Checked before any order work.
+  const customer = await getCustomerUser();
+  if (!customer) {
+    return orderError(
+      "UNAUTHENTICATED",
+      "Please sign in to place your order.",
+      401,
+      requestId,
+    );
+  }
+
   const parsed = createOrderSchema.safeParse(json);
 
   if (!parsed.success) {
@@ -228,6 +248,32 @@ export async function POST(request: Request) {
 
   try {
     const { orderNumber } = await createOrder(parsed.data);
+
+    // Tie the order to this account and post the slip as the first chat
+    // message. Runs on replays too (both steps are idempotent), so a retry
+    // after a lost response still ends with a fully set-up chat.
+    const confirmation = await getOrderConfirmation(
+      orderNumber,
+      parsed.data.viewToken,
+    );
+    if (!confirmation) {
+      throw new Error("Order was created but its slip could not be read");
+    }
+
+    const attached = await attachOrderOwnerAndSlip({
+      orderNumber,
+      userId: customer.id,
+      slipText: buildChatSlipMessage(confirmation),
+    });
+    if (!attached) {
+      return orderError(
+        "IDEMPOTENCY_CONFLICT",
+        "This order request was already used. Please refresh and try again.",
+        409,
+        requestId,
+      );
+    }
+
     return NextResponse.json(
       { orderNumber, requestId },
       { status: 201, headers: { "X-Request-Id": requestId } },

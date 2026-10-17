@@ -3,9 +3,9 @@
 import { useRouter } from "next/navigation";
 import { ArrowRight, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MessengerHelpLink } from "@/components/ordering/messenger-help-link";
+import { SupportHelpLink } from "@/components/ordering/support-help-link";
 import { useStoreStatus } from "@/components/shared/store-status-provider";
-import { getGeneralMessengerLink } from "@/lib/messenger";
+import { getTikTokSupportLink } from "@/lib/support-links";
 import { Price } from "@/components/shared/price";
 import { useCartStore, selectCartCount } from "@/stores/cart-store";
 import { useUIStore } from "@/stores/ui-store";
@@ -28,7 +28,7 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
     router.push("/checkout");
   }
 
-  const messengerLink = getGeneralMessengerLink();
+  const supportLink = getTikTokSupportLink();
 
   return (
     <div className="flex flex-col gap-3">
@@ -40,7 +40,7 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
       </div>
 
       <p className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 rounded-xl border px-3.5 py-2.5 text-center text-xs leading-relaxed">
-        Wala pa pong kailangang bayaran.
+        Wala pa pong kailangang bayaran. Mag-sign in gamit ang Google sa checkout.
       </p>
 
       {hasRobuxPlus && (
@@ -77,11 +77,11 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
           <p className="bg-muted/60 text-muted-foreground rounded-xl px-3.5 py-2.5 text-center text-xs leading-relaxed">
             Paused po muna ang ordering. Saved pa rin ang cart ninyo.
           </p>
-          {messengerLink ? (
+          {supportLink ? (
             <Button asChild size="lg" className="h-12 w-full text-[15px]">
-              <a href={messengerLink} target="_blank" rel="noopener noreferrer">
+              <a href={supportLink} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="size-4" />
-                I-message kami sa Messenger
+                May tanong? Message sa TikTok
               </a>
             </Button>
           ) : (
@@ -93,7 +93,7 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
       )}
 
       <div className="flex justify-center pt-1">
-        <MessengerHelpLink />
+        <SupportHelpLink />
       </div>
     </div>
   );

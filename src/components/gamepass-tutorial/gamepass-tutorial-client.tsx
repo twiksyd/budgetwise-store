@@ -68,10 +68,8 @@ function loadProgress(): StoredProgress {
 
 export function GamepassTutorialClient({
   initialPrice,
-  messengerLink,
 }: {
   initialPrice: string | null;
-  messengerLink: string | null;
 }) {
   const [hydrated, setHydrated] = useState(false);
   const [progress, setProgress] = useState<StoredProgress>(defaultProgress);
@@ -223,19 +221,12 @@ export function GamepassTutorialClient({
             gamepass, tama ang price, at naka-OFF ang Managed Pricing.
           </Taglish>
 
-          {messengerLink ? (
-            <Button asChild size="lg" className="mt-6 h-11 w-full">
-              <a href={messengerLink} target="_blank" rel="noopener noreferrer">
-                <MessageCircle className="size-4" />
-                Message BudgetWise
-              </a>
-            </Button>
-          ) : (
-            <Button disabled size="lg" className="mt-6 h-11 w-full">
+          <Button asChild size="lg" className="mt-6 h-11 w-full">
+            <Link href="/account/orders">
               <MessageCircle className="size-4" />
-              Message BudgetWise
-            </Button>
-          )}
+              Send your link in Order Chat
+            </Link>
+          </Button>
           <Button asChild variant="outline" size="lg" className="mt-2.5 h-11 w-full">
             <Link href="/games">Back to Store</Link>
           </Button>
@@ -260,25 +251,21 @@ export function GamepassTutorialClient({
             How to Set Up Your Roblox Gamepass
           </h1>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-            Follow these steps before sending your gamepass link to
-            BudgetWise.
+            Follow these steps before sending your gamepass link in your
+            Order Chat.
           </p>
         </div>
-        {messengerLink && (
-          <a
-            href={messengerLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary hidden shrink-0 items-center gap-1 text-xs font-medium transition-colors sm:inline-flex"
-          >
-            <MessageCircle className="size-3.5" />
-            Need help?
-          </a>
-        )}
+        <Link
+          href="/account/orders"
+          className="text-muted-foreground hover:text-primary hidden shrink-0 items-center gap-1 text-xs font-medium transition-colors sm:inline-flex"
+        >
+          <MessageCircle className="size-3.5" />
+          Need help? Open Order Chat
+        </Link>
       </div>
       <Taglish size="md">
         Sundan ang mga hakbang na ito bago mo ipadala ang link ng gamepass mo
-        sa BudgetWise.
+        sa Order Chat.
       </Taglish>
 
       {/* Stage stepper */}
@@ -484,17 +471,13 @@ export function GamepassTutorialClient({
           <RotateCcw className="size-3.5" />
           Restart tutorial
         </button>
-        {messengerLink && (
-          <a
-            href={messengerLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary inline-flex items-center gap-1.5 text-xs font-medium transition-colors sm:hidden"
-          >
-            <MessageCircle className="size-3.5" />
-            Need help?
-          </a>
-        )}
+        <Link
+          href="/account/orders"
+          className="text-muted-foreground hover:text-primary inline-flex items-center gap-1.5 text-xs font-medium transition-colors sm:hidden"
+        >
+          <MessageCircle className="size-3.5" />
+          Need help? Open Order Chat
+        </Link>
       </div>
 
       <ScreenshotLightbox

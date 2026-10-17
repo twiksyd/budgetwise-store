@@ -2,10 +2,10 @@ import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { BrandMark } from "@/components/brand/brand-mark";
-import { getGeneralMessengerLink } from "@/lib/messenger";
+import { getTikTokSupportLink } from "@/lib/support-links";
 
 export function SiteFooter() {
-  const messengerLink = getGeneralMessengerLink();
+  const supportLink = getTikTokSupportLink();
 
   return (
     <footer className="border-border/60 border-t">
@@ -18,17 +18,17 @@ export function SiteFooter() {
             <p className="text-muted-foreground mt-4 max-w-xs text-sm leading-relaxed">
               A digital marketplace for discounted in-game currency,
               gamepasses, and subscriptions. Every order is placed on the
-              site first, then confirmed with a real person over Messenger.
+              site and handled in your Order Chat by a real person.
             </p>
-            {messengerLink && (
+            {supportLink && (
               <a
-                href={messengerLink}
+                href={supportLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary mt-5 inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
               >
                 <MessageCircle className="size-4" />
-                Message us on Messenger
+                General questions? Message us on TikTok
               </a>
             )}
           </div>

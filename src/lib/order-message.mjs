@@ -28,7 +28,9 @@ export function normalizeOrderMessageForMessenger(message) {
   return normalizePlainTextMessage(message).replace(/\t/g, "");
 }
 
-export function buildOrderMessage(order) {
+// `nameLabel` defaults to the original Messenger wording; the on-site chat
+// passes "Name" because customers no longer give a Facebook name.
+export function buildOrderMessage(order, { nameLabel = "Facebook Name" } = {}) {
   const groups = new Map();
   const hasRobuxViaPlus = order.lines.some(isRobuxViaPlusLine);
   const viaPlusRobuxAmount = order.lines.reduce(
@@ -47,7 +49,7 @@ export function buildOrderMessage(order) {
     "",
     "BUDGETWISE ORDER SLIP",
     "",
-    `Facebook Name: ${order.buyerName}`,
+    `${nameLabel}: ${order.buyerName}`,
     `Roblox Username: ${order.buyerRobloxUsername}`,
     `Order Number: ${order.orderNumber}`,
     "",

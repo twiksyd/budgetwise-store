@@ -95,8 +95,8 @@ export function AnimatedHero() {
           variants={item}
           className="text-muted-foreground mt-3 max-w-lg text-base text-balance sm:mt-7 sm:text-xl"
         >
-          Pumili ng game at items na gusto ninyo. Pagkatapos gumawa ng order
-          slip, i-send ang buong order message sa amin through Messenger.
+          Pumili ng game at items na gusto ninyo. Pagkatapos mag-checkout,
+          makikipag-chat kayo sa amin sa Order Chat dito mismo sa website.
         </motion.p>
 
         <motion.div

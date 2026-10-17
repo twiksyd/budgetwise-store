@@ -1,4 +1,4 @@
-// Excludes 0/O/1/I to avoid ambiguity when a customer reads this back over Messenger.
+// Excludes 0/O/1/I to avoid ambiguity when a customer reads this back in the order chat.
 const ORDER_NUMBER_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export function generateOrderNumber(): string {

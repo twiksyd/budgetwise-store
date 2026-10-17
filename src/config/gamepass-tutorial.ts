@@ -130,7 +130,7 @@ export const gamepassTutorialStages: TutorialStage[] = [
         taglish: "Sa ilalim ng Audience, i-click ang Public.",
         note: {
           title: "Seeing a permissions error?",
-          body: "If Roblox says you don't have permission to publish to this audience, this is a Roblox account requirement (usually age verification) — not something wrong on your end. Check View my permissions on that screen, or verify your age in your Roblox account settings, then try again. Still stuck? Message us and we'll help you sort it out.",
+          body: "If Roblox says you don't have permission to publish to this audience, this is a Roblox account requirement (usually age verification) — not something wrong on your end. Check View my permissions on that screen, or verify your age in your Roblox account settings, then try again. Still stuck? Ask us in your Order Chat and we'll help you sort it out.",
           image: `${IMG}/extra-permission-notice.png`,
           imageWidth: 1400,
           imageHeight: 1399,
@@ -233,7 +233,7 @@ export const gamepassTutorialStages: TutorialStage[] = [
     id: "price",
     label: "Price",
     title: "Set Your Gamepass Price",
-    intro: "Almost done — set the price BudgetWise gave you and you're ready to send us your link.",
+    intro: "Almost done — set the price BudgetWise gave you and you're ready to send us your link in your Order Chat.",
     steps: [
       {
         image: `${IMG}/20-go-to-sales.png`,

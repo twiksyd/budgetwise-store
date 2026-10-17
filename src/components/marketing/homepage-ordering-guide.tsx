@@ -8,12 +8,12 @@ const steps = [
     description: "Piliin at i-add sa cart ang items na gusto ninyo.",
   },
   {
-    title: "Ilagay ang Details",
-    description: "Ilagay ang Facebook Name at Roblox Username ninyo.",
+    title: "Mag-sign in at Checkout",
+    description: "Mag-sign in gamit ang Google, tapos ilagay ang Roblox Username ninyo.",
   },
   {
-    title: "I-send sa Messenger",
-    description: "Kopyahin at i-send sa amin ang buong order message.",
+    title: "Makipag-chat sa Amin",
+    description: "Hintayin ang reply namin sa Order Chat dito mismo sa website.",
   },
 ];
 

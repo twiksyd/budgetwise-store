@@ -7,14 +7,14 @@ const steps = [
   { number: 1, label: "Game" },
   { number: 2, label: "Cart" },
   { number: 3, label: "Details" },
-  { number: 4, label: "Messenger" },
+  { number: 4, label: "Chat" },
 ] as const;
 
 const stepTitles = {
   1: "Pumili ng Game",
   2: "I-add sa Cart",
   3: "Ilagay ang Details",
-  4: "I-send sa Messenger",
+  4: "Makipag-chat sa Amin",
 } as const;
 
 type OrderingStep = 1 | 2 | 3 | 4;

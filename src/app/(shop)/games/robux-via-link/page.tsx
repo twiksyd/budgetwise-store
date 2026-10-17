@@ -91,7 +91,7 @@ export default async function RobuxViaLinkPage() {
           No payment on-site
         </span>
         <span aria-hidden>·</span>
-        <span>Messenger confirmation</span>
+        <span>Order Chat confirmation</span>
         <span aria-hidden>·</span>
         <span>Delivered to your Roblox username</span>
       </div>

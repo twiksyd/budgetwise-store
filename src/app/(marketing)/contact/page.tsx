@@ -3,15 +3,16 @@ import Link from "next/link";
 import { MessageCircle, HelpCircle, Clock, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Taglish } from "@/components/shared/taglish";
-import { getGeneralMessengerLink } from "@/lib/messenger";
+import { getTikTokSupportLink } from "@/lib/support-links";
 
 export const metadata: Metadata = {
   title: "Contact us",
-  description: "Get in touch with BudgetWise before or after your order.",
+  description:
+    "Order questions go through your Order Chat; general questions can reach us on TikTok.",
 };
 
 export default function ContactPage() {
-  const messengerLink = getGeneralMessengerLink();
+  const supportLink = getTikTokSupportLink();
 
   return (
     <div className="mx-auto max-w-lg px-6 py-20 sm:py-24">
@@ -19,12 +20,12 @@ export default function ContactPage() {
         Contact us
       </h1>
       <p className="text-muted-foreground mt-3 text-[15px] leading-relaxed">
-        Have a question before you order, or need help with an existing one?
-We&apos;re a message away.
+        Need help with an order? Use that order&apos;s Order Chat. Have a
+        general question? You can reach us on TikTok.
       </p>
       <Taglish size="md">
-        May tanong bago mag-order? O kailangan ng tulong sa existing order?
-        Message mo lang kami sa Messenger.
+        May tanong sa order? Sa Order Chat ng order mo kami kausapin. May
+        general na tanong? Pwede kaming i-message sa TikTok.
       </Taglish>
 
       <div className="surface-premium mt-10 rounded-2xl p-6 sm:p-7">
@@ -32,30 +33,50 @@ We&apos;re a message away.
           <MessageCircle className="text-primary size-5" />
         </div>
         <h2 className="font-heading mt-5 text-base font-semibold">
-          Message us on Messenger
+          Questions about an order? Use your Order Chat
         </h2>
         <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-          This is how we handle every order and every question — real
-          answers from a real person, not an autoresponder.
+          Payment instructions, your GCash receipt, and every update about an
+          order stay in that order&apos;s chat on this website — real answers
+          from a real person, not an autoresponder.
         </p>
         <Taglish>
-          Dito namin inaasikaso lahat ng orders at customer support. Totoong
-          tao ang sasagot sa&apos;yo.
+          Lahat ng tungkol sa order — payment instructions, GCash receipt, at
+          updates — nasa Order Chat ng order mo. Totoong tao ang sasagot
+          sa&apos;yo.
         </Taglish>
-        {messengerLink ? (
-          <Button asChild size="lg" className="mt-5 h-11 w-full">
-            <a href={messengerLink} target="_blank" rel="noopener noreferrer">
+        <Button asChild size="lg" className="mt-5 h-11 w-full">
+          <Link href="/account/orders">
+            <MessageCircle className="size-4" />
+            Open My Orders
+          </Link>
+        </Button>
+      </div>
+
+      {supportLink && (
+        <div className="surface-premium mt-6 rounded-2xl p-6 sm:p-7">
+          <h2 className="font-heading text-base font-semibold">
+            General questions? Message us on TikTok
+          </h2>
+          <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+            For questions that aren&apos;t about a specific order. Please
+            don&apos;t send your order number, receipt, or payment
+            confirmation on TikTok — use your Order Chat so we can match it to
+            your order.
+          </p>
+          <Taglish>
+            Para sa general na tanong lang. Huwag ipadala sa TikTok ang order
+            number, receipt, o payment confirmation — sa Order Chat lang
+            para ma-match namin sa order mo.
+          </Taglish>
+          <Button asChild variant="outline" size="lg" className="mt-5 h-11 w-full">
+            <a href={supportLink} target="_blank" rel="noopener noreferrer">
               <MessageCircle className="size-4" />
-              Open Messenger
+              Open TikTok
             </a>
           </Button>
-        ) : (
-          <Button disabled size="lg" className="mt-5 h-11 w-full">
-            <MessageCircle className="size-4" />
-            Open Messenger
-          </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <div className="surface-premium rounded-2xl p-5">
@@ -87,7 +108,7 @@ We&apos;re a message away.
           </p>
           <Taglish>
             Wala kaming fixed business hours. Chine-check namin yung
-            Messenger throughout the day.
+            Order Chat throughout the day.
           </Taglish>
         </div>
       </div>
@@ -98,18 +119,18 @@ We&apos;re a message away.
           <p className="text-muted-foreground text-sm leading-relaxed">
             Already have an order?{" "}
             <span className="text-foreground font-medium">
-              Include your order number
+              Write to us in that order&apos;s Order Chat
             </span>{" "}
-            when you message us — it&apos;s on your order confirmation page — so
-            we can find it right away. See our{" "}
+            — your order number is already attached, so we can find it right
+            away. You can find the chat under My Orders. See our{" "}
             <Link href="/faq" className="text-primary hover:underline">
               FAQ
             </Link>{" "}
             for quick answers to common questions.
           </p>
           <Taglish>
-            May Order Number ka na? Isama mo agad sa message para mas
-            mabilis naming mahanap yung order mo.
+            May order ka na? Sa Order Chat nito kami i-message — nakakabit na
+            agad ang Order Number kaya mabilis naming mahahanap.
           </Taglish>
         </div>
       </div>

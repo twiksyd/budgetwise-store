@@ -8,7 +8,7 @@ import {
 import { GamesExplorer } from "@/components/catalog/games-explorer";
 import { EmptyState } from "@/components/shared/empty-state";
 import { OrderingProgress } from "@/components/ordering/ordering-progress";
-import { MessengerHelpLink } from "@/components/ordering/messenger-help-link";
+import { SupportHelpLink } from "@/components/ordering/support-help-link";
 
 export const metadata: Metadata = {
   title: "Browse games",
@@ -35,7 +35,7 @@ export default async function GamesPage() {
         Piliin po ang game para makita ang available items at gamepasses.
       </p>
       <div className="mt-3">
-        <MessengerHelpLink />
+        <SupportHelpLink />
       </div>
 
       {games.length === 0 ? (

@@ -3,7 +3,7 @@ import Link from "next/link";
 import {
   ShoppingCart,
   ClipboardList,
-  Send,
+  MessageSquare,
   Clock,
   PackageCheck,
   Info,
@@ -29,20 +29,20 @@ const steps = [
   },
   {
     icon: ClipboardList,
-    title: "Complete Checkout",
+    title: "Sign in & Checkout",
     description:
-      "Fill in the required information, including your Roblox username. The website automatically generates an Order Number and securely records your order.",
+      "Sign in with Google (required before checkout — your cart is kept), then fill in the required information, including your Roblox username. The website automatically generates an Order Number and securely records your order.",
     note: "Creating an order does NOT mean it is already being processed.",
     taglish:
-      "Ilagay lang yung tamang details at Roblox username mo. Magkakaroon ka agad ng Order Number, pero hindi pa nagsisimula yung order dito.",
+      "Mag-sign in gamit ang Google, tapos ilagay yung tamang details at Roblox username mo. Magkakaroon ka agad ng Order Number, pero hindi pa nagsisimula yung order dito.",
   },
   {
-    icon: Send,
-    title: "Send the Prepared Order",
+    icon: MessageSquare,
+    title: "Open Your Order Chat",
     description:
-      "After checkout, copy the prepared order message, open Messenger, then paste and send the complete message. This allows our team to receive your order details.",
+      "After checkout you're taken straight to your Order Chat (/orders/your-order-number). Your order slip is already posted there — there's nothing to copy or paste. You can come back anytime from My Orders (/account/orders); a \"new\" badge means we've replied.",
     taglish:
-      "Pagkatapos mag-checkout, kopyahin yung buong order message, buksan ang Messenger, tapos i-paste at i-send para matanggap namin yung order mo.",
+      "Pagkatapos mag-checkout, dadalhin ka agad sa Order Chat. Nandoon na yung order slip mo, wala nang kokopyahin. Pwede mo itong balikan sa My Orders — ang \"new\" badge ay ibig sabihing may reply kami.",
   },
 ];
 
@@ -60,7 +60,8 @@ const whyWait = [
 ];
 
 const deliverySteps = [
-  "Customer sends payment.",
+  "Customer sends payment using our instructions.",
+  "Customer uploads the GCash receipt in the Order Chat (JPG, PNG, or WebP, up to 4 MB).",
   "We verify the payment.",
   "If needed, we add the customer's Roblox account.",
   "We send the purchased gamepass or gift while the customer is available.",
@@ -84,7 +85,7 @@ export default function HowOrderingWorksPage() {
       <Taglish size="md">
         Sundan mo lang yung steps sa baba. Ang pinaka-importante: huwag muna
         magbayad hangga&apos;t wala pa kaming payment instructions sa
-        Messenger.
+        Order Chat.
       </Taglish>
 
       <div className="mt-12 flex flex-col gap-8">
@@ -138,8 +139,8 @@ export default function HowOrderingWorksPage() {
               </div>
               <p className="text-foreground mt-3 text-sm leading-relaxed">
                 After reviewing your order, a BudgetWise representative will
-                send you the official payment instructions through
-                Messenger. This message includes:
+                send you the official payment instructions in your
+                Order Chat. This message includes:
               </p>
               <ul className="text-muted-foreground mt-3 flex flex-col gap-1.5 text-sm leading-relaxed">
                 {paymentIncludes.map((line) => (
@@ -165,8 +166,8 @@ export default function HowOrderingWorksPage() {
                 ))}
               </ul>
               <Taglish className="border-primary/15 mt-4 border-t pt-3">
-                Hintayin mo muna yung payment instructions namin sa Messenger.
-                Pag na-send na namin yung payment details, saka ka lang
+                Hintayin mo muna yung payment instructions namin sa Order
+                Chat. Pag na-send na namin yung payment details, saka ka lang
                 magbayad.
               </Taglish>
             </div>
@@ -184,10 +185,10 @@ export default function HowOrderingWorksPage() {
               Step 5
             </p>
             <h2 className="font-heading mt-1 text-base font-semibold">
-              Payment & Delivery
+              Payment, Receipt & Delivery
             </h2>
             <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-              After receiving our payment instructions:
+              After receiving our payment instructions in the chat:
             </p>
             <ul className="text-muted-foreground mt-2 flex flex-col gap-1.5 text-sm leading-relaxed">
               {deliverySteps.map((line) => (
@@ -198,7 +199,8 @@ export default function HowOrderingWorksPage() {
               ))}
             </ul>
             <Taglish>
-              Pag na-confirm na yung payment mo, aasikasuhin na namin yung
+              Pagkabayad, i-upload ang GCash receipt sa Order Chat. Pag
+              na-confirm na yung payment mo, aasikasuhin na namin yung
               order hanggang ma-deliver. Kung kailangan ka naming i-add sa
               Roblox, sasabihan ka namin.
             </Taglish>
@@ -218,7 +220,7 @@ export default function HowOrderingWorksPage() {
             Need to set up a Roblox gamepass?
           </p>
           <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
-            Follow our step-by-step gamepass setup guide before messaging us.
+            Follow our step-by-step gamepass setup guide before sending your gamepass link in your Order Chat.
           </p>
         </div>
         <ChevronRight className="text-muted-foreground size-4 shrink-0" />
