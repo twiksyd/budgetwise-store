@@ -35,6 +35,7 @@ export function ChatThread({
   isOwnSide,
   isMine,
   senderLabelFor,
+  senderIconFor,
   otherSideReadCursor,
   initialReadCursor,
   onLoadOlder,
@@ -60,6 +61,8 @@ export function ChatThread({
   /** Messages I personally sent (not counted as "new"). */
   isMine: (message: ChatMessageDto) => boolean;
   senderLabelFor: (message: ChatMessageDto) => string | null;
+  /** Optional avatar before a group's sender label. */
+  senderIconFor?: (message: ChatMessageDto) => React.ReactNode;
   otherSideReadCursor: Cursor;
   initialReadCursor: Cursor;
   onLoadOlder: () => void;
@@ -269,6 +272,7 @@ export function ChatThread({
                 firstInGroup={item.firstInGroup}
                 lastInGroup={item.lastInGroup}
                 senderLabel={senderLabelFor(item.message)}
+                senderIcon={item.firstInGroup ? senderIconFor?.(item.message) : undefined}
                 statusLabel={
                   lastOwn && item.message.id === lastOwn.id
                     ? isSeen(item.message, otherSideReadCursor)

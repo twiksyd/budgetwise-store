@@ -304,3 +304,68 @@ describe("admin Active / Done queue", () => {
     }
   });
 });
+
+// =================================================== customer-facing identity
+import { assistantLine, currentAssistant, pickAssistant } from "../src/lib/chat/assistant.mjs";
+import { buildDisplayItems } from "../src/lib/chat/thread-state.mjs";
+
+describe("support identity customers see (public usernames only)", () => {
+  const ANDRE = "81840e52-0000-4000-8000-000000000001";
+  const ROBERT = "88df9428-0000-4000-8000-000000000002";
+  const KENNETH = "b74b97f7-0000-4000-8000-000000000003";
+  const NO_NAME = "aaaaaaaa-0000-4000-8000-000000000004";
+  const names = new Map([[ANDRE, "Twicks"], [ROBERT, "Zuno"], [KENNETH, "Akio"]]);
+  const row = (id, sender, minute, role = "admin") => ({
+    id, order_number: "BW-AAAAAA", sender_role: role, sender_user_id: sender, kind: "text",
+    body: `m${id}`, client_message_id: "c", created_at: at(minute),
+  });
+
+  test("Andre -> Twicks, Robert -> Zuno, Kenneth -> Akio", () => {
+    for (const [id, expected] of [[ANDRE, "Twicks"], [ROBERT, "Zuno"], [KENNETH, "Akio"]]) {
+      assert.equal(assistantLine(pickAssistant({ assignedAdminId: id, lastAdminId: null, publicNames: names })), `Assisted by ${expected}`);
+    }
+  });
+  test("nobody assigned and no admin reply yet: waiting", () => {
+    assert.equal(pickAssistant({ assignedAdminId: null, lastAdminId: null, publicNames: names }), null);
+    assert.equal(assistantLine(null), "Waiting for an assistant");
+  });
+  test("assignment wins over the last replier; unassigned falls back to the last replier", () => {
+    assert.deepEqual(pickAssistant({ assignedAdminId: ROBERT, lastAdminId: ANDRE, publicNames: names }), { name: "Zuno", assigned: true });
+    assert.deepEqual(pickAssistant({ assignedAdminId: null, lastAdminId: KENNETH, publicNames: names }), { name: "Akio", assigned: false });
+  });
+  test("an admin without a public username is never shown by any other name", () => {
+    assert.equal(assistantLine(pickAssistant({ assignedAdminId: NO_NAME, lastAdminId: null, publicNames: names })), "Assisted by the BudgetWise team");
+    assert.equal(assistantLine(pickAssistant({ assignedAdminId: ANDRE, lastAdminId: null, publicNames: new Map() })), "Assisted by the BudgetWise team");
+  });
+  test("the open chat follows a new reply at once unless someone is assigned", () => {
+    const msgs = [{ senderRole: "customer" }, { senderRole: "admin", senderName: "Akio" }];
+    assert.deepEqual(currentAssistant(null, msgs), { name: "Akio", assigned: false });
+    assert.deepEqual(currentAssistant({ name: "Twicks", assigned: false }, msgs), { name: "Akio", assigned: false });
+    assert.deepEqual(currentAssistant({ name: "Zuno", assigned: true }, msgs), { name: "Zuno", assigned: true });
+    assert.equal(currentAssistant(null, [{ senderRole: "customer" }]), null);
+  });
+
+  test("customer messages carry the public username and never an admin id", () => {
+    const dto = toChatMessage(row("1", ANDRE, 1), { viewer: "customer", viewerUserId: CID, publicNames: names });
+    assert.equal(dto.senderName, "Twicks");
+    assert.equal("senderUserId" in dto, false);
+    assert.equal(JSON.stringify(dto).includes(ANDRE), false);
+    assert.equal(dto.clientMessageId, null, "an admin's client id is not exposed either");
+    const own = toChatMessage(row("2", CID, 2, "customer"), { viewer: "customer", viewerUserId: CID, publicNames: names });
+    assert.equal("senderName" in own, false);
+    assert.equal(toChatMessage(row("3", NO_NAME, 3), { viewer: "customer", viewerUserId: CID, publicNames: names }).senderName, null);
+    assert.equal(toChatMessage(row("4", ANDRE, 4), { viewer: "customer", viewerUserId: CID }).senderName, null, "names not loaded: no name");
+    const admin = toChatMessage(row("5", ANDRE, 5), { viewer: "admin", publicNames: names });
+    assert.equal(admin.senderUserId, ANDRE);
+    assert.equal("senderName" in admin, false, "admins keep their own (internal) identity path");
+  });
+
+  test("the username is shown once per consecutive run of one admin", () => {
+    const messages = [row("a", ANDRE, 1), row("b", ANDRE, 2), row("c", ROBERT, 3), row("d", ROBERT, 4), row("e", ANDRE, 5)]
+      .map((r) => toChatMessage(r, { viewer: "customer", viewerUserId: CID, publicNames: names }));
+    const firsts = buildDisplayItems(messages, { nowMs: Date.parse(at(6)) })
+      .filter((item) => item.type === "message")
+      .map((item) => `${item.message.senderName}:${item.firstInGroup}`);
+    assert.deepEqual(firsts, ["Twicks:true", "Twicks:false", "Zuno:true", "Zuno:false", "Twicks:true"]);
+  });
+});

@@ -46,10 +46,12 @@ export function toAlbum(payload, attachments) {
 /**
  * One message for one viewer.
  *   viewer = "admin"    -> includes sender_user_id (for "Sent by Robert")
- *   viewer = "customer" -> no admin identity; client id only on the
- *                          customer's own messages (for optimistic reconcile)
+ *   viewer = "customer" -> no admin identity except the admin's public
+ *                          username (senderName, from publicNames); client id
+ *                          only on the customer's own messages (for
+ *                          optimistic reconcile)
  */
-export function toChatMessage(row, { viewer, viewerUserId, attachments } = {}) {
+export function toChatMessage(row, { viewer, viewerUserId, attachments, publicNames } = {}) {
   const base = {
     id: row.id,
     orderNumber: row.order_number,
@@ -73,6 +75,9 @@ export function toChatMessage(row, { viewer, viewerUserId, attachments } = {}) {
 
   if (row.sender_role === "customer" && row.sender_user_id && row.sender_user_id === viewerUserId) {
     base.clientMessageId = row.client_message_id ?? null;
+  }
+  if (row.sender_role === "admin") {
+    base.senderName = (row.sender_user_id && publicNames?.get(row.sender_user_id)) || null;
   }
   return base;
 }

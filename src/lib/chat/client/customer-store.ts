@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { createConversationCache } from "@/lib/chat/conversation-cache.mjs";
 import { createConversationLoader } from "@/lib/chat/conversation-loader.mjs";
 import type { SummaryLine } from "@/lib/chat/order-summary.mjs";
+import type { CustomerAssistant } from "@/lib/chat/assistant.mjs";
 import type { CustomerSlot } from "@/components/order-chat/gamepass-link-card";
 import { fetchJson, RequestError } from "@/lib/chat/client/fetch-json";
 
@@ -37,6 +38,8 @@ export interface CustomerChatDetails {
   ownRead: Cursor;
   slots: CustomerSlot[];
   orderCount?: number;
+  /** Who is assisting (public username only); null = waiting for an assistant. */
+  assistant?: CustomerAssistant | null;
 }
 
 export interface MyOrderCard {
