@@ -22,7 +22,7 @@ interface CustomerMessagesValue {
   conversations: CustomerConversation[];
   /** Server-computed unread BudgetWise messages across all orders. */
   totalUnread: number;
-  /** Bumped on every server refresh (My Orders listens to re-fetch). */
+  /** Bumped when realtime (or a read) says something changed — My Orders re-fetches then. */
   version: number;
   refresh: () => void;
   /** Opens the messenger panel (best conversation unless one is named). */
@@ -85,7 +85,6 @@ export function CustomerMessagesProvider({ children }: { children: React.ReactNo
           setUserId(body.userId);
           setConversations(body.conversations);
           setSignedIn(true);
-          setVersion((value) => value + 1);
         } catch (error) {
           if (error instanceof RequestError && error.status === 401) {
             setSignedIn(false);
@@ -100,9 +99,14 @@ export function CustomerMessagesProvider({ children }: { children: React.ReactNo
   }, []);
 
   const timer = useRef<number | undefined>(undefined);
+  // A change was signalled (realtime event, a read, the tab coming back):
+  // reload once, debounced, and let listeners (My Orders) know.
   const refresh = useCallback(() => {
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => void load(), 250);
+    timer.current = window.setTimeout(() => {
+      void load();
+      setVersion((value) => value + 1);
+    }, 250);
   }, [load]);
 
   // First load, and again when sign-in state may have changed (navigation
