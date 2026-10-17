@@ -721,7 +721,15 @@ $$;
 -- columns, which requires drop + create (in this transaction, atomically).
 --   active (default queue) / done / all
 --   unread, unassigned, mine — within the Active queue
---   under_review (kept for compatibility) — XOB status 'pending', any state
+--   under_review (kept for API compatibility, not shown in the inbox) —
+--     XOB status 'pending', any state
+--
+-- PL/pgSQL + EXECUTE so that each filter is planned on its own: a single
+-- static query OR-ing every filter gets one generic plan that cannot use
+-- the state index, and walks all conversations newest-first whenever a
+-- queue has fewer rows than a page (measured: about 1 s at 100,000
+-- conversations). The filter text comes only from the fixed list below;
+-- every caller value is a bound parameter.
 drop function if exists public.store_admin_inbox(uuid, text, text, timestamptz, text, integer, text);
 create function public.store_admin_inbox(
   p_admin uuid,
@@ -757,66 +765,73 @@ returns table (
   done_at timestamptz,
   done_by uuid
 )
-language sql
+language plpgsql
 stable
 security definer
 set search_path = pg_catalog, public
-as $$
-  select
-    c.id, c.order_number, s.buyer_name, s.buyer_roblox_username,
-    s.total_amount, s.created_at, st.status,
-    c.assigned_admin_id, c.assigned_at,
-    c.last_message_id, c.last_message_at, c.last_message_kind,
-    c.last_message_preview, c.last_sender_role,
-    c.customer_read_at, c.customer_read_message_id,
-    c.payment_details_sent_at,
-    r.last_read_at, r.last_read_message_id,
-    coalesce(u.n, 0),
-    c.state, c.done_at, c.done_by
-  from public.admin_users me
-  join public.store_order_conversations c on true
-  join public.store_order_snapshots s on s.order_number = c.order_number
-  left join public.store_conversation_reads r
-    on r.order_number = c.order_number and r.admin_user_id = me.user_id
-  left join lateral (
-    select o.status from public.orders o
-     where o.order_number = c.order_number limit 1
-  ) st on true
-  left join lateral (
-    select count(*)::integer as n
-      from public.store_order_messages m
-     where m.order_number = c.order_number
-       and m.sender_role = 'customer'
-       and (m.created_at, m.id) > (
-         coalesce(r.last_read_at, me.unread_since),
-         coalesce(r.last_read_message_id, '00000000-0000-0000-0000-000000000000'::uuid)
-       )
-  ) u on true
-  where me.user_id = p_admin
-    and (p_order_number is null or c.order_number = p_order_number)
-    and (
-      p_search is null
-      or s.order_number ilike '%' || p_search || '%'
-      or s.buyer_name ilike '%' || p_search || '%'
-      or s.buyer_roblox_username ilike '%' || p_search || '%'
-    )
-    and (
-      p_order_number is not null
-      or p_filter = 'all'
-      or (p_filter = 'active' and c.state = 'active')
-      or (p_filter = 'done' and c.state = 'done')
-      or (p_filter = 'unread' and c.state = 'active' and coalesce(u.n, 0) > 0)
-      or (p_filter = 'unassigned' and c.state = 'active' and c.assigned_admin_id is null)
-      or (p_filter = 'mine' and c.state = 'active' and c.assigned_admin_id = me.user_id)
-      or (p_filter = 'under_review' and st.status = 'pending')
-    )
-    and (
-      p_before_at is null
-      or (c.last_message_at, c.order_number) < (p_before_at, p_before_order)
-    )
-  order by c.last_message_at desc, c.order_number desc
-  limit least(greatest(coalesce(p_limit, 30), 1), 100);
-$$;
+as $fn$
+declare
+  v_filter text := case when p_order_number is not null then 'all' else coalesce(p_filter, 'all') end;
+  v_where text;
+begin
+  v_where := case v_filter
+    when 'all' then 'true'
+    when 'active' then $w$c.state = 'active'$w$
+    when 'done' then $w$c.state = 'done'$w$
+    when 'unread' then $w$c.state = 'active' and coalesce(u.n, 0) > 0$w$
+    when 'unassigned' then $w$c.state = 'active' and c.assigned_admin_id is null$w$
+    when 'mine' then $w$c.state = 'active' and c.assigned_admin_id = $1$w$
+    when 'under_review' then $w$st.status = 'pending'$w$
+    else 'false'
+  end;
+
+  return query execute format($q$
+    select
+      c.id, c.order_number, s.buyer_name, s.buyer_roblox_username,
+      s.total_amount, s.created_at, st.status,
+      c.assigned_admin_id, c.assigned_at,
+      c.last_message_id, c.last_message_at, c.last_message_kind,
+      c.last_message_preview, c.last_sender_role,
+      c.customer_read_at, c.customer_read_message_id,
+      c.payment_details_sent_at,
+      r.last_read_at, r.last_read_message_id,
+      coalesce(u.n, 0),
+      c.state, c.done_at, c.done_by
+    from public.admin_users me
+    join public.store_order_conversations c on true
+    join public.store_order_snapshots s on s.order_number = c.order_number
+    left join public.store_conversation_reads r
+      on r.order_number = c.order_number and r.admin_user_id = me.user_id
+    left join lateral (
+      select o.status from public.orders o
+       where o.order_number = c.order_number limit 1
+    ) st on true
+    left join lateral (
+      select count(*)::integer as n
+        from public.store_order_messages m
+       where m.order_number = c.order_number
+         and m.sender_role = 'customer'
+         and (m.created_at, m.id) > (
+           coalesce(r.last_read_at, me.unread_since),
+           coalesce(r.last_read_message_id, '00000000-0000-0000-0000-000000000000'::uuid)
+         )
+    ) u on true
+    where me.user_id = $1
+      and ($7::text is null or c.order_number = $7)
+      and (
+        $3::text is null
+        or s.order_number ilike '%%' || $3 || '%%'
+        or s.buyer_name ilike '%%' || $3 || '%%'
+        or s.buyer_roblox_username ilike '%%' || $3 || '%%'
+      )
+      and (%s)
+      and ($4::timestamptz is null or (c.last_message_at, c.order_number) < ($4, $5::text))
+    order by c.last_message_at desc, c.order_number desc
+    limit least(greatest(coalesce($6::integer, 30), 1), 100)
+  $q$, v_where)
+  using p_admin, v_filter, p_search, p_before_at, p_before_order, p_limit, p_order_number;
+end;
+$fn$;
 
 -- ===========================================================================
 -- 10. Customer side: conversations (+ state) and paginated My Orders

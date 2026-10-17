@@ -18,6 +18,10 @@ export const USERS = {
   custa: { email: "custa@gmail.local", name: "Juan Dela Cruz", admin: false },
   custb: { email: "custb@gmail.local", name: "Maria Santos", admin: false },
   custc: { email: "custc@gmail.local", name: "Paolo Reyes", admin: false },
+  // Used only by album-integrity.e2e.mjs, so it never disturbs the others.
+  custd: { email: "custd@gmail.local", name: "Ana Cruz", admin: false },
+  custe: { email: "custe@gmail.local", name: "Ben Lim", admin: false },
+  custf: { email: "custf@gmail.local", name: "Carla Tan", admin: false },
 };
 const VIA_LINK_GAME = "bf10c2e9-d9f2-4f86-8c7d-5c94b7354a75";
 

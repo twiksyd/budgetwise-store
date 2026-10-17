@@ -6,8 +6,8 @@
 #             are safe) -> 0021 tests -> 0022 -> 0022 tests -> 0024 (twice)
 #             -> 0024 tests -> 0023 -> tests -> 0024 again (works after 0023).
 # Database 2: stub -> 0019 -> 0020 -> seed -> 0021 -> rollback -> 0021,
-#             then 0022 -> 0024 -> 0024 rollback (refused with an album,
-#             clean without) -> 0024 again.
+#             then 0022 -> 0024 -> 0024 rollback (refused with an album),
+#             real albums -> flatten -> 0024 rollback -> 0024 again.
 set -euo pipefail
 cd "$(dirname "$0")/../supabase/tests"
 
@@ -63,6 +63,11 @@ if psql -v ON_ERROR_STOP=1 -q -d "$ROLL" -f ../rollback/0024_down.sql >/dev/null
 fi
 echo "ok - 0024 rollback refuses while an album exists"
 psql -q -d "$ROLL" -c "delete from store_order_messages where kind = 'album'; update store_order_conversations set last_message_kind = 'text' where last_message_kind = 'album'" >/dev/null
+# Recovery after albums were sent: flatten them into single images, then roll back.
+check "$ROLL" 43_albums_before_flatten.sql
+apply "$ROLL" ../rollback/0024_flatten_albums.sql
+check "$ROLL" 44_flatten_albums_test.sql
+apply "$ROLL" ../rollback/0024_flatten_albums.sql   # second run: nothing left to do
 apply "$ROLL" ../rollback/0024_down.sql
 check "$ROLL" 45_rollback_0024_test.sql
 apply "$ROLL" ../migrations/0024_store_conversation_workflow_and_albums.sql   # re-apply after rollback

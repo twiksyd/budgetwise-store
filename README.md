@@ -89,6 +89,19 @@ Database changes, in order (see each file's header):
 
 `supabase/rollback/0021_down.sql` undoes 0021 (only before 0023).
 `supabase/rollback/0024_down.sql` undoes 0024 (refused once any album exists).
+After albums were sent, a database rollback is: roll the app back first, then
+`supabase/rollback/0024_flatten_albums.sql` (each album becomes ordinary
+single-image messages pointing at the same files), then `0024_down.sql`.
+Rolling back only the application needs no SQL: older builds keep working,
+but show an album as its caption only (the photos are kept).
+
+Chat uploads are write-once. Abandoned uploads (cancelled, tab closed) are
+removed on Cancel when possible; the rest with
+`node scripts/cleanup-chat-uploads.mjs` (dry run; `--delete` to remove; only
+files no message uses and at least 24 h old). Nothing schedules it.
+
+Benchmarks (throwaway database only): `supabase/bench/active_queue_100k.sql`
+and `supabase/bench/my_orders_100k.sql`.
 
 Tests:
 

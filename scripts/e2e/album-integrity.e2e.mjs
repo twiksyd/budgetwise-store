@@ -14,7 +14,7 @@ import { after, before, describe, test } from "node:test";
 import { promisify } from "node:util";
 import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright-core";
-import { createOrder, line, PASSWORD, USERS, seed, seedCustomerScenarios } from "./seed-local.mjs";
+import { createOrder, line, PASSWORD, USERS, seed } from "./seed-local.mjs";
 
 const BASE = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3100";
 const SUPABASE_URL = process.env.E2E_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -23,11 +23,12 @@ const ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 const SERVICE_KEY = process.env.E2E_SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET = "order-chat-attachments";
-const A = "BW-E2EAAA"; // custa
-const A2 = "BW-E2ECCC"; // custa, second order
-const B = "BW-E2EBBB"; // custb
-let C; // a fresh order of custc (Done/Reopen tests, own rate-limit budget)
-let C2; // another custc order (rate-limit test)
+// This suite's own customers and orders (the other suites expect theirs fresh).
+const A = "BW-E2EIA1"; // custd
+const A2 = "BW-E2EIA2"; // custd, second order
+const B = "BW-E2EIB1"; // custe
+const C = "BW-E2EIC1"; // custf (Done/Reopen tests, own rate-limit budget)
+const C2 = "BW-E2EIC2"; // custf (rate-limit test)
 
 const fixtures = JSON.parse(readFileSync(new URL("../fixtures/images.json", import.meta.url), "utf8"));
 const IMAGE = { b64: fixtures.photoJpeg, mime: "image/jpeg" };
@@ -192,16 +193,20 @@ async function waitFor(check, label, timeout = 10_000) {
 
 before(async () => {
   ids = await seed();
-  await seedCustomerScenarios(ids);
-  // Two fresh orders of custc in the store's real order-number format.
-  [C, C2] = ["BW-E2EDDD", "BW-E2EEEE"];
-  for (const orderNumber of [C, C2]) {
-    await createOrder(orderNumber, ids.custc, "Paolo Reyes", "paoloRBX", [
-      line(0, "33333333-3333-3333-3333-333333333333", "Blox Fruits", "Dragon", 0, 1, 499),
-    ]);
+  const order = (owner, name, roblox) => [owner, name, roblox, [line(0, "33333333-3333-3333-3333-333333333333", "Blox Fruits", "Dragon", 0, 1, 499)]];
+  for (const [orderNumber, args] of [
+    [A, order(ids.custd, "Ana Cruz", "anaRBX")],
+    [A2, order(ids.custd, "Ana Cruz", "anaRBX")],
+    [B, order(ids.custe, "Ben Lim", "benRBX")],
+    [C, order(ids.custf, "Carla Tan", "carlaRBX")],
+    [C2, order(ids.custf, "Carla Tan", "carlaRBX")],
+  ]) {
+    await createOrder(orderNumber, ...args);
   }
   browser = await chromium.launch({ executablePath: process.env.E2E_CHROMIUM ?? "/opt/pw-browsers/chromium" });
-  for (const key of ["custa", "custb", "custc", "robert", "andre"]) people[key] = await signIn(key);
+  // Admin uploads go through Kenneth so the per-person upload limiter never
+  // carries over into the other suites (they upload as Robert).
+  for (const key of ["custd", "custe", "custf", "robert", "andre", "kenneth"]) people[key] = await signIn(key);
 });
 after(async () => {
   await browser?.close();
@@ -210,43 +215,43 @@ after(async () => {
 describe("album idempotency", () => {
   test("double-click Send (two posts at once) creates ONE album", async () => {
     const cid = crypto.randomUUID();
-    for (let p = 0; p < 4; p += 1) assert.equal((await upload("custa", A, cid, p)).status, 201);
-    const results = await Promise.all([postAlbum("custa", A, cid, 4), postAlbum("custa", A, cid, 4)]);
+    for (let p = 0; p < 4; p += 1) assert.equal((await upload("custd", A, cid, p)).status, 201);
+    const results = await Promise.all([postAlbum("custd", A, cid, 4), postAlbum("custd", A, cid, 4)]);
     assert.deepEqual(results.map((r) => r.status).sort(), [200, 201], results.map((r) => r.text).join(" | "));
     assert.equal(parse(results[0]).message.id, parse(results[1]).message.id);
-    const c = await counts(A, "custa", cid);
+    const c = await counts(A, "custd", cid);
     assert.deepEqual({ m: c.messages, a: c.attachments, f: c.files }, { m: 1, a: 4, f: 8 });
   });
 
   test("repeated submit, timeout retry and reconnect retry with the same id: still one album", async () => {
-    const { cid, message } = await sendAlbum("custa", A, 3);
-    const albumsBefore = (await counts(A, "custa", cid)).albums;
+    const { cid, message } = await sendAlbum("custd", A, 3);
+    const albumsBefore = (await counts(A, "custd", cid)).albums;
     // repeated submit / a retry after a lost (timed-out) response
     for (let i = 0; i < 5; i += 1) {
-      const again = await postAlbum("custa", A, cid, 3);
+      const again = await postAlbum("custd", A, cid, 3);
       assert.equal(again.status, 200, again.text);
       assert.equal(parse(again).message.id, message.id);
     }
     // reconnect retry: the client re-sends its uploads, then the post
-    const filesBefore = await objectsIn(folderOf(A, "custa", cid));
+    const filesBefore = await objectsIn(folderOf(A, "custd", cid));
     for (let p = 0; p < 3; p += 1) {
-      const reupload = await upload("custa", A, cid, p);
+      const reupload = await upload("custd", A, cid, p);
       assert.equal(reupload.status, 409, "uploads into an already-posted album are refused");
     }
-    assert.equal((await postAlbum("custa", A, cid, 3)).status, 200);
-    const filesAfter = await objectsIn(folderOf(A, "custa", cid));
+    assert.equal((await postAlbum("custd", A, cid, 3)).status, 200);
+    const filesAfter = await objectsIn(folderOf(A, "custd", cid));
     assert.deepEqual(filesAfter.map((f) => f.id), filesBefore.map((f) => f.id), "no file replaced or added");
-    const c = await counts(A, "custa", cid);
+    const c = await counts(A, "custd", cid);
     assert.deepEqual({ m: c.messages, a: c.attachments, f: c.files, albums: c.albums }, { m: 1, a: 3, f: 6, albums: albumsBefore });
   });
 
   test("proof of delivery: double send by an admin is one proof album", async () => {
     const cid = crypto.randomUUID();
-    for (let p = 0; p < 2; p += 1) assert.equal((await upload("robert", A, cid, p)).status, 201);
+    for (let p = 0; p < 2; p += 1) assert.equal((await upload("kenneth", A, cid, p)).status, 201);
     const results = await Promise.all([
-      postAlbum("robert", A, cid, 2, { label: "proof_of_delivery" }),
-      postAlbum("robert", A, cid, 2, { label: "proof_of_delivery" }),
-      postAlbum("robert", A, cid, 2, { label: "proof_of_delivery" }),
+      postAlbum("kenneth", A, cid, 2, { label: "proof_of_delivery" }),
+      postAlbum("kenneth", A, cid, 2, { label: "proof_of_delivery" }),
+      postAlbum("kenneth", A, cid, 2, { label: "proof_of_delivery" }),
     ]);
     assert.equal(results.filter((r) => r.status === 201).length, 1);
     assert.equal(results.filter((r) => r.status === 200).length, 2);
@@ -258,48 +263,48 @@ describe("album idempotency", () => {
   });
 
   test("the same client id reused for different content is refused (409), never merged", async () => {
-    const { cid } = await sendAlbum("custa", A, 2);
-    const reused = await postAlbum("custa", A, cid, 2, { body: "different caption" });
+    const { cid } = await sendAlbum("custd", A, 2);
+    const reused = await postAlbum("custd", A, cid, 2, { body: "different caption" });
     assert.equal(reused.status, 409, reused.text);
-    assert.equal((await counts(A, "custa", cid)).messages, 1);
+    assert.equal((await counts(A, "custd", cid)).messages, 1);
   });
 });
 
 describe("partial retry", () => {
   test("8 images, 7 upload, 1 fails: only the failed one is re-sent; the 7 are reused, not re-uploaded", async () => {
     const cid = crypto.randomUUID();
-    for (let p = 0; p < 7; p += 1) assert.equal((await upload("custa", A, cid, p)).status, 201);
+    for (let p = 0; p < 7; p += 1) assert.equal((await upload("custd", A, cid, p)).status, 201);
     const broken = { b64: Buffer.from("not an image at all, just text").toString("base64"), mime: "image/png", name: "IMG_0008.png" };
-    const failed = await upload("custa", A, cid, 7, broken);
+    const failed = await upload("custd", A, cid, 7, broken);
     assert.equal(failed.status, 400);
-    const kept = await objectsIn(folderOf(A, "custa", cid));
+    const kept = await objectsIn(folderOf(A, "custd", cid));
     assert.equal(kept.length, 14);
 
-    const early = await postAlbum("custa", A, cid, 8);
+    const early = await postAlbum("custd", A, cid, 8);
     assert.equal(early.status, 409);
     assert.deepEqual(parse(early).missing, [7], "the server names the image that is missing");
-    assert.equal((await counts(A, "custa", cid)).messages, 0, "nothing posted yet");
+    assert.equal((await counts(A, "custd", cid)).messages, 0, "nothing posted yet");
 
-    assert.equal((await upload("custa", A, cid, 7)).status, 201, "retry: only image 8");
-    const posted = await postAlbum("custa", A, cid, 8);
+    assert.equal((await upload("custd", A, cid, 7)).status, 201, "retry: only image 8");
+    const posted = await postAlbum("custd", A, cid, 8);
     assert.equal(posted.status, 201, posted.text);
-    assert.equal((await postAlbum("custa", A, cid, 8)).status, 200, "and a duplicate post is still one album");
+    assert.equal((await postAlbum("custd", A, cid, 8)).status, 200, "and a duplicate post is still one album");
 
-    const final = await objectsIn(folderOf(A, "custa", cid));
+    const final = await objectsIn(folderOf(A, "custd", cid));
     const unchanged = final.filter((f) => kept.some((k) => k.id === f.id && +k.created_at === +f.created_at));
     assert.equal(unchanged.length, 14, "the 7 successful images (and thumbnails) are the original objects");
     assert.equal(final.length, 16);
-    const c = await counts(A, "custa", cid);
+    const c = await counts(A, "custd", cid);
     assert.deepEqual({ m: c.messages, a: c.attachments }, { m: 1, a: 8 });
   });
 
   test("a re-upload of an already-stored image never replaces it (write-once)", async () => {
     const cid = crypto.randomUUID();
-    assert.equal((await upload("custa", A, cid, 0)).status, 201);
-    const [first] = await objectsIn(`${folderOf(A, "custa", cid)}0.jpg`);
+    assert.equal((await upload("custd", A, cid, 0)).status, 201);
+    const [first] = await objectsIn(`${folderOf(A, "custd", cid)}0.jpg`);
     const other = { b64: fixtures.jpeg, mime: "image/jpeg" };
-    assert.equal((await upload("custa", A, cid, 0, other)).status, 201, "a retry is accepted…");
-    const [still] = await objectsIn(`${folderOf(A, "custa", cid)}0.jpg`);
+    assert.equal((await upload("custd", A, cid, 0, other)).status, 201, "a retry is accepted…");
+    const [still] = await objectsIn(`${folderOf(A, "custd", cid)}0.jpg`);
     assert.equal(still.id, first.id, "…but the stored object is untouched");
     assert.equal(still.size, first.size);
   });
@@ -308,60 +313,60 @@ describe("partial retry", () => {
 describe("cancel and abandoned uploads", () => {
   test("cancel after 3 of 10 uploaded: server deletes the 3 (and thumbnails); nothing can be posted", async () => {
     const cid = crypto.randomUUID();
-    for (let p = 0; p < 3; p += 1) assert.equal((await upload("custa", A, cid, p)).status, 201);
-    assert.equal((await objectsIn(folderOf(A, "custa", cid))).length, 6);
-    const cancel = await api("custa", `/api/order-chat/${A}/uploads?as=customer&clientMessageId=${cid}`, { method: "DELETE" });
+    for (let p = 0; p < 3; p += 1) assert.equal((await upload("custd", A, cid, p)).status, 201);
+    assert.equal((await objectsIn(folderOf(A, "custd", cid))).length, 6);
+    const cancel = await api("custd", `/api/order-chat/${A}/uploads?as=customer&clientMessageId=${cid}`, { method: "DELETE" });
     assert.equal(cancel.status, 200, cancel.text);
     assert.equal(parse(cancel).deleted, 6);
-    assert.equal((await objectsIn(folderOf(A, "custa", cid))).length, 0);
-    assert.equal((await postAlbum("custa", A, cid, 3)).status, 409);
+    assert.equal((await objectsIn(folderOf(A, "custd", cid))).length, 0);
+    assert.equal((await postAlbum("custd", A, cid, 3)).status, 409);
   });
 
   test("cancel cannot touch a posted album or someone else's uploads", async () => {
-    const { cid } = await sendAlbum("custa", A, 2);
-    const late = await api("custa", `/api/order-chat/${A}/uploads?as=customer&clientMessageId=${cid}`, { method: "DELETE" });
+    const { cid } = await sendAlbum("custd", A, 2);
+    const late = await api("custd", `/api/order-chat/${A}/uploads?as=customer&clientMessageId=${cid}`, { method: "DELETE" });
     assert.equal(late.status, 409);
-    assert.equal((await objectsIn(folderOf(A, "custa", cid))).length, 4, "posted files intact");
+    assert.equal((await objectsIn(folderOf(A, "custd", cid))).length, 4, "posted files intact");
 
     const pending = crypto.randomUUID();
-    assert.equal((await upload("custa", A, pending, 0)).status, 201);
-    const other = await api("custb", `/api/order-chat/${A}/uploads?as=customer&clientMessageId=${pending}`, { method: "DELETE" });
+    assert.equal((await upload("custd", A, pending, 0)).status, 201);
+    const other = await api("custe", `/api/order-chat/${A}/uploads?as=customer&clientMessageId=${pending}`, { method: "DELETE" });
     assert.equal(other.status, 404, "customer B cannot even address A's order");
-    assert.equal((await objectsIn(folderOf(A, "custa", pending))).length, 2);
+    assert.equal((await objectsIn(folderOf(A, "custd", pending))).length, 2);
   });
 
   test("cleanup script: removes abandoned uploads past 24 h, keeps fresh ones and every posted file", async () => {
-    const posted = await sendAlbum("custa", A, 2);
+    const posted = await sendAlbum("custd", A, 2);
     const abandoned = crypto.randomUUID();
     const fresh = crypto.randomUUID();
     for (let p = 0; p < 2; p += 1) {
-      assert.equal((await upload("custa", A, abandoned, p)).status, 201);
-      assert.equal((await upload("custa", A, fresh, p)).status, 201);
+      assert.equal((await upload("custd", A, abandoned, p)).status, 201);
+      assert.equal((await upload("custd", A, fresh, p)).status, 201);
     }
     // Age the abandoned upload and the posted album's files to 25 hours.
     await sql(`update storage.objects set created_at = now() - interval '25 hours' where bucket_id = $1 and (name like $2 or name like $3)`, [
       BUCKET,
-      `${folderOf(A, "custa", abandoned)}%`,
-      `${folderOf(A, "custa", posted.cid)}%`,
+      `${folderOf(A, "custd", abandoned)}%`,
+      `${folderOf(A, "custd", posted.cid)}%`,
     ]);
     // The stale upload can no longer be posted (so cleanup cannot race a post).
-    const stale = await postAlbum("custa", A, abandoned, 2);
+    const stale = await postAlbum("custd", A, abandoned, 2);
     assert.equal(stale.status, 410, stale.text);
 
     const run = promisify(execFile);
     const env = { ...process.env, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY };
     const dry = await run("node", ["scripts/cleanup-chat-uploads.mjs"], { env });
     assert.match(dry.stdout, /Dry run: [1-9]\d* abandoned upload/);
-    assert.equal((await objectsIn(folderOf(A, "custa", abandoned))).length, 4, "dry run deletes nothing");
+    assert.equal((await objectsIn(folderOf(A, "custd", abandoned))).length, 4, "dry run deletes nothing");
     const real = await run("node", ["scripts/cleanup-chat-uploads.mjs", "--delete"], { env });
     assert.match(real.stdout, /Removed [1-9]\d* abandoned upload/);
 
-    assert.equal((await objectsIn(folderOf(A, "custa", abandoned))).length, 0, "abandoned files deleted");
-    const { data: listed } = await service.storage.from(BUCKET).list(folderOf(A, "custa", abandoned).replace(/\/$/, ""));
+    assert.equal((await objectsIn(folderOf(A, "custd", abandoned))).length, 0, "abandoned files deleted");
+    const { data: listed } = await service.storage.from(BUCKET).list(folderOf(A, "custd", abandoned).replace(/\/$/, ""));
     assert.equal(listed.length, 0, "…in Storage itself, not just the table");
-    assert.equal((await objectsIn(folderOf(A, "custa", fresh))).length, 4, "uploads under 24 h are kept");
-    assert.equal((await objectsIn(folderOf(A, "custa", posted.cid))).length, 4, "posted album files are kept");
-    const thumb = await api("custa", `/api/order-chat/media/${posted.message.album.items[0].id}?size=thumb`);
+    assert.equal((await objectsIn(folderOf(A, "custd", fresh))).length, 4, "uploads under 24 h are kept");
+    assert.equal((await objectsIn(folderOf(A, "custd", posted.cid))).length, 4, "posted album files are kept");
+    const thumb = await api("custd", `/api/order-chat/media/${posted.message.album.items[0].id}?size=thumb`);
     assert.equal(thumb.type, "opaqueredirect", "the posted album still opens");
 
     const guarded = await run("node", ["scripts/cleanup-chat-uploads.mjs"], {
@@ -375,13 +380,13 @@ describe("attachment authorisation", () => {
   let albumA;
   let albumA2;
   before(async () => {
-    albumA = await sendAlbum("custa", A, 2);
-    albumA2 = await sendAlbum("custa", A2, 1);
+    albumA = await sendAlbum("custd", A, 2);
+    albumA2 = await sendAlbum("custd", A2, 1);
   });
 
   test("customer A sees own images through a short-lived signed URL; thumbnail and full alike", async () => {
     for (const size of ["thumb", "full"]) {
-      const response = await people.custa.context.request.get(`/api/order-chat/media/${albumA.message.album.items[0].id}?size=${size}`, { maxRedirects: 0 });
+      const response = await people.custd.context.request.get(`/api/order-chat/media/${albumA.message.album.items[0].id}?size=${size}`, { maxRedirects: 0 });
       assert.equal(response.status(), 302);
       assert.equal(response.headers()["cache-control"], "private, no-store");
       const location = response.headers().location;
@@ -396,30 +401,30 @@ describe("attachment authorisation", () => {
   });
 
   test("customer B: no metadata, no thumbnail, no original of A's images", async () => {
-    const messages = await api("custb", `/api/order-chat/${A}/messages?as=customer`);
+    const messages = await api("custe", `/api/order-chat/${A}/messages?as=customer`);
     assert.equal(messages.status, 404);
     for (const size of ["thumb", "full"]) {
-      const media = await api("custb", `/api/order-chat/media/${albumA.message.album.items[0].id}?size=${size}`);
+      const media = await api("custe", `/api/order-chat/media/${albumA.message.album.items[0].id}?size=${size}`);
       assert.equal(media.status, 404, `B ${size}`);
     }
     const signedOut = await fetch(`${BASE}/api/order-chat/media/${albumA.message.album.items[0].id}?size=full`, { redirect: "manual" });
     assert.equal(signedOut.status, 401);
-    const stranger = await api("custc", `/api/order-chat/media/${albumA.message.album.items[0].id}?size=thumb`);
+    const stranger = await api("custf", `/api/order-chat/media/${albumA.message.album.items[0].id}?size=thumb`);
     assert.equal(stranger.status, 404, "a signed-in non-owner, non-admin");
   });
 
   test("B cannot use A's attachment, claim A's pending upload, or pass storage paths", async () => {
     // A's posted album id and a pending upload of A's, both under A's folder.
     const pending = crypto.randomUUID();
-    assert.equal((await upload("custa", A, pending, 0)).status, 201);
+    assert.equal((await upload("custd", A, pending, 0)).status, 201);
     for (const cid of [albumA.cid, pending]) {
-      const intoOwn = await postAlbum("custb", B, cid, 1);
+      const intoOwn = await postAlbum("custe", B, cid, 1);
       assert.equal(intoOwn.status, 409, "B's album only ever looks in B's own folder");
-      const intoA = await postAlbum("custb", A, cid, 1);
+      const intoA = await postAlbum("custe", A, cid, 1);
       assert.equal(intoA.status, 404, "B cannot post into A's order");
     }
-    const withPaths = await postAlbum("custb", B, crypto.randomUUID(), 1, {
-      item: { path: `${folderOf(A, "custa", pending)}0.jpg`, thumb_path: `${folderOf(A, "custa", pending)}0.thumb.webp`, storage_path: "x" },
+    const withPaths = await postAlbum("custe", B, crypto.randomUUID(), 1, {
+      item: { path: `${folderOf(A, "custd", pending)}0.jpg`, thumb_path: `${folderOf(A, "custd", pending)}0.thumb.webp`, storage_path: "x" },
     });
     assert.equal(withPaths.status, 409, "paths in the request are ignored; nothing was uploaded by B");
     const [{ n }] = await sql(
@@ -430,24 +435,24 @@ describe("attachment authorisation", () => {
   });
 
   test("an attachment from another order cannot be reused", async () => {
-    const crossed = await postAlbum("custa", A, albumA2.cid, 1);
+    const crossed = await postAlbum("custd", A, albumA2.cid, 1);
     assert.equal(crossed.status, 409, `album ${albumA2.cid} belongs to ${A2}`);
-    const media = await api("custb", `/api/order-chat/media/${albumA2.message.album.items[0].id}?size=thumb`);
+    const media = await api("custe", `/api/order-chat/media/${albumA2.message.album.items[0].id}?size=thumb`);
     assert.equal(media.status, 404);
   });
 
   test("no arbitrary storage path can be requested", async () => {
     for (const path of [
-      `/api/order-chat/media/${encodeURIComponent(`${A}/${ids.custa}/${albumA.cid}/0.jpg`)}`,
+      `/api/order-chat/media/${encodeURIComponent(`${A}/${ids.custd}/${albumA.cid}/0.jpg`)}`,
       "/api/order-chat/media/..%2F..%2Fstore-payment-qr%2Fqr.png",
       "/api/order-chat/media/not-a-uuid",
       `/api/order-chat/media/${crypto.randomUUID()}?size=full`,
       `/api/order-chat/attachments/${encodeURIComponent(`${A}/x.png`)}`,
     ]) {
-      const result = await api("custa", path);
+      const result = await api("custd", path);
       assert.equal(result.status, 404, path);
     }
-    const sizeTrick = await people.custa.context.request.get(
+    const sizeTrick = await people.custd.context.request.get(
       `/api/order-chat/media/${albumA.message.album.items[0].id}?size=..%2F..%2Fother`,
       { maxRedirects: 0 },
     );
@@ -457,23 +462,23 @@ describe("attachment authorisation", () => {
   test("admins need a real admin session; ?as=admin from a customer is refused", async () => {
     const admin = await api("robert", `/api/order-chat/media/${albumA.message.album.items[1].id}?size=full`);
     assert.equal(admin.type, "opaqueredirect");
-    const pretend = await api("custb", `/api/order-chat/${A}/messages?as=admin`);
+    const pretend = await api("custe", `/api/order-chat/${A}/messages?as=admin`);
     assert.equal(pretend.status, 403);
-    const pretendUpload = await upload("custb", A, crypto.randomUUID(), 0, IMAGE, THUMB, "admin");
+    const pretendUpload = await upload("custe", A, crypto.randomUUID(), 0, IMAGE, THUMB, "admin");
     assert.equal(pretendUpload.status, 403);
-    const pretendState = await setState("custb", A, "done", await lastMessageId(A));
+    const pretendState = await setState("custe", A, "done", await lastMessageId(A));
     assert.ok([401, 403].includes(pretendState.status), pretendState.text);
   });
 
   test("customer JSON never contains storage paths or admin identities", async () => {
-    await sendAlbum("robert", A, 2, { label: "proof_of_delivery" });
+    await sendAlbum("kenneth", A, 2, { label: "proof_of_delivery" });
     for (const path of [`/api/order-chat/${A}/messages?as=customer`, "/api/account/conversations", "/api/account/orders?section=open", `/api/order-chat/${A}/summary`]) {
-      const result = await api("custa", path);
+      const result = await api("custd", path);
       assert.equal(result.status, 200, path);
       assert.doesNotMatch(result.text, /order-chat-attachments|storage_path|thumb_path|\.thumb\.|attachment_path/, path);
-      assert.doesNotMatch(result.text, new RegExp(`${ids.custa}/|${ids.robert}|${ids.andre}`), path);
+      assert.doesNotMatch(result.text, new RegExp(`${ids.custd}/|${ids.robert}|${ids.andre}|${ids.kenneth}`), path);
     }
-    const album = parse(await api("custa", `/api/order-chat/${A}/messages?as=customer`)).messages.find((m) => m.album?.label === "proof_of_delivery");
+    const album = parse(await api("custd", `/api/order-chat/${A}/messages?as=customer`)).messages.find((m) => m.album?.label === "proof_of_delivery");
     assert.deepEqual(Object.keys(album.album.items[0]).sort(), ["height", "id", "width"]);
   });
 
@@ -492,7 +497,7 @@ describe("existing images keep working after 0024", () => {
   test("old single-image messages and receipts (both historical path formats) still render", async () => {
     const png = Buffer.from(fixtures.png, "base64");
     const legacy = [
-      { path: `${A}/${ids.custa}/${crypto.randomUUID()}.png`, body: "GCash receipt (pre-0024 client)" },
+      { path: `${A}/${ids.custd}/${crypto.randomUUID()}.png`, body: "GCash receipt (pre-0024 client)" },
       { path: `${A}/${crypto.randomUUID()}.png`, body: "receipt (0020 path format)" },
     ];
     for (const item of legacy) {
@@ -501,22 +506,22 @@ describe("existing images keep working after 0024", () => {
       await sql(
         `insert into store_order_messages (order_number, sender_role, sender_user_id, kind, body, attachment_path, attachment_mime)
          values ($1, 'customer', $2, 'image', $3, $4, 'image/png')`,
-        [A, ids.custa, item.body, item.path],
+        [A, ids.custd, item.body, item.path],
       );
     }
-    const list = parse(await api("custa", `/api/order-chat/${A}/messages?as=customer`)).messages;
+    const list = parse(await api("custd", `/api/order-chat/${A}/messages?as=customer`)).messages;
     for (const item of legacy) {
       const message = list.find((m) => m.body === item.body);
       assert.ok(message, item.body);
       assert.equal(message.kind, "image");
       assert.equal(message.hasAttachment, true);
       assert.equal(message.album, null);
-      for (const who of ["custa", "robert"]) {
+      for (const who of ["custd", "robert"]) {
         const response = await people[who].context.request.get(`/api/order-chat/attachments/${message.id}`, { maxRedirects: 0 });
         assert.equal(response.status(), 302, `${who}: ${item.body}`);
         assert.equal((await fetch(response.headers().location)).status, 200);
       }
-      assert.equal((await api("custb", `/api/order-chat/attachments/${message.id}`)).status, 404);
+      assert.equal((await api("custe", `/api/order-chat/attachments/${message.id}`)).status, 404);
     }
     const [{ n }] = await sql(
       "select count(*)::int as n from store_order_message_attachments x join store_order_messages m on m.id = x.message_id where m.kind <> 'album'",
@@ -527,7 +532,7 @@ describe("existing images keep working after 0024", () => {
   test("the legacy single-image send path still works (and is write-once too)", async () => {
     const cid = crypto.randomUUID();
     const send = () =>
-      people.custa.page.evaluate(
+      people.custd.page.evaluate(
         async ({ b64, cid, order }) => {
           const form = new FormData();
           form.set("body", "legacy single image");
@@ -552,12 +557,12 @@ describe("Done / Reopen concurrency", () => {
       await sql(
         `insert into store_order_messages (order_number, sender_role, sender_user_id, kind, body, created_at)
          values ($1, $2, $3, 'text', $4, now() - interval '1 hour' + $5 * interval '1 second')`,
-        [C, i % 2 ? "admin" : "customer", i % 2 ? ids.andre : ids.custc, `history ${i + 1}`, i],
+        [C, i % 2 ? "admin" : "customer", i % 2 ? ids.andre : ids.custf, `history ${i + 1}`, i],
       );
     }
     const seen = await lastMessageId(C); // what Robert has on screen ("message 50")
     await api("robert", `/api/order-chat/${C}/read?as=admin`, json({ messageId: seen }));
-    const sent = await customerSays("custc", C, "message 51: may tanong pa po");
+    const sent = await customerSays("custf", C, "message 51: may tanong pa po");
     assert.equal(sent.status, 201);
     const done = await setState("robert", C, "done", seen);
     assert.equal(done.status, 409, done.text);
@@ -587,7 +592,7 @@ describe("Done / Reopen concurrency", () => {
       await customer.query("begin");
       const waiting = customer.query(
         "select store_post_message($1, 'customer', $2, 'text', 'sent while Done was saving', null, null, gen_random_uuid())",
-        [C, ids.custc],
+        [C, ids.custf],
       );
       await settle(300);
       await admin.query("commit");
@@ -607,7 +612,7 @@ describe("Done / Reopen concurrency", () => {
       await customer.query("begin");
       await customer.query(
         "select store_post_message($1, 'customer', $2, 'text', 'sent just before Done', null, null, gen_random_uuid())",
-        [C, ids.custc],
+        [C, ids.custf],
       );
       const doneWaiting = admin.query("select store_set_conversation_state($1, $2, 'done', $3)", [C, ids.robert, seen2]).then(
         () => "done",
@@ -631,7 +636,7 @@ describe("Done / Reopen concurrency", () => {
       const [done, reopen, message] = await Promise.all([
         setState("robert", C, "done", seen),
         setState("andre", C, "active", null),
-        customerSays("custc", C, body),
+        customerSays("custf", C, body),
       ]);
       assert.ok([200, 409].includes(done.status), done.text);
       assert.equal(reopen.status, 200, reopen.text);
@@ -663,10 +668,10 @@ describe("customer completion state, realtime and security", () => {
   test("Done → admins Done, customer Completed; customer writes → Active / In progress; XOB status untouched", async () => {
     const xobBefore = await sql("select order_number, status from orders order by order_number");
     const [{ id: convC }] = await sql("select id from store_order_conversations where order_number = $1", [C]);
-    const custa = await realtimeClient("custc");
+    const custd = await realtimeClient("custf");
     const robert = await realtimeClient("robert");
-    const customerTopic = listen(custa, `customer:${ids.custc}`);
-    const chatTopic = listen(custa, `chat:${convC}`);
+    const customerTopic = listen(custd, `customer:${ids.custf}`);
+    const chatTopic = listen(custd, `chat:${convC}`);
     const inbox = listen(robert, "admin:inbox");
     assert.equal((await customerTopic.status).value, "SUBSCRIBED");
     assert.equal((await chatTopic.status).value, "SUBSCRIBED");
@@ -677,41 +682,41 @@ describe("customer completion state, realtime and security", () => {
       await waitFor(() => inbox.received.some((e) => e.event === "conversation" && e.payload.order_number === C && e.payload.state === "done"), "admin Done event");
       await waitFor(() => chatTopic.received.some((e) => e.event === "state" && e.payload.state === "done"), "customer chat state event");
       await waitFor(() => customerTopic.received.some((e) => e.event === "conversation" && e.payload.state === "done"), "customer topic event");
-      assert.equal(parse(await api("custc", `/api/order-chat/${C}/summary`)).summary.state, "done", "customer: Completed");
-      const page = people.custc.page;
+      assert.equal(parse(await api("custf", `/api/order-chat/${C}/summary`)).summary.state, "done", "customer: Completed");
+      const page = people.custf.page;
       await page.goto(`/orders/${C}`);
       await page.getByText("Completed ✓").first().waitFor();
 
       inbox.received.length = 0;
       customerTopic.received.length = 0;
-      assert.equal((await customerSays("custc", C, "after Completed: one more question")).status, 201);
+      assert.equal((await customerSays("custf", C, "after Completed: one more question")).status, 201);
       await waitFor(() => inbox.received.some((e) => e.event === "conversation" && e.payload.order_number === C && e.payload.state === "active"), "admin reopen event");
       await waitFor(() => inbox.received.some((e) => e.event === "message" && e.payload.row?.state === "active"), "admin message event with state");
       await waitFor(() => customerTopic.received.some((e) => e.event === "conversation" && e.payload.state === "active"), "customer reopen event");
-      assert.equal(parse(await api("custc", `/api/order-chat/${C}/summary`)).summary.state, "active", "customer: In progress");
+      assert.equal(parse(await api("custf", `/api/order-chat/${C}/summary`)).summary.state, "active", "customer: In progress");
       await page.getByText("Completed ✓").first().waitFor({ state: "detached" });
 
       assert.deepEqual(await sql("select order_number, status from orders order by order_number"), xobBefore, "orders.status never changed");
     } finally {
-      await custa.removeAllChannels();
+      await custd.removeAllChannels();
       await robert.removeAllChannels();
     }
   });
 
   test("private customer topic: A receives A only; B, anonymous and admins are refused; nobody can publish", async (t) => {
-    const custa = await realtimeClient("custa");
-    const custaSecond = await realtimeClient("custa");
-    const custb = await realtimeClient("custb");
+    const custd = await realtimeClient("custd");
+    const custaSecond = await realtimeClient("custd");
+    const custe = await realtimeClient("custe");
     const anon = await realtimeClient(null);
     const robert = await realtimeClient("robert");
     try {
-      const own = listen(custa, `customer:${ids.custa}`);
-      const ownChat = listen(custa, `chat:${convA}`);
-      const peek = listen(custa, `customer:${ids.custb}`);
-      const peekChat = listen(custa, `chat:${convB}`);
-      const anonPeek = listen(anon, `customer:${ids.custa}`);
-      const adminPeek = listen(robert, `customer:${ids.custa}`);
-      const witness = listen(custaSecond, `customer:${ids.custa}`);
+      const own = listen(custd, `customer:${ids.custd}`);
+      const ownChat = listen(custd, `chat:${convA}`);
+      const peek = listen(custd, `customer:${ids.custe}`);
+      const peekChat = listen(custd, `chat:${convB}`);
+      const anonPeek = listen(anon, `customer:${ids.custd}`);
+      const adminPeek = listen(robert, `customer:${ids.custd}`);
+      const witness = listen(custaSecond, `customer:${ids.custd}`);
       assert.equal((await own.status).value, "SUBSCRIBED");
       assert.equal((await ownChat.status).value, "SUBSCRIBED");
       assert.equal((await witness.status).value, "SUBSCRIBED");
@@ -723,7 +728,7 @@ describe("customer completion state, realtime and security", () => {
       // Forgery attempts: on the private channel, and on a public channel of the same name.
       const forged = { conversation_id: convA, order_number: A, state: "done", unread_count: 99 };
       const sendResult = await own.channel.send({ type: "broadcast", event: "conversation", payload: forged });
-      const publicForger = listen(custb, `customer:${ids.custa}`, { isPrivate: false });
+      const publicForger = listen(custe, `customer:${ids.custd}`, { isPrivate: false });
       await publicForger.status;
       await publicForger.channel.send({ type: "broadcast", event: "conversation", payload: forged });
       const anonForger = listen(anon, `chat:${convA}`, { isPrivate: false });
@@ -733,8 +738,8 @@ describe("customer completion state, realtime and security", () => {
       // A real event for A (an admin album) and one for B.
       witness.received.length = 0;
       ownChat.received.length = 0;
-      await sendAlbum("robert", A, 2, { label: "proof_of_delivery" });
-      await customerSays("custb", B, "B's own message");
+      await sendAlbum("kenneth", A, 2, { label: "proof_of_delivery" });
+      await customerSays("custe", B, "B's own message");
       await waitFor(() => witness.received.some((e) => e.event === "message"), "A gets its real event");
       await settle();
 
@@ -751,16 +756,16 @@ describe("customer completion state, realtime and security", () => {
 
       const everything = JSON.stringify([...witness.received, ...ownChat.received]);
       assert.doesNotMatch(everything, /order-chat-attachments|\.jpg|\.webp|\.png|storage_path|thumb_path/);
-      assert.doesNotMatch(everything, new RegExp(`${ids.robert}|${ids.andre}|sender_user_id|done_by|assigned`));
+      assert.doesNotMatch(everything, new RegExp(`${ids.robert}|${ids.andre}|${ids.kenneth}|sender_user_id|done_by|assigned`));
     } finally {
-      for (const client of [custa, custaSecond, custb, anon, robert]) await client.removeAllChannels();
+      for (const client of [custd, custaSecond, custe, anon, robert]) await client.removeAllChannels();
     }
   });
 });
 
 describe("file validation over HTTP", () => {
   const cid = crypto.randomUUID();
-  const send = (file, thumb = THUMB) => upload("custb", B, cid, 0, file, thumb);
+  const send = (file, thumb = THUMB) => upload("custe", B, cid, 0, file, thumb);
 
   test("refused: > 4 MB, fake PNG, unsupported type, renamed executable, malformed image, bad thumbnail", async () => {
     const big = Buffer.alloc(4 * 1024 * 1024 + 10);
@@ -786,7 +791,7 @@ describe("file validation over HTTP", () => {
       else assert.equal(result.status, status, `${label}: ${result.text}`);
       if (message) assert.match(result.text, message);
     }
-    assert.equal((await objectsIn(folderOf(B, "custb", cid))).length, 0, "nothing was stored");
+    assert.equal((await objectsIn(folderOf(B, "custe", cid))).length, 0, "nothing was stored");
   });
 
   test("accepted: JPG, PNG and WebP", async () => {
@@ -797,11 +802,11 @@ describe("file validation over HTTP", () => {
     ];
     const album = crypto.randomUUID();
     for (const [position, file] of formats.entries()) {
-      const result = await upload("custb", B, album, position, file);
+      const result = await upload("custe", B, album, position, file);
       assert.equal(result.status, 201, result.text);
     }
-    assert.equal((await postAlbum("custb", B, album, 3)).status, 201);
-    const names = (await objectsIn(folderOf(B, "custb", album))).map((o) => o.name.split("/").pop());
+    assert.equal((await postAlbum("custe", B, album, 3)).status, 201);
+    const names = (await objectsIn(folderOf(B, "custe", album))).map((o) => o.name.split("/").pop());
     assert.deepEqual(names.sort(), ["0.jpg", "0.thumb.webp", "1.png", "1.thumb.webp", "2.thumb.webp", "2.webp"]);
   });
 });
@@ -813,11 +818,11 @@ describe("composer and viewer in the browser", () => {
       `select m.id, m.client_message_id, (select count(*)::int from store_order_message_attachments x where x.message_id = m.id) as n
          from store_order_messages m where m.order_number = $1 and m.kind = 'album' and m.sender_user_id = $2
         order by m.created_at desc limit 1`,
-      [B, ids.custb],
+      [B, ids.custe],
     ))[0];
 
   test("10 picked, 3 removed before sending: one album of 7, only 7 images (+7 thumbnails) ever uploaded", async () => {
-    const page = people.custb.page;
+    const page = people.custe.page;
     await page.goto(`/orders/${B}`);
     const uploads = [];
     page.on("request", (request) => request.method() === "POST" && request.url().includes("/uploads?") && uploads.push(request.url()));
@@ -835,11 +840,11 @@ describe("composer and viewer in the browser", () => {
     const album = await newestAlbum();
     assert.equal(album.n, 7);
     assert.equal(uploads.length, 7, "removed images were never sent");
-    assert.equal((await objectsIn(folderOf(B, "custb", album.client_message_id))).length, 14);
+    assert.equal((await objectsIn(folderOf(B, "custe", album.client_message_id))).length, 14);
   });
 
   test("Cancel while uploading: uploads stop, stored files are deleted, nothing is posted", async () => {
-    const page = people.custb.page;
+    const page = people.custe.page;
     await page.goto(`/orders/${B}`);
     const before = await newestAlbum();
     await page.route("**/uploads?**", async (route) => {
@@ -858,21 +863,22 @@ describe("composer and viewer in the browser", () => {
     await settle(4000);
     await page.unroute("**/uploads?**");
     assert.equal((await newestAlbum()).id, before.id, "no album was posted");
-    assert.equal((await objectsIn(folderOf(B, "custb", cid))).length, 0, "files that reached the server were deleted");
+    assert.equal((await objectsIn(folderOf(B, "custe", cid))).length, 0, "files that reached the server were deleted");
   });
 
   test("a 10-image album: metadata only, 4 thumbnails in the chat, originals only in the viewer", async (t) => {
-    const ten = await sendAlbum("robert", B, 10);
-    const page = people.custb.page;
+    const page = people.custe.page;
+    await page.goto("about:blank"); // measure one fresh page load only
+    const ten = await sendAlbum("kenneth", B, 10);
     const media = [];
     const objects = [];
     page.on("request", (request) => {
       const url = request.url();
-      if (url.includes("/api/order-chat/media/")) media.push(url);
+      if (url.includes("/api/order-chat/media/")) media.push(url); // album images (fonts live under /_next/static/media)
       if (url.includes("/storage/v1/object/sign/")) objects.push(url);
     });
-    const thread = await api("custb", `/api/order-chat/${B}/messages?as=customer`);
-    const message = parse(thread).messages.find((m) => m.id === ten.message.id);
+    const thread = await people.custe.context.request.get(`/api/order-chat/${B}/messages?as=customer`);
+    const message = (await thread.json()).messages.find((m) => m.id === ten.message.id);
     const bytes = Buffer.byteLength(JSON.stringify(message));
     t.diagnostic(`album message JSON: ${bytes} bytes for 10 images`);
     assert.ok(bytes < 2000, `${bytes} bytes`);
@@ -903,12 +909,12 @@ describe("composer and viewer in the browser", () => {
 describe("rate limits", () => {
   test("a 10-image album works; 40 uploads a minute per person is the ceiling", async () => {
     const order = { order_number: C2 };
-    const ten = await sendAlbum("custc", order.order_number, 10);
+    const ten = await sendAlbum("custf", order.order_number, 10);
     assert.equal(ten.message.album.items.length, 10);
     const statuses = [];
     const burst = crypto.randomUUID();
-    for (let i = 0; i < 40; i += 1) statuses.push((await upload("custc", order.order_number, burst, i % 10)).status);
-    statuses.push(...(await Promise.all(Array.from({ length: 10 }, (_, i) => upload("custc", order.order_number, burst, i)))).map((r) => r.status));
+    for (let i = 0; i < 40; i += 1) statuses.push((await upload("custf", order.order_number, burst, i % 10)).status);
+    statuses.push(...(await Promise.all(Array.from({ length: 10 }, (_, i) => upload("custf", order.order_number, burst, i)))).map((r) => r.status));
     assert.ok(statuses.includes(429), `burst statuses: ${[...new Set(statuses)].join(",")}`);
     const firstLimited = statuses.indexOf(429);
     assert.ok(firstLimited >= 29, `limited only after the 40-a-minute budget (first 429 at upload ${firstLimited + 11})`);

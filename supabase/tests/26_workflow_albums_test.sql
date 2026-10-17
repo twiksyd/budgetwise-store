@@ -416,15 +416,41 @@ end $$;
 select pg_temp.ok(
   (select line like '%store_order_conversations_state_activity_idx%' and line not like '%Seq Scan%' from plan_out),
   'the Active queue uses the state index (no scan of Done history)');
+-- The hard case for the real function: only 30 Active chats, scattered
+-- through the whole history (old ones too), so no queue fills a page from
+-- the newest rows. Every filter must still be planned on its own index.
+update store_order_conversations set state = 'done', done_at = now()
+ where order_number like 'BW-P%' and state = 'active';
+update store_order_conversations set state = 'active', done_at = null,
+       assigned_admin_id = case when right(order_number, 6)::int % 19998 = 0 then '00000000-0000-0000-0000-0000000000a1'::uuid end
+ where order_number like 'BW-P%' and right(order_number, 6)::int % 3333 = 0;
+analyze store_order_conversations;
 do $$
-declare t0 timestamptz := clock_timestamp(); n int;
+declare t0 timestamptz; n int; f text; took interval; ceiling interval;
 begin
-  select count(*) into n from store_admin_inbox('00000000-0000-0000-0000-0000000000a1', 'active');
-  if clock_timestamp() - t0 > interval '500 ms' then
-    raise exception 'FAIL: Active inbox took %', clock_timestamp() - t0;
-  end if;
-  raise notice 'ok - Active inbox over 100,000 conversations in % (% rows)', clock_timestamp() - t0, n;
+  perform * from store_admin_inbox('00000000-0000-0000-0000-0000000000a1', 'active');
+  foreach f in array array['active', 'unread', 'mine', 'unassigned', 'done', 'all', 'under_review'] loop
+    t0 := clock_timestamp();
+    select count(*) into n from store_admin_inbox('00000000-0000-0000-0000-0000000000a1', f, null, null, null, 31);
+    took := clock_timestamp() - t0;
+    -- under_review (API compatibility only, not in the inbox) can only be
+    -- answered from XOB orders.status, which has no status index and is
+    -- not ours to change: it gets a looser ceiling.
+    ceiling := case when f = 'under_review' then interval '2 s' else interval '100 ms' end;
+    if took > ceiling then
+      raise exception 'FAIL: inbox filter % took % over 100,000 conversations', f, took;
+    end if;
+    raise notice 'ok - inbox filter % over 100,000 conversations (30 Active, scattered): % (% rows)', f, took, n;
+  end loop;
 end $$;
+select pg_temp.ok(
+  (select count(*) from store_admin_inbox('00000000-0000-0000-0000-0000000000a1', 'mine', null, null, null, 100) where order_number like 'BW-P%') = 5
+  and (select count(*) from store_admin_inbox('00000000-0000-0000-0000-0000000000a1', 'active', null, null, null, 100) where order_number like 'BW-P%') = 30,
+  'per-filter plans return the right rows (5 assigned, every Active chat)');
+select pg_temp.ok(
+  (select count(*) from store_admin_inbox('00000000-0000-0000-0000-0000000000a1', 'active', 'BW-P003333')) = 1
+  and (select count(*) from store_admin_inbox('00000000-0000-0000-0000-0000000000a1', 'done', null, null, null, 30, 'BW-P003333')) = 1,
+  'search and single-row lookup still work (single row ignores the filter)');
 delete from store_order_conversations where order_number like 'BW-P%';
 delete from store_order_snapshots where order_number like 'BW-P%';
 
