@@ -262,7 +262,8 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
             <button
               type="button"
               onClick={() => void changeState("done")}
-              disabled={stateBusy}
+              // Done means "I've seen this": not before the thread is on screen.
+              disabled={stateBusy || !thread.state.loaded}
               className="border-border hover:bg-muted inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold disabled:opacity-60"
             >
               <CheckCircle2 className="size-4 text-emerald-600" />

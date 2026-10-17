@@ -308,10 +308,17 @@ describe("Part 2 — Done / Completed workflow", { concurrency: false }, () => {
     await customer.getByRole("button", { name: "Send message" }).click();
     await customer.getByText("Completed ✓ — this order is finished.").waitFor({ state: "detached", timeout: 30_000 });
     await people.andre.page.getByRole("tab", { name: "Active" }).click();
-    const row = people.andre.page.locator('a[href="/admin/orders/BW-X01"]');
-    await row.getByText("Hello po?").waitFor(T);
+    // (The row's preview line may show "Robert is viewing" — presence wins.)
+    await people.andre.page.locator('a[href="/admin/orders/BW-X01"]').waitFor(T);
     assert.equal(await people.andre.page.locator('a[href^="/admin/orders/BW-"]').first().getAttribute("href"), "/admin/orders/BW-X01", "back at the top");
-    await people.kenneth.page.locator('a[href="/admin/orders/BW-X01"]').getByText("Hello po?").waitFor(T);
+    // Kenneth never touched his list: it came back by itself (realtime).
+    await people.kenneth.page.locator('a[href="/admin/orders/BW-X01"]').waitFor(T);
+    for (const key of ["andre", "kenneth"]) {
+      const { row } = JSON.parse((await api(people[key].page, "/api/admin/inbox/BW-X01", {})).text);
+      assert.equal(row.state, "active", `${key}: Active again`);
+      assert.ok(row.unreadCount > 0, `${key}: unread`);
+      assert.equal(row.lastMessagePreview, "Hello po?");
+    }
     const audit = await sql("select actor_user_id, details from store_chat_audit_log where order_number = 'BW-X01' and action = 'conversation.reopened' order by id desc limit 1");
     assert.equal(audit[0].actor_user_id, ids.custa);
     assert.equal(audit[0].details.cause, "customer_message");
