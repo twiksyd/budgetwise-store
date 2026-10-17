@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 
 type Cursor = { at: string | null; messageId: string | null } | null;
 const NEAR_BOTTOM_PX = 96;
+/** Tallest a single chat image/gallery can render (max-h-80 + label). */
+const MAX_MEDIA_HEIGHT_PX = 400;
 /** Beyond this distance from the latest message a "jump to latest" arrow shows. */
 const FAR_FROM_BOTTOM_PX = 640;
 const NEAR_TOP_PX = 160;
@@ -191,8 +193,17 @@ export function ChatThread({
   }
 
   // Images change height after load; stay pinned if we were at the bottom.
+  // If the reader has already scrolled well away (and the scroll event just
+  // hasn't been handled yet), never yank them back down.
   const onMediaLoad = useCallback(() => {
-    if (atBottom.current) scrollToBottom(false);
+    const node = scroller.current;
+    if (!atBottom.current || !node) return;
+    const distance = node.scrollHeight - node.scrollTop - node.clientHeight;
+    if (distance > NEAR_BOTTOM_PX + MAX_MEDIA_HEIGHT_PX) {
+      atBottom.current = false;
+      return;
+    }
+    scrollToBottom(false);
   }, [scrollToBottom]);
 
   // "Seen"/"Sent" goes under my side's newest message only.
