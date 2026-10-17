@@ -135,11 +135,8 @@ export function CustomerMessagesProvider({ children }: { children: React.ReactNo
     hadCookie.current = cookie;
     if (changed || (cookie && Date.now() - loadedAt.current > NAVIGATION_RECHECK_MS)) void load();
   }, [load, pathname]);
-  useEffect(() => {
-    const onVisible = () => document.visibilityState === "visible" && refresh();
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [refresh]);
+  // Coming back to the tab is handled by the realtime hook below: it calls
+  // onResync (refresh) once, and only after a real absence.
 
   useRealtimeChannel({
     topic: userId && !pathname?.startsWith("/admin") ? `customer:${userId}` : null,

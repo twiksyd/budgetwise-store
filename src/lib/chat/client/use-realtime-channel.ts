@@ -16,6 +16,10 @@ import {
 // Orders -> Chat -> Back -> Chat inside this window reuses the live channel
 // instead of leaving and re-joining (and re-running the join's RLS check).
 const LINGER_MS = 30_000;
+// Coming back to the tab after at least this long fetches what may have been missed.
+export const RESYNC_AFTER_HIDDEN_MS = 5_000;
+// A join that has not answered in this long is treated as dead.
+const JOIN_STUCK_MS = 10_000;
 
 type Handler = (event: string, payload: Record<string, unknown>) => void;
 
@@ -36,6 +40,7 @@ interface Entry {
   missed: boolean;
   attempt: number;
   restartedAt: number;
+  connectedAt: number;
   retryTimer: number | undefined;
   lingerTimer: number | undefined;
   version: number;
@@ -76,6 +81,7 @@ function connect(entry: Entry) {
   for (const subscriber of entry.subscribers) for (const event of subscriber.events) bind(entry, event);
 
   const startedAt = performance.now();
+  entry.connectedAt = Date.now();
   debugLog("rt", entry.topic, "connect", { attempt: entry.attempt });
   void (async () => {
     // Private channels are authorised with the user's JWT.
@@ -101,6 +107,12 @@ function connect(entry: Entry) {
       notify(entry);
     });
   })();
+}
+
+function isDead(entry: Entry) {
+  if (entry.state === "SUBSCRIBED") return false;
+  if (entry.state === "CLOSED" || entry.state === "CHANNEL_ERROR" || entry.state === "TIMED_OUT") return true;
+  return Date.now() - entry.connectedAt > JOIN_STUCK_MS;
 }
 
 function teardown(entry: Entry) {
@@ -138,6 +150,7 @@ function acquire(topic: string, subscriber: Subscriber) {
       missed: false,
       attempt: 0,
       restartedAt: 0,
+      connectedAt: 0,
       retryTimer: undefined,
       lingerTimer: undefined,
       version: 0,
@@ -257,16 +270,26 @@ export function useRealtimeChannel({
     previous.current = status;
   }, [status]);
 
-  // Phone/laptop waking up: resync, and force a fresh channel if it died.
+  // Phone/laptop waking up: resync if the page was really away (phones
+  // flip visibility constantly — notification shade, app switcher), and
+  // force a fresh channel only if it actually died. A join still in
+  // progress is left alone: restarting it is what kept it from going live.
   const entryRef = useRef(entry);
   entryRef.current = entry;
   useEffect(() => {
+    let hiddenAt = document.visibilityState === "hidden" ? Date.now() : 0;
     function onVisible() {
-      if (document.visibilityState !== "visible") return;
-      handlers.current.onResync();
+      if (document.visibilityState !== "visible") {
+        hiddenAt = Date.now();
+        return;
+      }
+      const away = hiddenAt ? Date.now() - hiddenAt : 0;
+      hiddenAt = 0;
       const current = entryRef.current;
+      const live = current?.state === "SUBSCRIBED";
+      if (away >= RESYNC_AFTER_HIDDEN_MS || (current && !live)) handlers.current.onResync();
       // Several components can share the channel; restart it once.
-      if (current && current.state !== "SUBSCRIBED" && Date.now() - current.restartedAt > 2000) restart(current);
+      if (current && isDead(current) && Date.now() - current.restartedAt > 2000) restart(current);
     }
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
