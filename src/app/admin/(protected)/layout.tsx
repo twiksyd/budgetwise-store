@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import {
-  Activity,
-  LayoutGrid,
-  MessageSquare,
-  RefreshCw,
-  Wrench,
-} from "lucide-react";
+import { AdminNav } from "@/components/admin/admin-nav";
 import { requireAdmin } from "@/lib/auth/admin";
 import { SignOutButton } from "@/components/admin/sign-out-button";
 
@@ -31,56 +24,8 @@ export default async function AdminProtectedLayout({
             </p>
             <p className="text-muted-foreground text-xs">{admin.email}</p>
           </div>
-          <div className="flex items-center justify-between gap-2 sm:justify-end">
-            <nav className="flex items-center gap-1 text-sm">
-              <Link
-                href="/admin/orders"
-                className="hover:bg-muted inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
-              >
-                <MessageSquare className="size-3.5" />
-                Order Chats
-              </Link>
-              <Link
-                href="/admin/store-operations"
-                className="hover:bg-muted rounded-lg px-2.5 py-1.5"
-              >
-                Operations
-              </Link>
-              <Link
-                href="/admin/product-assets"
-                className="hover:bg-muted rounded-lg px-2.5 py-1.5"
-              >
-                Product Assets
-              </Link>
-              <Link
-                href="/admin/catalog-layout"
-                className="hover:bg-muted inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
-              >
-                <LayoutGrid className="size-3.5" />
-                Catalog Layout
-              </Link>
-              <Link
-                href="/admin/roblox-sync"
-                className="hover:bg-muted inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
-              >
-                <RefreshCw className="size-3.5" />
-                Roblox Sync
-              </Link>
-              <Link
-                href="/admin/catalog-health"
-                className="hover:bg-muted inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
-              >
-                <Activity className="size-3.5" />
-                Catalog Health
-              </Link>
-              <Link
-                href="/admin/artwork-recovery"
-                className="hover:bg-muted inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
-              >
-                <Wrench className="size-3.5" />
-                Artwork Recovery
-              </Link>
-            </nav>
+          <div className="flex min-w-0 items-center justify-between gap-2 sm:justify-end">
+            <AdminNav />
             <SignOutButton />
           </div>
         </div>

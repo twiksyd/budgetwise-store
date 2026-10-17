@@ -1,19 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
-import { OrderChat } from "@/components/order-chat/order-chat";
+import { ArrowLeft } from "lucide-react";
+import { CustomerOrderChat } from "@/components/order-chat/customer-order-chat";
 import { OrderStatusBadge } from "@/components/order-chat/order-status-badge";
 import { ClearCartOnSuccess } from "@/components/checkout/clear-cart-on-success";
 import { Price } from "@/components/shared/price";
 import { requireCustomer } from "@/lib/auth/customer";
 import { isValidOrderNumber } from "@/lib/order-chat.mjs";
+import { toChatMessage } from "@/lib/chat/dto.mjs";
 import {
-  getChatOrderHeader,
+  MESSAGE_PAGE_SIZE,
+  getChatOrder,
+  getConversation,
   getOrderStatus,
-  listChatMessages,
+  listMessages,
+  loadCustomerFulfillment,
 } from "@/lib/queries/order-chat";
-import { toChatMessage } from "@/types/order-chat";
 
 export const metadata: Metadata = {
   title: "Your Order",
@@ -29,41 +32,37 @@ export default async function CustomerOrderPage({
   if (!isValidOrderNumber(orderNumber)) notFound();
 
   const customer = await requireCustomer(`/orders/${orderNumber}`);
-  const order = await getChatOrderHeader(orderNumber);
-
+  const order = await getChatOrder(orderNumber);
   // Someone else's order and a nonexistent one look identical.
   if (!order || order.ownerUserId !== customer.id) notFound();
 
-  const [rows, status] = await Promise.all([
-    listChatMessages(orderNumber),
+  const [rows, status, conversation, slots] = await Promise.all([
+    listMessages(orderNumber, { limit: MESSAGE_PAGE_SIZE }),
     getOrderStatus(orderNumber),
+    getConversation(orderNumber),
+    loadCustomerFulfillment(orderNumber),
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-2xl px-3 py-4 sm:px-6 sm:py-10">
       <ClearCartOnSuccess orderNumber={order.orderNumber} />
 
       <Link
         href="/account/orders"
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm"
+        className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center gap-1.5 text-sm"
       >
         <ArrowLeft className="size-4" />
         My orders
       </Link>
 
-      <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
+      <div className="mt-2 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-primary text-xs font-semibold tracking-wide uppercase">
-            Order slip ready
-          </p>
-          <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-            Order {order.orderNumber}
+          <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">Order</p>
+          <h1 className="font-heading mt-0.5 text-2xl font-semibold tracking-tight [font-variant-numeric:tabular-nums] sm:text-3xl">
+            {order.orderNumber}
           </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="mt-2">
             <OrderStatusBadge status={status} />
-            <span className="text-muted-foreground text-xs">
-              Roblox: {order.buyerRobloxUsername}
-            </span>
           </div>
         </div>
         <div className="text-right">
@@ -72,33 +71,34 @@ export default async function CustomerOrderPage({
         </div>
       </div>
 
-      <div className="mt-5 flex gap-2.5 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-amber-950 dark:text-amber-100">
-        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" />
-        <div>
-          <p className="text-xs font-semibold tracking-wide uppercase">
-            Wait for our reply
-          </p>
-          <p className="mt-1 text-sm leading-relaxed font-semibold">
-            Hintayin muna ang reply at official payment instructions namin
-            dito sa chat bago magsend ng payment.
-          </p>
-        </div>
+      <div className="mt-5">
+        <CustomerOrderChat
+          orderNumber={order.orderNumber}
+          conversationId={conversation?.id ?? null}
+          initialMessages={rows.map((row) => toChatMessage(row, { viewer: "customer", viewerUserId: customer.id }))}
+          initialHasOlder={rows.length === MESSAGE_PAGE_SIZE}
+          initialAdminRead={{
+            at: conversation?.admin_read_at ?? null,
+            messageId: conversation?.admin_read_message_id ?? null,
+          }}
+          initialOwnRead={{
+            at: conversation?.customer_read_at ?? null,
+            messageId: conversation?.customer_read_message_id ?? null,
+          }}
+          initialPaymentSent={Boolean(conversation?.payment_details_sent_at)}
+          initialSlots={slots.map((slot) => ({
+            lineIndex: slot.lineIndex,
+            unitIndex: slot.unitIndex,
+            unitCount: slot.unitCount,
+            fieldKey: slot.fieldKey,
+            label: slot.label,
+            status: slot.status,
+            value: slot.value,
+            productName: slot.productName,
+            gameName: slot.gameName,
+          }))}
+        />
       </div>
-
-      <OrderChat
-        className="mt-5"
-        orderNumber={order.orderNumber}
-        viewerRole="customer"
-        initialMessages={rows.map(toChatMessage)}
-      />
-
-      <p className="text-muted-foreground mt-4 text-center text-xs leading-relaxed">
-        Bumalik lang dito anumang oras — naka-save ang chat sa inyong account sa{" "}
-        <Link href="/account/orders" className="underline underline-offset-2">
-          My orders
-        </Link>
-        .
-      </p>
     </div>
   );
 }

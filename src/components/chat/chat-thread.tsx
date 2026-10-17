@@ -1,0 +1,275 @@
+"use client";
+
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, Loader2 } from "lucide-react";
+import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
+import {
+  buildDisplayItems,
+  countNewArrivals,
+  findFirstUnreadIndex,
+  isSeen,
+  type ThreadState,
+} from "@/lib/chat/thread-state.mjs";
+import { ImageLightbox } from "@/components/chat/image-lightbox";
+import { MessageBubble, PendingBubble } from "@/components/chat/message-bubble";
+import { cn } from "@/lib/utils";
+
+type Cursor = { at: string | null; messageId: string | null } | null;
+const NEAR_BOTTOM_PX = 96;
+const NEAR_TOP_PX = 160;
+
+/**
+ * Scroll behaviour of a professional messenger:
+ *  - opens at the first unread message (or the newest);
+ *  - new messages scroll into view only if you are already near the bottom,
+ *    otherwise a "N new messages ↓" pill appears;
+ *  - scrolling to the top loads older pages without moving what you read.
+ */
+export function ChatThread({
+  state,
+  orderNumber,
+  isOwnSide,
+  isMine,
+  senderLabelFor,
+  otherSideReadCursor,
+  initialReadCursor,
+  onLoadOlder,
+  onRetry,
+  onDiscard,
+  onReadUpTo,
+  emptyState,
+  footer,
+  className,
+}: {
+  state: ThreadState;
+  orderNumber: string;
+  /** Messages from my side of the conversation (right-aligned). */
+  isOwnSide: (message: ChatMessageDto) => boolean;
+  /** Messages I personally sent (not counted as "new"). */
+  isMine: (message: ChatMessageDto) => boolean;
+  senderLabelFor: (message: ChatMessageDto) => string | null;
+  otherSideReadCursor: Cursor;
+  initialReadCursor: Cursor;
+  onLoadOlder: () => void;
+  onRetry: (clientMessageId: string) => void;
+  onDiscard: (clientMessageId: string) => void;
+  /** Called with the newest message id while it is actually on screen. */
+  onReadUpTo: (messageId: string) => void;
+  emptyState?: React.ReactNode;
+  footer?: React.ReactNode;
+  className?: string;
+}) {
+  const scroller = useRef<HTMLDivElement>(null);
+  const atBottom = useRef(true);
+  const [newCount, setNewCount] = useState(0);
+  const [lightbox, setLightbox] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const items = useMemo(() => buildDisplayItems(state.messages, { nowMs }), [state.messages, nowMs]);
+
+  // Unread divider: fixed when the thread first loads, so it stays put
+  // while the admin/customer reads.
+  const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
+  const initialized = useRef(false);
+
+  const scrollToBottom = useCallback((smooth: boolean) => {
+    const node = scroller.current;
+    if (!node) return;
+    node.scrollTo({ top: node.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+    atBottom.current = true;
+    setNewCount(0);
+  }, []);
+
+  const reportRead = useCallback(() => {
+    if (!atBottom.current || document.visibilityState !== "visible") return;
+    const newest = [...state.messages].reverse().find((message) => !isOwnSide(message));
+    if (newest) onReadUpTo(newest.id);
+  }, [state.messages, isOwnSide, onReadUpTo]);
+
+  // Initial position.
+  useLayoutEffect(() => {
+    if (initialized.current || !state.loaded) return;
+    initialized.current = true;
+    const index = findFirstUnreadIndex(state.messages, initialReadCursor, isOwnSide);
+    const firstUnread = index > 0 ? state.messages[index] : null;
+    if (firstUnread) {
+      setFirstUnreadId(firstUnread.id);
+      requestAnimationFrame(() => {
+        const node = scroller.current?.querySelector(`[data-message-id="${firstUnread.id}"]`);
+        if (node instanceof HTMLElement && scroller.current) {
+          scroller.current.scrollTop = Math.max(0, node.offsetTop - 72);
+          const { scrollHeight, scrollTop, clientHeight } = scroller.current;
+          atBottom.current = scrollHeight - scrollTop - clientHeight < NEAR_BOTTOM_PX;
+        }
+      });
+    } else {
+      scrollToBottom(false);
+    }
+  }, [state.loaded, state.messages, initialReadCursor, isOwnSide, scrollToBottom]);
+
+  // New messages at the end.
+  const previousMessages = useRef(state.messages);
+  const previousNewest = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const newest = state.messages[state.messages.length - 1]?.id ?? null;
+    const prev = previousMessages.current;
+    if (initialized.current && newest && newest !== previousNewest.current && previousNewest.current !== null) {
+      const latest = state.messages[state.messages.length - 1];
+      if (atBottom.current || isMine(latest)) {
+        scrollToBottom(true);
+      } else {
+        setNewCount((count) => count + countNewArrivals(prev, state.messages, isMine));
+      }
+    }
+    previousNewest.current = newest;
+    previousMessages.current = state.messages;
+  }, [state.messages, isMine, scrollToBottom]);
+
+  // Sending always brings my own new bubble into view.
+  const pendingCount = state.pending.length;
+  const previousPending = useRef(pendingCount);
+  useEffect(() => {
+    if (pendingCount > previousPending.current) scrollToBottom(true);
+    previousPending.current = pendingCount;
+  }, [pendingCount, scrollToBottom]);
+
+  // Keep reporting read position while at the bottom.
+  useEffect(() => {
+    reportRead();
+    const onVisible = () => reportRead();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [reportRead]);
+
+  // Older pages: preserve what is on screen.
+  const restore = useRef<{ height: number; top: number } | null>(null);
+  const oldestId = state.messages[0]?.id;
+  useLayoutEffect(() => {
+    const node = scroller.current;
+    if (!node || !restore.current) return;
+    node.scrollTop = node.scrollHeight - restore.current.height + restore.current.top;
+    restore.current = null;
+  }, [oldestId]);
+
+  function handleScroll() {
+    const node = scroller.current;
+    if (!node) return;
+    const distance = node.scrollHeight - node.scrollTop - node.clientHeight;
+    const wasAtBottom = atBottom.current;
+    atBottom.current = distance < NEAR_BOTTOM_PX;
+    if (atBottom.current) {
+      setNewCount(0);
+      if (!wasAtBottom) reportRead();
+    }
+    if (node.scrollTop < NEAR_TOP_PX && state.hasOlder && !state.loadingOlder) {
+      restore.current = { height: node.scrollHeight, top: node.scrollTop };
+      onLoadOlder();
+    }
+  }
+
+  // Images change height after load; stay pinned if we were at the bottom.
+  const onMediaLoad = useCallback(() => {
+    if (atBottom.current) scrollToBottom(false);
+  }, [scrollToBottom]);
+
+  // "Seen"/"Sent" goes under my side's newest message only.
+  const lastOwn = useMemo(
+    () => [...state.messages].reverse().find((message) => isOwnSide(message)) ?? null,
+    [state.messages, isOwnSide],
+  );
+
+  return (
+    <div className={cn("relative flex min-h-0 flex-1 flex-col", className)}>
+      <div
+        ref={scroller}
+        onScroll={handleScroll}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-3 pb-2 sm:px-5"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+      >
+        {state.loadingOlder && (
+          <div className="text-muted-foreground flex justify-center py-2 text-xs">
+            <Loader2 className="size-4 animate-spin" />
+          </div>
+        )}
+        {!state.hasOlder && state.loaded && state.messages.length > 0 && (
+          <p className="text-muted-foreground py-3 text-center text-[11px]">Start of conversation</p>
+        )}
+        {!state.loaded && (
+          <div className="text-muted-foreground flex h-full items-center justify-center">
+            <Loader2 className="size-5 animate-spin" />
+          </div>
+        )}
+        {state.loaded && state.messages.length === 0 && state.pending.length === 0 && emptyState}
+
+        {items.map((item) =>
+          item.type === "date" ? (
+            <div key={item.key} className="my-4 flex items-center gap-3">
+              <span className="bg-border h-px flex-1" />
+              <span className="text-muted-foreground text-[11px] font-semibold" suppressHydrationWarning>
+                {item.label}
+              </span>
+              <span className="bg-border h-px flex-1" />
+            </div>
+          ) : (
+            <div key={item.key}>
+              {item.message.id === firstUnreadId && (
+                <div className="my-3 flex items-center gap-3" aria-label="Unread messages start here">
+                  <span className="bg-primary/40 h-px flex-1" />
+                  <span className="text-primary text-[11px] font-bold">Unread</span>
+                  <span className="bg-primary/40 h-px flex-1" />
+                </div>
+              )}
+              <MessageBubble
+                message={item.message}
+                isMine={isOwnSide(item.message)}
+                firstInGroup={item.firstInGroup}
+                lastInGroup={item.lastInGroup}
+                senderLabel={senderLabelFor(item.message)}
+                statusLabel={
+                  lastOwn && item.message.id === lastOwn.id
+                    ? isSeen(item.message, otherSideReadCursor)
+                      ? "Seen"
+                      : "Sent"
+                    : null
+                }
+                orderNumber={orderNumber}
+                onOpenImage={setLightbox}
+                onMediaLoad={onMediaLoad}
+              />
+            </div>
+          ),
+        )}
+
+        {state.pending.map((item) => (
+          <PendingBubble
+            key={item.clientMessageId}
+            item={item}
+            onRetry={() => onRetry(item.clientMessageId)}
+            onDiscard={() => onDiscard(item.clientMessageId)}
+          />
+        ))}
+        {footer}
+      </div>
+
+      {newCount > 0 && (
+        <button
+          type="button"
+          onClick={() => scrollToBottom(true)}
+          className="bg-primary text-primary-foreground absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold shadow-lg"
+        >
+          {newCount} new message{newCount === 1 ? "" : "s"}
+          <ArrowDown className="size-3.5" />
+        </button>
+      )}
+
+      <ImageLightbox src={lightbox} alt="Chat image" open={lightbox !== null} onOpenChange={(open) => !open && setLightbox(null)} />
+    </div>
+  );
+}

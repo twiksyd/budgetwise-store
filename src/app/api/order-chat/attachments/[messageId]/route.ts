@@ -1,31 +1,28 @@
-import { NextResponse } from "next/server";
+import { handleAttachment } from "@/lib/chat/route-core.mjs";
 import {
-  createAttachmentSignedUrl,
-  getMessageForAttachment,
-  resolveChatActor,
+  getMessageById,
+  resolveOrderViewer,
+  signAttachment,
 } from "@/lib/queries/order-chat";
-import { chatError } from "@/lib/order-chat-http";
+import { routeErrorResponse, sendCoreResult } from "@/lib/order-chat-http";
 
 type Context = { params: Promise<{ messageId: string }> };
 
-// Attachments are private. Every view goes through here so access is checked
-// each time; the redirect target is a signed URL that expires in a minute.
+// Private receipts/images. Access is re-checked on every view (order owner
+// or admin), then the browser is redirected to a 60-second signed URL.
 export async function GET(_request: Request, { params }: Context) {
   const { messageId } = await params;
-  const message = await getMessageForAttachment(messageId);
-  if (!message?.attachment_path) return chatError("Not found.", 404);
-
-  // The order's owner, or a store admin. Both resolve through the same gate
-  // the message endpoints use.
-  let actor = await resolveChatActor(message.order_number, "customer");
-  if (!actor.ok && actor.status === 404) {
-    actor = await resolveChatActor(message.order_number, "admin");
+  try {
+    const result = await handleAttachment({
+      messageId,
+      deps: {
+        loadMessage: getMessageById,
+        resolveViewer: resolveOrderViewer,
+        signAttachment,
+      },
+    });
+    return sendCoreResult(result);
+  } catch (error) {
+    return routeErrorResponse(error, "Open chat attachment");
   }
-  if (!actor.ok) return chatError("Not found.", actor.status === 401 ? 401 : 404);
-
-  const signedUrl = await createAttachmentSignedUrl(message.attachment_path);
-  return NextResponse.redirect(signedUrl, {
-    status: 302,
-    headers: { "Cache-Control": "private, no-store" },
-  });
 }

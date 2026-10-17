@@ -19,5 +19,6 @@ export const config = {
     "/orders/:path*",
     "/api/orders",
     "/api/order-chat/:path*",
+    "/api/admin/:path*",
   ],
 };

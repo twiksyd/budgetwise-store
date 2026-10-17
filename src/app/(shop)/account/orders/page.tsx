@@ -5,7 +5,6 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { OrderStatusBadge } from "@/components/order-chat/order-status-badge";
 import { Price } from "@/components/shared/price";
 import { requireCustomer } from "@/lib/auth/customer";
-import { previewMessage } from "@/lib/order-chat.mjs";
 import { listCustomerOrders } from "@/lib/queries/order-chat";
 import { SignOutLink } from "@/components/auth/sign-out-link";
 
@@ -68,8 +67,8 @@ export default async function MyOrdersPage() {
                     )}
                   </div>
                   <p className="text-muted-foreground mt-1 truncate text-xs">
-                    {order.lastMessageKind
-                      ? `${order.lastSenderRole === "admin" ? "BudgetWise" : "You"}: ${previewMessage({ kind: order.lastMessageKind, body: order.lastMessageBody ?? "" })}`
+                    {order.lastMessagePreview
+                      ? `${order.lastSenderRole === "admin" ? "BudgetWise" : "You"}: ${order.lastMessagePreview}`
                       : "No messages yet"}
                   </p>
                   <p className="text-muted-foreground mt-0.5 text-xs">

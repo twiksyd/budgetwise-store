@@ -55,3 +55,31 @@ One-time setup:
    `http://localhost:3000/auth/callback` for local work) to the Redirect URLs.
 
 Chat falls back to polling every few seconds if Realtime is unavailable.
+
+## Shared admin inbox (`/admin/orders`)
+
+Three-panel inbox for several admins at once: conversation list, realtime
+chat, and the order details panel (built from order records, never chat
+text). Assignment, per-admin unread counts, server-verified typing/viewing
+indicators, quick replies (`/shortcut`), structured payment details, and
+structured gamepass links for Robux (Via Link) orders.
+
+Database changes, in order (see each file's header):
+
+1. `supabase/migrations/0021_store_shared_admin_inbox.sql` — inbox foundation
+2. `supabase/migrations/0022_store_order_fulfillment_details.sql` — gamepass links
+3. Deploy the application code
+4. `supabase/migrations/0023_store_chat_legacy_cleanup.sql` — only after every
+   open browser tab runs the new code; then turn off Realtime "Allow public access"
+
+`supabase/rollback/0021_down.sql` undoes 0021 (only before 0023).
+
+Tests:
+
+- `pnpm test:chat` — application logic (routes, identity, state, validation)
+- `pnpm test:db` — database tests against a throwaway local Postgres
+  (`PGHOST=... PGPORT=... PGUSER=postgres pnpm test:db`)
+- `pnpm test:e2e` — three admins + two customers in real browsers against a
+  LOCAL Supabase stack (`supabase start` with the migrations above) and
+  `next dev`; needs `E2E_BASE_URL` and `E2E_SUPABASE_SERVICE_ROLE_KEY`.
+  The seed script refuses non-localhost URLs.
