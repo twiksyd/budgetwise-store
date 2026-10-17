@@ -272,7 +272,7 @@ export function Composer({
                 <button
                   type="button"
                   onClick={() => removePicked(item.id)}
-                  className="bg-foreground/80 text-background absolute -top-1 -right-1 inline-flex size-6 items-center justify-center rounded-full"
+                  className="bg-foreground/80 text-background absolute -top-1 -right-1 inline-flex size-6 items-center justify-center rounded-full after:absolute after:-inset-2 after:content-['']"
                   aria-label={`Remove image ${index + 1}`}
                 >
                   <X className="size-3.5" />

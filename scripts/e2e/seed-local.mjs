@@ -48,7 +48,7 @@ async function ensureUser(key) {
   return data.user.id;
 }
 
-function line(index, gameId, gameName, productName, robux, quantity, unitPrice) {
+export function line(index, gameId, gameName, productName, robux, quantity, unitPrice) {
   return {
     user_id: null, gamepass_id: crypto.randomUUID(), game_id: gameId, product_name: productName,
     game_name: gameName, robux_amount: robux, quantity, unit_price: unitPrice,
@@ -57,7 +57,7 @@ function line(index, gameId, gameName, productName, robux, quantity, unitPrice) 
   };
 }
 
-async function createOrder(orderNumber, owner, buyerName, roblox, lines) {
+export async function createOrder(orderNumber, owner, buyerName, roblox, lines) {
   const total = lines.reduce((sum, l) => sum + l.line_total, 0);
   const { error } = await supabase.rpc("create_store_order", {
     p_idempotency_key: `e2e-idempotency-${orderNumber}-xxxxxxxx`,
