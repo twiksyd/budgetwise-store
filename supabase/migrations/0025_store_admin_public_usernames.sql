@@ -130,6 +130,6 @@ begin
 
   return null;
 end;
-$;
+$$;
 
 commit;
