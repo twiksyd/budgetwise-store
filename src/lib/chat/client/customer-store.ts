@@ -164,6 +164,10 @@ export function useMyOrders() {
   );
 }
 
+export function hasOrdersSection(section: "open" | "completed") {
+  return orders[section] !== null || ordersInFlight.has(section);
+}
+
 /** Fresh first page of one section; any older completed pages already loaded are kept. */
 export function loadOrdersSection(section: "open" | "completed") {
   const running = ordersInFlight.get(section);

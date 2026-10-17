@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { usePathname } from "next/navigation";
 import { useRealtimeChannel } from "@/lib/chat/client/use-realtime-channel";
 import { fetchJson, RequestError } from "@/lib/chat/client/fetch-json";
-import { hasSessionCookie, recordPathname } from "@/lib/chat/client/customer-store";
+import { hasOrdersSection, hasSessionCookie, loadOrdersSection, recordPathname } from "@/lib/chat/client/customer-store";
 import { debugLog } from "@/lib/chat/client/debug";
 import { pickConversation, relevantConversations } from "@/lib/chat/order-summary.mjs";
 
@@ -100,6 +100,17 @@ export function CustomerMessagesProvider({ children }: { children: React.ReactNo
       inFlight.current = false;
     }
   }, []);
+
+  // Customers with orders: load active orders once the page is idle, so the
+  // first tap on "Orders" shows them straight away instead of skeletons.
+  const hasOrders = signedIn === true && conversations.length > 0;
+  useEffect(() => {
+    if (!hasOrders || hasOrdersSection("open")) return;
+    const idle = window.requestIdleCallback ?? ((callback: () => void) => window.setTimeout(callback, 1500));
+    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+    const handle = idle(() => void loadOrdersSection("open"));
+    return () => cancel(handle);
+  }, [hasOrders]);
 
   const timer = useRef<number | undefined>(undefined);
   // A change was signalled (realtime event, a read, the tab coming back):
