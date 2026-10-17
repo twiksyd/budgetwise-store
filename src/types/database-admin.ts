@@ -807,6 +807,10 @@ export type AdminDatabase = {
         };
         Returns: { created: boolean; message: StoreOrderMessageRow };
       };
+      store_list_orphan_chat_uploads: {
+        Args: { p_older_than_hours?: number; p_limit?: number };
+        Returns: { name: string; created_at: string }[];
+      };
       store_chat_messages_page: {
         Args: {
           p_order_number: string;

@@ -1,7 +1,7 @@
 import {
   MAX_ATTACHMENT_BYTES,
   isUuid,
-  sniffImageType,
+  inspectImage,
   validateAttachmentMeta,
   validateMessageBody,
 } from "@/lib/order-chat.mjs";
@@ -158,8 +158,8 @@ export async function POST(request: Request, { params }: Context) {
     if (bytes.byteLength > MAX_ATTACHMENT_BYTES) {
       return chatError("That image is too large (4 MB max).", 413);
     }
-    // The declared type is a hint; the bytes decide.
-    const sniffed = sniffImageType(bytes);
+    // The declared type is a hint; the bytes (and their structure) decide.
+    const sniffed = inspectImage(bytes)?.type ?? null;
     if (!sniffed || sniffed !== file.type) {
       return chatError("Only JPG, PNG, or WebP images can be sent.", 400);
     }

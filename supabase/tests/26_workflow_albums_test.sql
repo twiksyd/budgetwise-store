@@ -14,6 +14,16 @@ language plpgsql as $$ begin
     raise notice 'ok - % (%)', label, sqlstate; return; end;
   raise exception 'FAIL: % (statement succeeded)', label; end $$;
 
+-- What the upload route leaves in storage for an album (both files per image).
+create or replace function pg_temp.put_files(items jsonb, age interval default interval '1 minute') returns void
+language sql as $$
+  insert into storage.objects (bucket_id, name, created_at)
+  select 'order-chat-attachments', f, now() - age
+    from jsonb_array_elements(items) a, lateral (values (a ->> 'path'), (a ->> 'thumb_path')) v(f)
+$$;
+insert into storage.buckets (id, name, public) values ('order-chat-attachments', 'order-chat-attachments', false)
+  on conflict (id) do nothing;
+
 \set robert '''00000000-0000-0000-0000-0000000000a1'''
 \set andre  '''00000000-0000-0000-0000-0000000000a2'''
 \set custa  '''00000000-0000-0000-0000-0000000000c1'''
@@ -162,11 +172,15 @@ select pg_temp.ok(
 
 \echo '--- image albums (0024)'
 select gen_random_uuid() as album_cid \gset
+select set_config('bw.album_cid', :'album_cid', false);
 \set prefix '''BW-AAAAAA/00000000-0000-0000-0000-0000000000a1/'''
 select format('[%s]', string_agg(format(
   '{"position":%s,"path":"BW-AAAAAA/%s/%s/%s.jpg","mime":"image/jpeg","size":1000,"thumb_path":"BW-AAAAAA/%s/%s/%s.thumb.webp","thumb_mime":"image/webp","width":1080,"height":1920}',
   i, '00000000-0000-0000-0000-0000000000a1', :'album_cid', i, '00000000-0000-0000-0000-0000000000a1', :'album_cid', i), ','))
   as album_json from generate_series(0, 7) i \gset
+select pg_temp.raises(format($q$select store_post_album('BW-AAAAAA', 'admin', %L, '', null, %L::jsonb, %L)$q$,
+  :robert, :'album_json', :'album_cid'), 'BW012', 'an album whose files were never uploaded is refused');
+select pg_temp.put_files(:'album_json'::jsonb);
 truncate realtime.messages;
 select (store_post_album('BW-AAAAAA', 'admin', :robert, '', 'proof_of_delivery', :'album_json'::jsonb, :'album_cid') -> 'message' ->> 'id') as album_id \gset
 select pg_temp.ok(
@@ -193,11 +207,42 @@ select pg_temp.ok(
   'album retry is idempotent');
 select pg_temp.raises(format($q$select store_post_album('BW-AAAAAA', 'admin', %L, 'different', null, %L::jsonb, %L)$q$,
   :robert, :'album_json', :'album_cid'), 'BW010', 'reusing an album id for different content is refused');
+-- Many simultaneous/late retries of the same Send: still one album.
+do $$
+declare i int;
+begin
+  for i in 1..5 loop
+    perform store_post_album('BW-AAAAAA', 'admin', '00000000-0000-0000-0000-0000000000a1', '', 'proof_of_delivery',
+      (select format('[%s]', string_agg(format(
+        '{"position":%s,"path":"BW-AAAAAA/00000000-0000-0000-0000-0000000000a1/%s/%s.jpg","mime":"image/jpeg","size":1000,"thumb_path":"BW-AAAAAA/00000000-0000-0000-0000-0000000000a1/%s/%s.thumb.webp","thumb_mime":"image/webp","width":1080,"height":1920}',
+        g, current_setting('bw.album_cid'), g, current_setting('bw.album_cid'), g), ','))::jsonb from generate_series(0, 7) g),
+      current_setting('bw.album_cid')::uuid);
+  end loop;
+end $$;
+select pg_temp.ok(
+  (select count(*) from store_order_messages where client_message_id = :'album_cid') = 1
+  and (select count(*) from store_order_message_attachments where message_id = :'album_id') = 8
+  and (select count(*) from store_order_messages where order_number = 'BW-AAAAAA' and kind = 'album'
+         and payload->>'label' = 'proof_of_delivery') = 1,
+  'five more Send retries: one message, 8 attachment rows, one proof album');
+-- A retry long after the files'' upload window still returns the same album.
+update storage.objects set created_at = now() - interval '3 days'
+ where name like 'BW-AAAAAA/%/' || :'album_cid' || '/%';
+select pg_temp.ok(
+  (select (store_post_album('BW-AAAAAA', 'admin', :robert, '', 'proof_of_delivery', :'album_json'::jsonb, :'album_cid') ->> 'created')::boolean = false),
+  'a late retry of a posted album is still idempotent (no BW012)');
+select pg_temp.raises(format($q$insert into store_order_message_attachments (message_id, order_number, position, storage_path, mime, byte_size, thumb_path, thumb_mime)
+  select message_id, order_number, 9, storage_path, mime, byte_size, thumb_path || 'x', thumb_mime from store_order_message_attachments where message_id = %L and position = 0$q$, :'album_id'),
+  '23505', 'one file can never belong to two attachments');
 
 -- Customer albums: own paths only, no labels, max 10.
 select gen_random_uuid() as cust_cid \gset
 select format('[{"position":0,"path":"BW-AAAAAA/%1$s/%2$s/0.png","mime":"image/png","size":500,"thumb_path":"BW-AAAAAA/%1$s/%2$s/0.thumb.jpg","thumb_mime":"image/jpeg","width":10,"height":10}]',
   '00000000-0000-0000-0000-0000000000c1', :'cust_cid') as cust_json \gset
+select pg_temp.put_files(:'cust_json'::jsonb, interval '7 hours');
+select pg_temp.raises(format($q$select store_post_album('BW-AAAAAA', 'customer', %L, 'receipt po', null, %L::jsonb, %L)$q$,
+  :custa, :'cust_json', :'cust_cid'), 'BW012', 'files uploaded more than 6 hours ago cannot be posted (cleanup window)');
+update storage.objects set created_at = now() where name like 'BW-AAAAAA/%/' || :'cust_cid' || '/%';
 select pg_temp.ok(
   (select (store_post_album('BW-AAAAAA', 'customer', :custa, 'receipt po', null, :'cust_json'::jsonb, :'cust_cid') ->> 'created')::boolean),
   'customer can send a 1-image album (receipt) to their own order');
@@ -229,6 +274,75 @@ reset role;
 select pg_temp.ok(
   (select count(*) from store_order_messages where kind = 'image' and attachment_path is null) = 0,
   'existing image messages still carry their single attachment');
+
+\echo '--- what does NOT reopen a Done conversation (0024)'
+select m.id as last_a from store_order_messages m where order_number = 'BW-AAAAAA'
+ order by created_at desc, id desc limit 1 \gset
+select store_set_conversation_state('BW-AAAAAA', :robert, 'active', null);
+select store_set_conversation_state('BW-AAAAAA', :robert, 'done', :'last_a');
+select done_at as done_mark from store_order_conversations where order_number = 'BW-AAAAAA' \gset
+-- admin message, admin album, payment details, assignment, both read receipts, a pending upload
+select store_post_message('BW-AAAAAA', 'admin', :robert, 'text', 'Salamat po', null, null, gen_random_uuid());
+select gen_random_uuid() as pod_cid \gset
+select format('[{"position":0,"path":"BW-AAAAAA/%1$s/%2$s/0.jpg","mime":"image/jpeg","size":9,"thumb_path":"BW-AAAAAA/%1$s/%2$s/0.thumb.jpg","thumb_mime":"image/jpeg"}]',
+  '00000000-0000-0000-0000-0000000000a1', :'pod_cid') as pod_json \gset
+select pg_temp.put_files(:'pod_json'::jsonb);
+select store_post_album('BW-AAAAAA', 'admin', :robert, '', 'proof_of_delivery', :'pod_json'::jsonb, :'pod_cid');
+update store_order_conversations set payment_details_sent_at = now() where order_number = 'BW-AAAAAA';
+update store_order_conversations set assigned_admin_id = :andre, assigned_by = :robert, assigned_at = now() where order_number = 'BW-AAAAAA';
+select m.id as newest from store_order_messages m where order_number = 'BW-AAAAAA'
+ order by created_at desc, id desc limit 1 \gset
+update store_order_conversations set admin_read_at = now(), admin_read_message_id = :'newest',
+       customer_read_at = now(), customer_read_message_id = :'newest' where order_number = 'BW-AAAAAA';
+insert into storage.objects (bucket_id, name) values ('order-chat-attachments', 'BW-AAAAAA/00000000-0000-0000-0000-0000000000c1/' || gen_random_uuid() || '/0.jpg');
+select pg_temp.ok(
+  (select state = 'done' and done_at = :'done_mark' from store_order_conversations where order_number = 'BW-AAAAAA')
+  and (select count(*) from store_chat_audit_log where action = 'conversation.reopened' and order_number = 'BW-AAAAAA'
+         and details->>'cause' = 'customer_message' and created_at > :'done_mark') = 0,
+  'admin message, proof album, payment details, assignment, read receipts and a pending upload all keep it Done');
+-- Only a customer message reopens; typing/viewing never touch the database.
+select store_post_message('BW-AAAAAA', 'customer', :custa, 'text', 'May isa pa po', null, null, gen_random_uuid());
+select pg_temp.ok(
+  (select state = 'active' from store_order_conversations where order_number = 'BW-AAAAAA'),
+  '... and a customer message does reopen it');
+select pg_temp.ok(
+  (select count(*) from orders o join xob_before b using (id) where o.status is distinct from b.status) = 0,
+  'XOB orders.status still untouched');
+
+\echo '--- abandoned uploads (0024)'
+insert into storage.buckets (id, name, public) values ('store-payment-qr', 'store-payment-qr', false) on conflict (id) do nothing;
+insert into storage.objects (bucket_id, name, created_at) values
+  ('order-chat-attachments', 'BW-AAAAAA/00000000-0000-0000-0000-0000000000c1/aaaaaaaa-0000-0000-0000-000000000001/0.jpg', now() - interval '30 hours'),
+  ('order-chat-attachments', 'BW-AAAAAA/00000000-0000-0000-0000-0000000000c1/aaaaaaaa-0000-0000-0000-000000000001/0.thumb.webp', now() - interval '30 hours'),
+  ('order-chat-attachments', 'BW-AAAAAA/00000000-0000-0000-0000-0000000000c1/aaaaaaaa-0000-0000-0000-000000000002/0.jpg', now() - interval '13 hours'),
+  ('order-chat-attachments', 'BW-AAAAAA/00000000-0000-0000-0000-0000000000c1/aaaaaaaa-0000-0000-0000-000000000003/0.jpg', now() - interval '2 hours'),
+  ('store-payment-qr', 'qr/old.png', now() - interval '90 days');
+update storage.objects set created_at = now() - interval '30 hours'
+ where name in (select storage_path from store_order_message_attachments union all select thumb_path from store_order_message_attachments
+                union all select attachment_path from store_order_messages where attachment_path is not null);
+insert into storage.objects (bucket_id, name, created_at)
+select 'order-chat-attachments', attachment_path, now() - interval '30 hours' from store_order_messages
+ where attachment_path is not null and attachment_path not in (select name from storage.objects);
+select pg_temp.ok(
+  (select array_agg(name order by name) from store_list_orphan_chat_uploads(24, 500))
+    = array['BW-AAAAAA/00000000-0000-0000-0000-0000000000c1/aaaaaaaa-0000-0000-0000-000000000001/0.jpg',
+            'BW-AAAAAA/00000000-0000-0000-0000-0000000000c1/aaaaaaaa-0000-0000-0000-000000000001/0.thumb.webp'],
+  'orphans: only unreferenced chat files past the retention (24 h) are listed');
+select pg_temp.ok(
+  (select count(*) from store_list_orphan_chat_uploads(1, 500)) = 3
+  and (select count(*) from store_list_orphan_chat_uploads(1, 500) where name like '%000000000003%') = 0,
+  'a shorter retention is clamped to 12 h: an upload from 2 hours ago is never listed');
+select pg_temp.ok(
+  (select count(*) from store_list_orphan_chat_uploads(12, 500) where name in (
+     select storage_path from store_order_message_attachments union all select thumb_path from store_order_message_attachments
+     union all select attachment_path from store_order_messages where attachment_path is not null)) = 0
+  and (select count(*) from store_list_orphan_chat_uploads(12, 500) where name like 'qr/%') = 0,
+  'files of posted albums, legacy single images and other buckets are never listed');
+select pg_temp.ok((select count(*) from store_list_orphan_chat_uploads(12, 1)) = 1, 'the listing is bounded');
+set role authenticated;
+select pg_temp.raises($q$select * from store_list_orphan_chat_uploads(12, 10)$q$, '42501', 'browsers cannot list uploads');
+reset role;
+delete from storage.objects where name like '%aaaaaaaa-0000-0000-0000-00000000000%';
 
 \echo '--- customer realtime topic (0024)'
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c1', false);

@@ -107,6 +107,78 @@ export function sniffImageType(bytes) {
   return null;
 }
 
+const MAX_IMAGE_DIMENSION = 20000;
+
+/**
+ * Magic bytes AND the image's own structure: the header chunk a decoder
+ * needs first (PNG IHDR, a JPEG frame header, a WebP VP8/VP8L/VP8X chunk),
+ * real dimensions, and (PNG/WebP) a consistent length. A file that merely
+ * starts like an image — a renamed program, a truncated upload, random
+ * bytes behind a PNG signature — is refused.
+ * Returns { type, width, height } | null.
+ */
+export function inspectImage(bytes) {
+  const type = sniffImageType(bytes);
+  if (!type) return null;
+  const size = (width, height) =>
+    width >= 1 && height >= 1 && width <= MAX_IMAGE_DIMENSION && height <= MAX_IMAGE_DIMENSION
+      ? { type, width, height }
+      : null;
+  const u32be = (at) => ((bytes[at] << 24) >>> 0) + (bytes[at + 1] << 16) + (bytes[at + 2] << 8) + bytes[at + 3];
+  const u32le = (at) => bytes[at] + (bytes[at + 1] << 8) + (bytes[at + 2] << 16) + ((bytes[at + 3] << 24) >>> 0);
+  const ascii = (start, end) => String.fromCharCode(...Array.from(bytes.slice(start, end)));
+
+  if (type === "image/png") {
+    // IHDR first (13 bytes of data), IEND last.
+    if (bytes.length < 8 + 25 + 12) return null;
+    if (u32be(8) !== 13 || ascii(12, 16) !== "IHDR") return null;
+    if (ascii(bytes.length - 8, bytes.length - 4) !== "IEND") return null;
+    return size(u32be(16), u32be(20));
+  }
+
+  if (type === "image/webp") {
+    // RIFF length must cover the file; first chunk names the codec.
+    if (bytes.length < 30) return null;
+    const riffEnd = u32le(4) + 8;
+    if (riffEnd > bytes.length || riffEnd < 30) return null;
+    const chunk = ascii(12, 16);
+    if (chunk === "VP8X") {
+      const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);
+      const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);
+      return size(width, height);
+    }
+    if (chunk === "VP8L") {
+      if (bytes[20] !== 0x2f) return null;
+      const bits = u32le(21);
+      return size((bits & 0x3fff) + 1, ((bits >>> 14) & 0x3fff) + 1);
+    }
+    if (chunk === "VP8 ") {
+      if (bytes[23] !== 0x9d || bytes[24] !== 0x01 || bytes[25] !== 0x2a) return null;
+      return size((bytes[26] | (bytes[27] << 8)) & 0x3fff, (bytes[28] | (bytes[29] << 8)) & 0x3fff);
+    }
+    return null;
+  }
+
+  // JPEG: walk the segments to the first frame header (SOFn).
+  let at = 2;
+  while (at + 4 <= bytes.length) {
+    if (bytes[at] !== 0xff) return null;
+    const marker = bytes[at + 1];
+    if (marker === 0xff) { at += 1; continue; } // fill byte
+    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { at += 2; continue; }
+    if (marker === 0xd9 || marker === 0xda) return null; // image data before any frame header
+    const length = (bytes[at + 2] << 8) | bytes[at + 3];
+    if (length < 2 || at + 2 + length > bytes.length) return null;
+    const isFrame = marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+    if (isFrame) {
+      if (length < 8) return null;
+      return size((bytes[at + 7] << 8) | bytes[at + 8], (bytes[at + 5] << 8) | bytes[at + 6]);
+    }
+    at += 2 + length;
+  }
+  return null;
+}
+
 /** Storage object path: one folder per order, an unguessable file name. */
 export function buildAttachmentPath({ orderNumber, messageId, extension }) {
   return `${orderNumber}/${messageId}.${extension}`;

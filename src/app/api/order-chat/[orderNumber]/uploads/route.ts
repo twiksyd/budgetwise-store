@@ -1,11 +1,18 @@
 import {
+  inspectImage,
+  isUuid,
   MAX_ATTACHMENT_BYTES,
-  sniffImageType,
   validateAttachmentMeta,
 } from "@/lib/order-chat.mjs";
 import { parseUploadFields, THUMB_MAX_BYTES } from "@/lib/chat/album.mjs";
 import { createRateLimiter } from "@/lib/chat/rate-limit.mjs";
-import { albumFolderFor, resolveChatActor, uploadAttachment } from "@/lib/queries/order-chat";
+import {
+  albumFolderFor,
+  deletePendingAlbumUploads,
+  messageExistsForClientId,
+  resolveChatActor,
+  uploadAttachment,
+} from "@/lib/queries/order-chat";
 import {
   chatError,
   chatJson,
@@ -28,8 +35,10 @@ type Context = { params: Promise<{ orderNumber: string }> };
 /**
  * POST ?as=customer|admin  multipart: file, thumb, position (0-9), clientMessageId
  * Stores one album image and its thumbnail at the sender's deterministic
- * paths (a retry overwrites, never duplicates). The album message itself is
- * created by POST /messages {kind: "album"} once every image is up.
+ * paths. Files are write-once: a retry finds them already stored (never a
+ * duplicate), and nothing can be uploaded into an album that was already
+ * posted. The album message itself is created by POST /messages
+ * {kind: "album"} once every image is up.
  */
 export async function POST(request: Request, { params }: Context) {
   if (!isSameOriginRequest(request)) return chatError("Not allowed.", 403);
@@ -75,14 +84,18 @@ export async function POST(request: Request, { params }: Context) {
       thumb.arrayBuffer().then((buffer) => new Uint8Array(buffer)),
     ]);
     if (bytes.byteLength > MAX_ATTACHMENT_BYTES) return chatError("That image is too large (4 MB max).", 413);
-    // The declared types are hints; the bytes decide.
-    const sniffed = sniffImageType(bytes);
-    if (!sniffed || sniffed !== file.type) {
+    // The declared types are hints; the bytes (and their structure) decide.
+    const image = inspectImage(bytes);
+    if (!image || image.type !== file.type) {
       return chatError("Only JPG, PNG, or WebP images can be sent.", 400);
     }
-    const thumbType = sniffImageType(thumbBytes);
+    const sniffed = image.type;
+    const thumbType = inspectImage(thumbBytes)?.type;
     if (!thumbType) return chatError("Only JPG, PNG, or WebP images can be sent.", 400);
 
+    if (await messageExistsForClientId(orderNumber, actor.userId, fields.clientMessageId)) {
+      return chatError("These photos were already sent.", 409);
+    }
     const folder = albumFolderFor({ orderNumber, userId: actor.userId, clientMessageId: fields.clientMessageId });
     await Promise.all([
       uploadAttachment(`${folder}${fields.position}.${EXTENSIONS[sniffed]}`, bytes, sniffed),
@@ -91,5 +104,26 @@ export async function POST(request: Request, { params }: Context) {
     return chatJson({ position: fields.position }, 201);
   } catch (error) {
     return routeErrorResponse(error, "Upload album image");
+  }
+}
+
+/**
+ * DELETE ?as=customer|admin&clientMessageId=<uuid>
+ * Cancel / discard: removes the sender's OWN uploads for an album that was
+ * never posted (other people's folders and posted albums are untouchable).
+ * Best-effort from the browser; the scheduled cleanup catches the rest.
+ */
+export async function DELETE(request: Request, { params }: Context) {
+  if (!isSameOriginRequest(request)) return chatError("Not allowed.", 403);
+  const { orderNumber } = await params;
+  const actor = await resolveChatActor(orderNumber, parseActingAs(request));
+  if (!actor.ok) return chatError(actor.error, actor.status);
+  const clientMessageId = new URL(request.url).searchParams.get("clientMessageId");
+  if (!isUuid(clientMessageId)) return chatError("Invalid request.", 400);
+  try {
+    const result = await deletePendingAlbumUploads(orderNumber, actor.userId, clientMessageId);
+    return chatJson(result, result.posted ? 409 : 200);
+  } catch (error) {
+    return routeErrorResponse(error, "Cancel album upload");
   }
 }

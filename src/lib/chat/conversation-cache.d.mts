@@ -31,7 +31,18 @@ export interface PendingAlbumImage {
 }
 export type PendingFileEntry =
   | { kind: "image"; file: File; caption: string }
-  | { kind: "album"; images: PendingAlbumImage[]; caption: string; label: "proof_of_delivery" | null };
+  | {
+      kind: "album";
+      images: PendingAlbumImage[];
+      caption: string;
+      label: "proof_of_delivery" | null;
+      /** Uploads still running (aborted on Cancel). */
+      requests?: Set<XMLHttpRequest>;
+      /** Set by Cancel: no further uploads, never posted. */
+      cancelled?: boolean;
+      /** The album message request is on its way (too late to cancel). */
+      posting?: boolean;
+    };
 
 export interface ConversationCache<D = unknown> {
   subscribe(listener: () => void): () => void;

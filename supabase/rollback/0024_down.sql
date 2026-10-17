@@ -305,6 +305,8 @@ drop function if exists public.store_customer_orders(uuid, text, timestamptz, te
 drop function if exists public.store_set_conversation_state(text, uuid, text, uuid);
 drop function if exists public.store_post_album(text, text, uuid, text, text, jsonb, uuid);
 drop function if exists public.store_chat_preview(text, text, jsonb);
+drop function if exists public.store_list_orphan_chat_uploads(integer, integer);
+drop index if exists public.store_order_messages_attachment_path_idx;
 
 -- ---- albums
 drop table if exists public.store_order_message_attachments;

@@ -23,6 +23,12 @@
 --      the message row) are unchanged and keep working.
 --    * Optional album label, admin only: 'proof_of_delivery'.
 --
+--    * Chat files are write-once (the app never overwrites). An album can
+--      only be posted from files that exist in storage and were uploaded
+--      in the last 6 hours (BW012 otherwise); files nothing references
+--      can be listed for cleanup once they are at least 12 hours old
+--      (store_list_orphan_chat_uploads), so cleanup can never race a post.
+--
 -- 3. Realtime: a private per-customer topic customer:<auth uid>, receivable
 --    only by that signed-in user, carrying compact "something changed" pings
 --    (no message content) so the floating message button and My Orders stay
@@ -190,6 +196,17 @@ create table if not exists public.store_order_message_attachments (
 
 alter table public.store_order_message_attachments enable row level security;
 revoke all on public.store_order_message_attachments from anon, authenticated;
+
+-- A file belongs to at most one attachment; also what the orphan cleanup
+-- looks files up by.
+create unique index if not exists store_order_message_attachments_storage_path_key
+  on public.store_order_message_attachments (storage_path);
+create unique index if not exists store_order_message_attachments_thumb_path_key
+  on public.store_order_message_attachments (thumb_path);
+-- Legacy single-image messages, looked up the same way by the cleanup.
+create index if not exists store_order_messages_attachment_path_idx
+  on public.store_order_messages (attachment_path)
+  where attachment_path is not null;
 
 -- ===========================================================================
 -- 3. Audit actions: + done / reopened (keeps everything 0021/0022 allow)
@@ -606,6 +623,27 @@ begin
     end if;
   end loop;
 
+  -- Not a retry of an album already posted: every file must really be in
+  -- the private bucket, uploaded recently (an abandoned upload is past
+  -- this window long before the cleanup may delete it).
+  if not exists (
+    select 1 from public.store_order_messages m
+     where m.order_number = p_order_number
+       and m.sender_user_id = p_sender
+       and m.client_message_id = p_client_message_id
+  ) then
+    if (
+      select count(*)
+        from jsonb_array_elements(p_attachments) a
+        join storage.objects o
+          on o.bucket_id = 'order-chat-attachments'
+         and o.name in (a ->> 'path', a ->> 'thumb_path')
+         and o.created_at > now() - interval '6 hours'
+    ) <> 2 * v_count then
+      raise exception 'UPLOAD_EXPIRED_OR_MISSING' using errcode = 'BW012';
+    end if;
+  end if;
+
   insert into public.store_order_messages (
     order_number, sender_role, sender_user_id, kind, body, payload, client_message_id
   )
@@ -646,6 +684,34 @@ begin
 
   return jsonb_build_object('created', false, 'message', to_jsonb(v_row));
 end;
+$$;
+
+-- ===========================================================================
+-- 8b. Abandoned uploads (cancelled, closed tab, failed album)
+-- ===========================================================================
+-- Files in the chat bucket that no message references, at least
+-- p_older_than_hours old (never less than 12: albums only accept files
+-- under 6 hours old, so nothing listed here can still be posted). Server
+-- code deletes them through the Storage API; this only lists.
+create or replace function public.store_list_orphan_chat_uploads(
+  p_older_than_hours integer default 24,
+  p_limit integer default 500
+)
+returns table (name text, created_at timestamptz)
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+  select o.name, o.created_at
+    from storage.objects o
+   where o.bucket_id = 'order-chat-attachments'
+     and o.created_at < now() - make_interval(hours => greatest(coalesce(p_older_than_hours, 24), 12))
+     and not exists (select 1 from public.store_order_messages m where m.attachment_path = o.name)
+     and not exists (select 1 from public.store_order_message_attachments x where x.storage_path = o.name)
+     and not exists (select 1 from public.store_order_message_attachments x where x.thumb_path = o.name)
+   order by o.created_at
+   limit least(greatest(coalesce(p_limit, 500), 1), 1000);
 $$;
 
 -- ===========================================================================
@@ -892,6 +958,7 @@ revoke all on function public.store_post_album(text, text, uuid, text, text, jso
 revoke all on function public.store_admin_inbox(uuid, text, text, timestamptz, text, integer, text) from public, anon, authenticated;
 revoke all on function public.store_customer_conversations(uuid) from public, anon, authenticated;
 revoke all on function public.store_customer_orders(uuid, text, timestamptz, text, integer) from public, anon, authenticated;
+revoke all on function public.store_list_orphan_chat_uploads(integer, integer) from public, anon, authenticated;
 revoke all on function public.store_realtime_topic_allowed(text) from public, anon;
 
 grant execute on function public.store_set_conversation_state(text, uuid, text, uuid) to service_role;
@@ -899,6 +966,7 @@ grant execute on function public.store_post_album(text, text, uuid, text, text, 
 grant execute on function public.store_admin_inbox(uuid, text, text, timestamptz, text, integer, text) to service_role;
 grant execute on function public.store_customer_conversations(uuid) to service_role;
 grant execute on function public.store_customer_orders(uuid, text, timestamptz, text, integer) to service_role;
+grant execute on function public.store_list_orphan_chat_uploads(integer, integer) to service_role;
 grant execute on function public.store_realtime_topic_allowed(text) to authenticated, service_role;
 
 notify pgrst, 'reload schema';

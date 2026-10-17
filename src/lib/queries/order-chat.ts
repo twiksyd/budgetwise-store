@@ -66,6 +66,8 @@ export function toChatDataError(error: { code?: string; message?: string }) {
       return new ChatDataError("That message was already sent with different content.", 409);
     case "BW011":
       return new ChatDataError("The customer just sent a new message. Read it before marking this Done.", 409);
+    case "BW012":
+      return new ChatDataError("These photos took too long to send. Please choose them again.", 410);
     default:
       return new ChatDataError("Something went wrong. Please try again.", 500);
   }
@@ -421,11 +423,83 @@ export async function postAlbum(input: {
   return data as { created: boolean; message: MessageRow };
 }
 
-export async function uploadAttachment(path: string, bytes: Uint8Array, mime: string) {
+/**
+ * Chat files are write-once: an existing object is never replaced, so a
+ * receipt or proof photo cannot be swapped after BudgetWise has seen it.
+ * A retry of the same upload (same deterministic path) finds the object
+ * already there and is treated as done — "created" vs "exists".
+ */
+export async function uploadAttachment(path: string, bytes: Uint8Array, mime: string): Promise<"created" | "exists"> {
   const supabase = createAdminClient();
   const { error } = await supabase.storage
     .from(ORDER_CHAT_BUCKET)
-    .upload(path, bytes, { contentType: mime, upsert: true });
+    .upload(path, bytes, { contentType: mime, upsert: false });
+  if (!error) return "created";
+  if (isStorageDuplicate(error)) return "exists";
+  throw error;
+}
+
+function isStorageDuplicate(error: unknown) {
+  const e = error as { statusCode?: string | number; status?: number; error?: string; message?: string } | null;
+  return (
+    String(e?.statusCode ?? e?.status ?? "") === "409" ||
+    e?.error === "Duplicate" ||
+    /already exists/i.test(e?.message ?? "")
+  );
+}
+
+/** Whether this sender already posted a message with this client id. */
+export async function messageExistsForClientId(orderNumber: string, userId: string, clientMessageId: string) {
+  const supabase = createAdminClient();
+  const { count, error } = await supabase
+    .from("store_order_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("order_number", orderNumber)
+    .eq("sender_user_id", userId)
+    .eq("client_message_id", clientMessageId);
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
+
+/**
+ * Deletes the sender's own not-yet-posted album uploads (Cancel / discard).
+ * Never touches a folder whose album was posted.
+ */
+export async function deletePendingAlbumUploads(orderNumber: string, userId: string, clientMessageId: string) {
+  if (await messageExistsForClientId(orderNumber, userId, clientMessageId)) return { deleted: 0, posted: true };
+  const folder = albumFolderFor({ orderNumber, userId, clientMessageId });
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.storage
+    .from(ORDER_CHAT_BUCKET)
+    .list(folder.replace(/\/$/, ""), { limit: 100 });
+  if (error) throw error;
+  const paths = (data ?? []).filter((object) => object.id).map((object) => folder + object.name);
+  if (paths.length) {
+    const { error: removeError } = await supabase.storage.from(ORDER_CHAT_BUCKET).remove(paths);
+    if (removeError) throw removeError;
+  }
+  return { deleted: paths.length, posted: false };
+}
+
+/**
+ * Chat files no message references, uploaded more than `olderThanHours`
+ * ago (abandoned albums: closed tab, cancelled, failed). The database
+ * enforces a minimum age, so an upload still in progress is never listed.
+ */
+export async function listOrphanChatUploads(olderThanHours: number, limit: number) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("store_list_orphan_chat_uploads", {
+    p_older_than_hours: olderThanHours,
+    p_limit: limit,
+  });
+  if (error) throw toChatDataError(error);
+  return data ?? [];
+}
+
+export async function removeChatUploads(paths: string[]) {
+  if (paths.length === 0) return;
+  const supabase = createAdminClient();
+  const { error } = await supabase.storage.from(ORDER_CHAT_BUCKET).remove(paths);
   if (error) throw error;
 }
 

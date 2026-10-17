@@ -123,9 +123,8 @@ export function CustomerOrderChat({
         });
       }
       if (event === "fulfillment") refreshSlots();
-      if (event === "state" && (payload.state === "active" || payload.state === "done")) {
-        setSummary((current) => (current ? { ...current, state: payload.state as "active" | "done" } : current));
-      }
+      // The event only says "it changed"; the state shown always comes from the server.
+      if (event === "state") void loadSummary();
     },
     onResync: () => {
       void fetchNewer();

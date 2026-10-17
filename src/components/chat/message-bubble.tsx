@@ -373,13 +373,25 @@ export function PendingBubble({
           )}
         </div>
       ) : (
-        <p className="text-muted-foreground mt-1 px-1 text-[11px]" aria-live="polite">
-          {isAlbum
-            ? uploadProgressText({ completed: item.uploaded, total: previews.length })
-            : item.kind === "image"
-              ? `Uploading ${Math.round(item.progress * 100)}%…`
-              : "Sending…"}
-        </p>
+        <div className="text-muted-foreground mt-1 flex items-center gap-2 px-1 text-[11px]">
+          <p aria-live="polite">
+            {isAlbum
+              ? uploadProgressText({ completed: item.uploaded, total: previews.length })
+              : item.kind === "image"
+                ? `Uploading ${Math.round(item.progress * 100)}%…`
+                : "Sending…"}
+          </p>
+          {isAlbum && item.uploaded < previews.length && (
+            <button
+              type="button"
+              onClick={onDiscard}
+              className="inline-flex min-h-8 items-center gap-1 rounded-full px-2 font-semibold underline-offset-2 hover:underline"
+              aria-label="Cancel sending these photos"
+            >
+              <X className="size-3" /> Cancel
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
