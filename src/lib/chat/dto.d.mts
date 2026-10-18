@@ -47,6 +47,7 @@ export interface PaymentConfirmationLike {
 }
 import type { MessageReactions } from "./message-meta.mjs";
 import type { ProductCardDto } from "./recommendation.mjs";
+import type { VouchRequestDto } from "./vouch-request.mjs";
 /** 0032: the quoted original of a reply — a safe summary, never the full message. */
 export interface ReplyQuote {
   id: string;
@@ -58,7 +59,7 @@ export interface ReplyQuote {
   /** Customer view of an admin message: public username (or null = BudgetWise). */
   senderName?: string | null;
 }
-export type ChatMessageKind = "slip" | "text" | "image" | "payment" | "album" | "product";
+export type ChatMessageKind = "slip" | "text" | "image" | "payment" | "album" | "product" | "vouch";
 export type AlbumLabel = "proof_of_delivery";
 export interface AlbumItem {
   /** Opaque attachment id; files are served by /api/order-chat/media/<id>. */
@@ -92,6 +93,8 @@ export interface ChatMessageDto {
   order: OrderSlipDto | null;
   /** 0033: a game pricelist / product card. */
   product: ProductCardDto | null;
+  /** 0034: one premium vouch request per customer conversation. */
+  vouch: VouchRequestDto | null;
   senderUserId?: string | null;
   /** Customer view of an admin message: the admin's public username (never a real name or id). */
   senderName?: string | null;

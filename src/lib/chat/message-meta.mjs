@@ -99,6 +99,8 @@ export function quotePreview(row, { albumCount } = {}) {
       const name = String((payload.type === "game" ? payload.game_name : payload.product_name) ?? "").trim();
       return payload.type === "game" ? `Pricelist · ${name || "Game"}` : name || "Product";
     }
+    case "vouch":
+      return "Vouch request";
     default:
       return "Message";
   }

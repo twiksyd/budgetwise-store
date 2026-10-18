@@ -1,5 +1,5 @@
 // Database tests without psql (e.g. Windows + a portable PostgreSQL such as
-// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026/0027/0028/0029/0030/0031/0032/0033.
+// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025 through 0034.
 // Runs ONLY against a throwaway LOCAL server — never production:
 //
 //   PGHOST=127.0.0.1 PGPORT=54329 PGUSER=postgres node scripts/test-db.mjs
@@ -509,6 +509,9 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0033_store_unified_customer_thread.sql")); // second run
   await later(() => check(MAIN, "36_unified_thread_test.sql"));
   await later(() => concurrentAttach(MAIN));
+  await later(() => apply(MAIN, "../migrations/0034_store_vouch_requests.sql"));
+  await later(() => apply(MAIN, "../migrations/0034_store_vouch_requests.sql")); // second run
+  await later(() => check(MAIN, "37_vouch_request_test.sql"));
   // The repository's own sequence also covers a database where 0023 ran
   // (throwaway local database only; production never runs 0023 here).
   await apply(MAIN, "../migrations/0023_store_chat_legacy_cleanup.sql");
@@ -524,6 +527,7 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0031_store_inquiry_payment_details.sql"));
   await later(() => apply(MAIN, "../migrations/0032_store_message_reactions_and_replies.sql"));
   await later(() => apply(MAIN, "../migrations/0033_store_unified_customer_thread.sql"));
+  await later(() => apply(MAIN, "../migrations/0034_store_vouch_requests.sql"));
 
   // ---- Database 2: rollbacks.
   await freshBase(ROLL);
@@ -592,6 +596,13 @@ async function run() {
       buyer_name, buyer_roblox_username, total_amount) values ('BW-ROLL33', 'idem-roll33-0033-xxxxxxx', repeat('5', 64), repeat('5', 64), 'R', 'r', 10);
     select store_attach_order_to_customer('BW-ROLL33', '00000000-0000-0000-0000-0000000000c2', 'SLIP', 'R', null)`)));
   await later(() => expectFailure(ROLL, "../rollback/0033_down.sql", "0033 rollback refuses once an order joined a customer conversation"));
+  // 0034 round trip: clean before a vouch, refused after one is sent.
+  await later(() => apply(ROLL, "../migrations/0034_store_vouch_requests.sql"));
+  await later(() => apply(ROLL, "../rollback/0034_down.sql"));
+  await later(() => check(ROLL, "55_rollback_0034_test.sql"));
+  await later(() => apply(ROLL, "../migrations/0034_store_vouch_requests.sql"));
+  await later(() => withDb(ROLL, (c) => c.query("select store_send_vouch_request('BW-AAAAAA', '00000000-0000-0000-0000-0000000000a1')")));
+  await later(() => expectFailure(ROLL, "../rollback/0034_down.sql", "0034 rollback refuses once a vouch request exists"));
 
   // ---- Database 3: order-chat regression. 0026 is in place BEFORE the
   // existing order-chat suites run, so every order behaviour they check
@@ -611,6 +622,7 @@ async function run() {
       "../migrations/0031_store_inquiry_payment_details.sql",
       "../migrations/0032_store_message_reactions_and_replies.sql",
       "../migrations/0033_store_unified_customer_thread.sql",
+      "../migrations/0034_store_vouch_requests.sql",
     ]) await apply(REGR, name);
     await check(REGR, "25_fulfillment_test.sql");
     await check(REGR, "26_workflow_albums_test.sql");

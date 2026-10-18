@@ -1,5 +1,6 @@
 import { quotePreview } from "./message-meta.mjs";
 import { toProductCard } from "./recommendation.mjs";
+import { toVouchRequest } from "./vouch-request.mjs";
 
 // The only shapes chat data leaves the server in. Whitelists, never spreads:
 // a new database column can never leak by accident.
@@ -151,6 +152,7 @@ export function toChatMessage(
     order: row.kind === "slip" && row.order_ref ? toOrderSlip(slipOrders?.get(row.order_ref)) : null,
     product:
       row.kind === "product" ? toProductCard(row.payload, productLive?.get(row.id) ?? {}, productLinks?.get(row.id) ?? null) : null,
+    vouch: row.kind === "vouch" ? toVouchRequest() : null,
   };
 
   if (viewer === "admin") {

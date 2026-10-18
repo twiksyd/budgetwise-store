@@ -1,3 +1,5 @@
+import { VOUCH_FACEBOOK_URL } from "@/lib/chat/vouch-request.mjs";
+
 export const siteConfig = {
   name: "BudgetWise",
   logo: { src: "/icons/budgetwise-logo.png", width: 483, height: 221 },
@@ -21,7 +23,7 @@ export const siteConfig = {
   tiktokUrl: null as string | null,
   // Public Facebook vouch/reviews page. The "View more reviews" button on
   // the homepage is hidden until this is set.
-  facebookVouchUrl: "https://www.facebook.com/share/p/1Ub2UPFdkv/" as string | null,
+  facebookVouchUrl: VOUCH_FACEBOOK_URL as string | null,
   nav: [
     { label: "Games", href: "/games" },
     { label: "How it works", href: "/how-ordering-works" },

@@ -663,6 +663,21 @@ export async function postAlbum(input: {
   return data as { created: boolean; message: MessageRow };
 }
 
+/** 0034: one idempotent Vouch Request card per customer conversation. */
+export async function sendVouchRequest(input: {
+  orderNumber: string;
+  actorId: string;
+}): Promise<{ created: boolean; messageId: string }> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("store_send_vouch_request", {
+    p_key: input.orderNumber,
+    p_actor: input.actorId,
+  });
+  if (error) throw toChatDataError(error);
+  const result = data as { created: boolean; message_id: string };
+  return { created: result.created, messageId: result.message_id };
+}
+
 /**
  * Chat files are write-once: an existing object is never replaced, so a
  * receipt or proof photo cannot be swapped after BudgetWise has seen it.

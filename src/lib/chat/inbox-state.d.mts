@@ -13,7 +13,7 @@ export interface InboxRow {
   assignedAt: string | null;
   lastMessageId: string;
   lastMessageAt: string;
-  lastMessageKind: "slip" | "text" | "image" | "payment" | "album" | "product";
+  lastMessageKind: "slip" | "text" | "image" | "payment" | "album" | "product" | "vouch";
   lastMessagePreview: string;
   lastSenderRole: "customer" | "admin";
   customerReadAt: string | null;

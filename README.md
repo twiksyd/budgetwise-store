@@ -112,6 +112,12 @@ for them. Apply before deploying; `supabase/rollback/0031_down.sql` undoes it.
 message reactions and reply-to-message. Apply before deploying; typing indicators
 need no SQL. `supabase/rollback/0032_down.sql` undoes it (reactions and reply links
 are dropped; messages are kept).
+`supabase/migrations/0033_store_unified_customer_thread.sql` (after 0032) — one
+ongoing customer conversation, order slips, and in-chat catalog cards.
+`supabase/migrations/0034_store_vouch_requests.sql` (after 0033) — one
+admin-authored Vouch Request card per customer conversation, with database-level
+duplicate prevention. Apply before deploying the code that shows Request Vouch;
+`supabase/rollback/0034_down.sql` is allowed only before a request has been sent.
 
 `supabase/rollback/0021_down.sql` undoes 0021 (only before 0023).
 `supabase/rollback/0024_down.sql` undoes 0024 (refused once any album exists).
