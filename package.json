@@ -24,7 +24,8 @@
     "db:check-roblox-identity-sources": "node --env-file-if-exists=.env.local scripts/check-roblox-identity-sources.mjs",
     "db:check-roblox-identity-db-preflight": "node --env-file-if-exists=.env.local scripts/check-roblox-identity-db-preflight.mjs",
     "test:roblox-identity-parity": "node --test scripts/test-roblox-identity-parity.mjs",
-    "test:roblox-identity": "node --test scripts/test-roblox-identity.mjs"
+    "test:roblox-identity": "node --test scripts/test-roblox-identity.mjs",
+    "test:db:node": "node scripts/test-db.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
