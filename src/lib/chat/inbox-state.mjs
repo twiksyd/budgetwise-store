@@ -3,11 +3,12 @@
 // (brand-new chat) or cannot recompute exactly (another tab's read) is put
 // in `stale`, and only that one row is fetched.
 import { comparePositions, toMicros } from "./cursor.mjs";
+import { applyMessageToReplyState, applyReadToViewedBy, needsReply } from "./inbox-attention.mjs";
 
 // "active" is the working queue (default). unread / unassigned / mine are
 // views of the Active queue; "done" is the archive; "all" is everything.
-export const INBOX_FILTERS = Object.freeze(["active", "unread", "mine", "unassigned", "done", "all", "under_review"]);
-const ACTIVE_QUEUE_FILTERS = new Set(["active", "unread", "unassigned", "mine"]);
+export const INBOX_FILTERS = Object.freeze(["active", "needs_reply", "unread", "mine", "unassigned", "done", "all", "under_review"]);
+const ACTIVE_QUEUE_FILTERS = new Set(["active", "needs_reply", "unread", "unassigned", "mine"]);
 
 /** Done conversations never sit in the Active queue, even while open. */
 function excludedByState(row, filter) {
@@ -56,6 +57,8 @@ export function matchesView(row, view, me, activeOrderNumber) {
     return false;
   }
   switch (view.filter) {
+    case "needs_reply":
+      return needsReply(row);
     case "unread":
       return row.unreadCount > 0;
     case "unassigned":
@@ -147,7 +150,7 @@ export function inboxReducer(state, action) {
         event.message.sender_role === "customer" &&
         !(orderNumber === action.activeOrderNumber && action.activeIsRead);
 
-      const next = {
+      const next = applyMessageToReplyState({
         ...row,
         ...(isNewer
           ? {
@@ -164,7 +167,7 @@ export function inboxReducer(state, action) {
         // conversation event that follows says the same.
         ...(isNewer && event.message.kind === "payment" ? { paymentRequestMessageId: event.message.id } : {}),
         unreadCount: countsAsUnread ? row.unreadCount + 1 : row.unreadCount,
-      };
+      }, event.message);
       return withRow(state, next, action.activeOrderNumber);
     }
 
@@ -197,16 +200,21 @@ export function inboxReducer(state, action) {
 
     case "read_event": {
       const { event } = action;
-      if (event?.admin_user_id !== state.me) return state; // other admins' reads never touch my counts
-      const row = state.rows[event.order_number];
+      const row = state.rows[event?.order_number];
       if (!row) return state;
+      // Another admin's read never touches my counts; it only says they
+      // viewed the latest customer activity ("Viewed by", 0028).
+      if (event.admin_user_id !== state.me) {
+        const viewed = applyReadToViewedBy(row, event.admin_user_id, event.last_read_at, event.last_read_message_id);
+        return viewed === row ? state : { ...state, rows: { ...state.rows, [row.orderNumber]: viewed } };
+      }
       const coversLast =
         comparePositions(
           { createdAt: event.last_read_at, id: event.last_read_message_id },
           { createdAt: row.lastMessageAt, id: row.lastMessageId },
         ) >= 0;
       const next = {
-        ...row,
+        ...applyReadToViewedBy(row, state.me, event.last_read_at, event.last_read_message_id),
         myReadAt: event.last_read_at,
         myReadMessageId: event.last_read_message_id,
         unreadCount: coversLast ? 0 : row.unreadCount,
@@ -225,7 +233,7 @@ export function inboxReducer(state, action) {
         rows: {
           ...state.rows,
           [action.orderNumber]: {
-            ...row,
+            ...applyReadToViewedBy(row, state.me, action.at, action.messageId),
             unreadCount: 0,
             myReadAt: action.at,
             myReadMessageId: action.messageId,

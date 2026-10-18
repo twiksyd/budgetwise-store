@@ -1,4 +1,4 @@
-export type InboxFilter = "active" | "unread" | "mine" | "unassigned" | "done" | "all" | "under_review";
+export type InboxFilter = "active" | "needs_reply" | "unread" | "mine" | "unassigned" | "done" | "all" | "under_review";
 export type ConversationState = "active" | "done";
 export const INBOX_FILTERS: readonly InboxFilter[];
 export interface InboxRow {
@@ -31,6 +31,14 @@ export interface InboxRow {
   paymentReceivedMessageId: string | null;
   paymentReceivedAt: string | null;
   paymentReceivedBy: string | null;
+  /** 0028: latest customer message, latest admin reply (text/photo/album) and its sender. */
+  lastCustomerMessageAt: string | null;
+  lastCustomerMessageId: string | null;
+  lastAdminReplyAt: string | null;
+  lastAdminReplyId: string | null;
+  lastAdminReplyBy: string | null;
+  /** Admins whose own read cursor reached the latest customer message. */
+  viewedBy: string[];
 }
 export interface InboxView {
   filter: InboxFilter;
