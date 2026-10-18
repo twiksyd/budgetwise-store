@@ -6,6 +6,8 @@ export const ALLOWED_ATTACHMENT_TYPES: Record<string, string>;
 export type ChatMessageKind = "slip" | "text" | "image" | "payment";
 
 export function isValidOrderNumber(value: unknown): value is string;
+/** A General Inquiry thread key (GI-XXXXXXXX), never an order number. */
+export function isInquiryKey(value: unknown): value is string;
 export function isUuid(value: unknown): value is string;
 
 export type ValidationResult<T> =

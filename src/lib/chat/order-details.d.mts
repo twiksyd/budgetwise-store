@@ -15,6 +15,8 @@ export interface OrderDetailsLine {
   fulfillment: FulfillmentSlotView[];
 }
 export interface OrderDetails {
+  /** "inquiry": a General Inquiry (0026) — the customer only, no items, total or payment. */
+  kind?: "order" | "inquiry";
   order: {
     orderNumber: string;
     createdAt: string;

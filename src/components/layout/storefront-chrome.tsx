@@ -31,9 +31,10 @@ export function StorefrontChrome({
     return <>{children}</>;
   }
 
-  // An order page IS the messenger: on phones it fills the screen (its own
+  // A chat page IS the messenger (order chats, the General Inquiry, and the
+  // /messages entry that picks one): on phones it fills the screen (its own
   // compact header has the way back), with no footer or floating buttons.
-  const isMessengerPage = pathname?.startsWith("/orders/") ?? false;
+  const isMessengerPage = (pathname?.startsWith("/orders/") || pathname === "/messages") ?? false;
   // Redundant while already looking at the cart or mid-checkout.
   const showFloatingCartButton =
     !isMessengerPage && !pathname?.startsWith("/cart") && !pathname?.startsWith("/checkout");

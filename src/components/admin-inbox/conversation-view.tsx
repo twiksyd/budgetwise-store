@@ -17,6 +17,7 @@ import type { OrderDetails } from "@/lib/chat/order-details.mjs";
 import type { InboxRow } from "@/lib/chat/inbox-state.mjs";
 import { describeConversationPresence } from "@/lib/chat/presence-state.mjs";
 import { formatPrice } from "@/lib/pricing";
+import { isInquiryKey } from "@/lib/order-chat.mjs";
 
 const VIEWING_HEARTBEAT_MS = 20_000;
 const VIEWING_SETTLE_MS = 250;
@@ -148,6 +149,8 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   const isOwnSide = useCallback((message: ChatMessageDto) => message.senderRole === "admin", []);
   const isMine = useCallback((message: ChatMessageDto) => message.senderUserId === me, [me]);
   const customerName = row?.buyerName ?? details?.customer.name ?? "Customer";
+  // A General Inquiry (0026): the customer only — no total, items or payment.
+  const isInquiry = isInquiryKey(orderNumber);
   const senderLabelFor = useCallback(
     (message: ChatMessageDto) => {
       if (message.senderRole === "customer") return customerName;
@@ -253,7 +256,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold">{customerName}</p>
             <p className="text-muted-foreground truncate text-xs">
-              {orderNumber} · {formatPrice(total)}
+              {isInquiry ? "General Inquiry" : `${orderNumber} · ${formatPrice(total)}`}
               {activity.text ? <span className="text-primary font-semibold"> · {activity.text}</span> : null}
             </p>
           </div>
@@ -286,7 +289,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
             className="border-border hover:bg-muted inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-semibold xl:hidden"
           >
             <PanelRight className="size-4" />
-            <span className="hidden sm:inline">Order details</span>
+            <span className="hidden sm:inline">{isInquiry ? "Customer" : "Order details"}</span>
           </button>
         </header>
 
@@ -338,27 +341,30 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           onTyping={onTyping}
           onStopTyping={onStopTyping}
           actions={
-            <PaymentDetailsDialog
-              orderNumber={orderNumber}
-              total={total}
-              alreadySent={Boolean(row?.paymentDetailsSentAt ?? details?.order.paymentDetailsSentAt)}
-              onSent={(message) => {
-                thread.addConfirmed(message);
-                void loadDetails();
-              }}
-            />
+            // Payment details are for orders only (a General Inquiry has no total).
+            isInquiry ? undefined : (
+              <PaymentDetailsDialog
+                orderNumber={orderNumber}
+                total={total}
+                alreadySent={Boolean(row?.paymentDetailsSentAt ?? details?.order.paymentDetailsSentAt)}
+                onSent={(message) => {
+                  thread.addConfirmed(message);
+                  void loadDetails();
+                }}
+              />
+            )
           }
         />
       </section>
 
-      <aside className="border-border/60 hidden min-h-0 w-[360px] shrink-0 overflow-y-auto border-l xl:block" aria-label="Order details">
+      <aside className="border-border/60 hidden min-h-0 w-[360px] shrink-0 overflow-y-auto border-l xl:block" aria-label={isInquiry ? "Customer" : "Order details"}>
         {panel}
       </aside>
 
       <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
         <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-md xl:hidden">
           <SheetHeader className="border-border/60 border-b">
-            <SheetTitle>Order details</SheetTitle>
+            <SheetTitle>{isInquiry ? "Customer" : "Order details"}</SheetTitle>
           </SheetHeader>
           {panel}
         </SheetContent>

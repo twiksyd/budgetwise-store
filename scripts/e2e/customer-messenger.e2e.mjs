@@ -136,7 +136,7 @@ async function noHorizontalOverflow(page, label) {
 }
 
 function floating(page) {
-  return page.getByRole("button", { name: /^Messages from BudgetWise/ });
+  return page.getByRole("button", { name: /^Message Us Now/ });
 }
 const chatLog = (page) => page.locator('[role="log"]').last();
 

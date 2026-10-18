@@ -455,12 +455,25 @@ export type StoreOrderFulfillmentDetailRow = {
   updated_at: string;
 };
 
+// Migration 0026: every chat is a thread — an order, or a customer's one
+// General Inquiry (key 'GI-XXXXXXXX'; owner_user_id = the customer).
+export type StoreChatThreadRow = {
+  key: string;
+  kind: "order" | "inquiry";
+  order_number: string | null;
+  owner_user_id: string | null;
+  customer_name: string | null;
+  created_at: string;
+};
+
 export type StoreAdminInboxRpcRow = {
   conversation_id: string;
   order_number: string;
-  buyer_name: string;
-  buyer_roblox_username: string;
-  total_amount: number;
+  // General Inquiry rows (0026): the customer's name; no Roblox username,
+  // total or order status.
+  buyer_name: string | null;
+  buyer_roblox_username: string | null;
+  total_amount: number | null;
   order_created_at: string;
   order_status: string | null;
   assigned_admin_id: string | null;
@@ -674,6 +687,13 @@ export type AdminDatabase = {
         Update: StoreOrderMessageUpdate;
         Relationships: [];
       };
+      // 0026: written only by store_open_inquiry() and the order trigger.
+      store_chat_threads: {
+        Row: StoreChatThreadRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       // 0021/0022 tables: read directly by server code; every write goes
       // through a SECURITY DEFINER function (Insert/Update: never).
       store_order_conversations: {
@@ -775,6 +795,11 @@ export type AdminDatabase = {
       store_customer_conversations: {
         Args: { p_user: string };
         Returns: StoreCustomerConversationRpcRow[];
+      };
+      // 0026: the customer's one General Inquiry (created on first open).
+      store_open_inquiry: {
+        Args: { p_user: string; p_name?: string | null };
+        Returns: string;
       };
       store_customer_orders: {
         Args: {

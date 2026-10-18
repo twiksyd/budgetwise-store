@@ -4,22 +4,27 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageCircle, X } from "lucide-react";
 import { useCustomerMessages } from "@/components/customer-messages/customer-messages-provider";
-import { warmChat } from "@/lib/chat/client/customer-store";
+import { hasSessionCookie, warmChat } from "@/lib/chat/client/customer-store";
 import { badgeText } from "@/lib/chat/order-summary.mjs";
 import { cn } from "@/lib/utils";
 
 const COACHMARK_KEY = "bw:coachmark:messages:v1";
+const MY_ORDERS = "/account/orders";
+/** Picks the right chat once the account is known (sign-in, inquiry key). */
+const MESSAGES_ENTRY = "/messages";
 
 /**
- * Mobile, signed-in customers with at least one order: a thumb-reachable
- * messages button (bottom-right, above the iPhone home indicator, below the
- * cart and catalog buttons). The badge is the server's unread count; a new
- * reply gives it ONE short nudge — no endless bouncing — and opening the
- * messenger stops it.
+ * "Message Us Now": one button for every visitor, bottom-right (above the
+ * iPhone home indicator; the cart and catalog buttons sit above it).
  *
- * Tapping it opens the full-screen chat (a real page, Back returns here)
- * for the order that most needs attention: an unread reply, else the most
- * recently active conversation, else the newest order.
+ *   signed out                 -> Google sign-in, then straight into the chat
+ *   a reply is waiting         -> that conversation
+ *   has orders                 -> My Orders: General Inquiry + every order chat
+ *   no orders                  -> their General Inquiry, full screen
+ *
+ * The badge is the server's unread count; a new reply gives it ONE short
+ * nudge, and opening the messenger stops it. Every destination is a real
+ * page: Back returns here.
  */
 export function FloatingMessageButton() {
   const router = useRouter();
@@ -28,23 +33,24 @@ export function FloatingMessageButton() {
   const [coachmark, setCoachmark] = useState(false);
   const previousUnread = useRef<number | null>(null);
   const total = messages?.totalUnread ?? 0;
-  const visible = Boolean(messages?.signedIn) && (messages?.conversations.length ?? 0) > 0;
+  const signedIn = messages?.signedIn ?? null;
+  const known = signedIn === true && (messages?.conversations.length ?? 0) > 0;
 
   useEffect(() => {
-    if (!visible) return;
+    if (!known) return;
     if (previousUnread.current !== null && total > previousUnread.current) setNudge((value) => value + 1);
     previousUnread.current = total;
-  }, [total, visible]);
+  }, [total, known]);
 
-  // First time the button appears: one coachmark, never again.
+  // First time a returning customer sees it: one coachmark, never again.
   useEffect(() => {
-    if (!visible) return;
+    if (!known) return;
     try {
       if (!localStorage.getItem(COACHMARK_KEY)) setCoachmark(true);
     } catch {
       // storage blocked: skip the coachmark
     }
-  }, [visible]);
+  }, [known]);
 
   const dismissCoachmark = () => {
     setCoachmark(false);
@@ -55,20 +61,27 @@ export function FloatingMessageButton() {
     }
   };
 
-  const target = messages?.pick()?.orderNumber ?? null;
-  const href = target ? `/orders/${encodeURIComponent(target)}` : "/account/orders";
+  const unread = messages?.conversations.find((row) => row.unreadCount > 0) ?? null;
+  const target = signedIn === true ? (unread?.orderNumber ?? (messages?.hasOrders ? null : messages?.inquiry?.orderNumber ?? null)) : null;
+  const href =
+    signedIn === false
+      ? `/login?next=${encodeURIComponent(MESSAGES_ENTRY)}`
+      : signedIn === null
+        ? MESSAGES_ENTRY
+        : target
+          ? `/orders/${encodeURIComponent(target)}`
+          : messages?.hasOrders
+            ? MY_ORDERS
+            : MESSAGES_ENTRY;
   useEffect(() => {
-    if (visible) router.prefetch(href);
-  }, [visible, href, router]);
+    router.prefetch(href);
+  }, [href, router]);
 
-  if (!messages || !visible) return null;
+  if (!messages) return null;
   const badge = badgeText(total);
 
   return (
-    <div
-      className="fixed right-4 z-40 sm:hidden"
-      style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
-    >
+    <div className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 sm:right-6 sm:bottom-6">
       {coachmark && (
         <div
           role="status"
@@ -93,15 +106,18 @@ export function FloatingMessageButton() {
         onClick={() => {
           dismissCoachmark();
           setNudge(0);
-          router.push(href);
+          // A stale "signed in" (the session expired) goes to sign-in too.
+          router.push(signedIn !== false && !hasSessionCookie() ? `/login?next=${encodeURIComponent(MESSAGES_ENTRY)}` : href);
         }}
-        aria-label={total > 0 ? `Messages from BudgetWise (${total} unread)` : "Messages from BudgetWise"}
+        aria-label={total > 0 ? `Message Us Now (${total} unread)` : "Message Us Now"}
+        data-testid="message-us-now"
         className={cn(
-          "bg-primary text-primary-foreground relative flex size-14 items-center justify-center rounded-full shadow-[0_10px_28px_-8px_color-mix(in_oklch,var(--primary)_55%,transparent)] active:scale-95",
+          "bg-primary text-primary-foreground relative inline-flex h-14 items-center gap-2 rounded-full pr-5 pl-4 text-sm font-semibold shadow-[0_10px_28px_-8px_color-mix(in_oklch,var(--primary)_55%,transparent)] transition-transform duration-100 active:scale-95",
           nudge > 0 && "animate-[bw-nudge_0.7s_ease-out_1] motion-reduce:animate-none",
         )}
       >
-        <MessageCircle className="size-6" />
+        <MessageCircle className="size-5 shrink-0" />
+        <span>Message Us Now</span>
         {badge && (
           <span
             className="ring-background absolute -top-1 -right-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white ring-2"

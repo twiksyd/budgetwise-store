@@ -14,7 +14,7 @@ import { useCustomerMessages } from "@/components/customer-messages/customer-mes
 import { useChatThread } from "@/lib/chat/client/use-chat-thread";
 import { useRealtimeChannel } from "@/lib/chat/client/use-realtime-channel";
 import {
-  cameFrom,
+  chatBackReturns,
   customerChatCache,
   customerChatLoader,
   readReceipts,
@@ -23,6 +23,7 @@ import {
 } from "@/lib/chat/client/customer-store";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
 import { assistantLine, currentAssistant } from "@/lib/chat/assistant.mjs";
+import { isInquiryKey } from "@/lib/order-chat.mjs";
 import { BrandAvatar } from "@/components/brand/brand-avatar";
 import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
@@ -172,19 +173,22 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
     [orderNumber, summary?.robloxUsername, summary?.totalAmount],
   );
 
-  // Back: straight back to the My Orders screen this chat was opened from
-  // (instant, from memory); otherwise forward to My Orders.
+  // Back: straight back to the in-app screen this chat was opened from (My
+  // Orders, or the page where "Message Us Now" was tapped — instant, from
+  // memory); otherwise forward to My Orders.
   const goBack = (event: React.MouseEvent) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
     event.preventDefault();
-    if (cameFrom() === MY_ORDERS) router.back();
+    if (chatBackReturns()) router.back();
     else router.push(MY_ORDERS);
   };
 
+  // A General Inquiry (no order): no payment notice, order summary or slip.
+  const isInquiry = isInquiryKey(orderNumber);
   const welcome = useWelcome(orderNumber, messages?.signedIn ? messages.conversations.length : null);
 
   const completed = summary?.state === "done";
-  const statusText = completed ? "Completed" : summary ? formatOrderStatus(summary.status) : "";
+  const statusText = completed ? "Completed" : summary && !isInquiry ? formatOrderStatus(summary.status) : "";
 
   return (
     <div className="bg-background flex h-full min-h-0 flex-col">
@@ -193,7 +197,7 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
           href={MY_ORDERS}
           onClick={goBack}
           className="hover:bg-muted active:bg-muted inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-75"
-          aria-label="Back to My Orders"
+          aria-label="Back"
           data-testid="chat-back"
         >
           <ArrowLeft className="size-5" />
@@ -207,8 +211,14 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
           <p className="text-foreground/80 mt-0.5 truncate text-xs leading-tight font-medium" data-testid="chat-assistant">
             {details ? assistantLine(assistant) : " "}
           </p>
-          <p className="text-muted-foreground mt-0.5 truncate text-[11px] leading-tight">
-            Order <span className="[font-variant-numeric:tabular-nums]">{orderNumber}</span>
+          <p className="text-muted-foreground mt-0.5 truncate text-[11px] leading-tight" data-testid="chat-subject">
+            {isInquiry ? (
+              "General Inquiry"
+            ) : (
+              <>
+                Order <span className="[font-variant-numeric:tabular-nums]">{orderNumber}</span>
+              </>
+            )}
             {statusText && (
               <>
                 {" · "}
@@ -218,16 +228,16 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
                 </span>
               </>
             )}
-            {summary && ` · ${formatPrice(summary.totalAmount)}`}
+            {summary && !isInquiry && ` · ${formatPrice(summary.totalAmount)}`}
           </p>
         </div>
       </header>
 
       {missing && !summary ? (
-        <OrderUnavailable />
+        <OrderUnavailable isInquiry={isInquiry} />
       ) : (
         <>
-          {summary && <OrderNotice completed={completed} paymentSent={paymentSent} />}
+          {summary && !isInquiry && <OrderNotice completed={completed} paymentSent={paymentSent} />}
 
           {summary && summary.lines.length > 0 && (
             <OrderSummaryStrip lines={summary.lines} itemCount={summary.itemCount} total={summary.totalAmount} />
@@ -237,7 +247,7 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
             <GamepassSection orderNumber={orderNumber} slots={slots} onSlotsChange={(next) => patchDetails({ slots: next })} />
           )}
 
-          {welcome.show && <WelcomeCard onDismiss={welcome.dismiss} />}
+          {welcome.show && !isInquiry && <WelcomeCard onDismiss={welcome.dismiss} />}
 
           <ChatThread
             state={thread.state}
@@ -255,7 +265,16 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
             onRetry={thread.retry}
             onDiscard={thread.discard}
             onReadUpTo={onReadUpTo}
-            emptyState={<p className="text-muted-foreground py-10 text-center text-sm">Say hi to BudgetWise!</p>}
+            emptyState={
+              isInquiry ? (
+                <div className="text-muted-foreground mx-auto max-w-xs py-10 text-center text-sm" data-testid="inquiry-empty">
+                  <p className="text-foreground font-semibold">Ask us anything</p>
+                  <p className="mt-1">Robux, gamepasses, or an order you&apos;re planning — we&apos;ll reply right here.</p>
+                </div>
+              ) : (
+                <p className="text-muted-foreground py-10 text-center text-sm">Say hi to BudgetWise!</p>
+              )
+            }
           />
 
           <Composer placeholder="Type a message…" onSendText={thread.sendText} onSendImages={thread.sendAlbum} />
@@ -265,11 +284,11 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
   );
 }
 
-function OrderUnavailable() {
+function OrderUnavailable({ isInquiry }: { isInquiry: boolean }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
       <SearchX className="text-muted-foreground size-10" />
-      <p className="font-heading text-base font-semibold">We couldn&apos;t find this order</p>
+      <p className="font-heading text-base font-semibold">We couldn&apos;t find this {isInquiry ? "chat" : "order"}</p>
       <p className="text-muted-foreground max-w-xs text-sm">It may belong to a different account. Your orders are all in My Orders.</p>
       <Link href={MY_ORDERS} className="bg-primary text-primary-foreground mt-1 inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold">
         Go to My Orders

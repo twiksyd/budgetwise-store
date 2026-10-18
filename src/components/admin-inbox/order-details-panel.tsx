@@ -77,6 +77,27 @@ export function OrderDetailsPanel({
 
   const { order, customer, viaPlus, groups } = details;
 
+  // A General Inquiry (0026): who is asking and who is assisting. No order,
+  // items, total, XOB status or payment.
+  if (details.kind === "inquiry") {
+    return (
+      <div className="text-foreground" data-testid="inquiry-details">
+        <Section title="General Inquiry">
+          <p className="text-muted-foreground pb-1 text-xs">A question that is not about one order.</p>
+          <Field label="Started" value={<span suppressHydrationWarning>{DATE_TIME.format(new Date(order.createdAt))}</span>} />
+          <div className="py-1">
+            <p className="text-muted-foreground mb-1 text-[11px]">Assigned to</p>
+            <AssignmentControl orderNumber={orderNumber} assignedAdminId={assignedAdminId} />
+          </div>
+        </Section>
+        <Section title="Customer">
+          <Field label="Name" value={customer.name} copy={customer.name} />
+          {customer.email && <Field label="Google account (internal)" value={customer.email} />}
+        </Section>
+      </div>
+    );
+  }
+
   return (
     <div className="text-foreground">
       <Section title="Order">

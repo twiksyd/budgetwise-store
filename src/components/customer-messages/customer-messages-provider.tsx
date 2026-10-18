@@ -4,8 +4,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { usePathname } from "next/navigation";
 import { useRealtimeChannel } from "@/lib/chat/client/use-realtime-channel";
 import { fetchJson, RequestError } from "@/lib/chat/client/fetch-json";
-import { hasOrdersSection, hasSessionCookie, loadOrdersSection, recordPathname } from "@/lib/chat/client/customer-store";
+import { hasOrdersSection, hasSessionCookie, loadOrdersSection, recordPathname, rememberInquiry } from "@/lib/chat/client/customer-store";
 import { pickConversation, relevantConversations } from "@/lib/chat/order-summary.mjs";
+import { isInquiryKey } from "@/lib/order-chat.mjs";
 
 export interface CustomerConversation {
   conversationId: string;
@@ -21,7 +22,12 @@ interface CustomerMessagesValue {
   /** null until we know; false for visitors who are not signed in. */
   signedIn: boolean | null;
   email: string | null;
+  /** Order chats and (once it has messages) the General Inquiry. */
   conversations: CustomerConversation[];
+  /** At least one order chat (customers without orders go straight to the inquiry). */
+  hasOrders: boolean;
+  /** The customer's General Inquiry conversation, once it has messages. */
+  inquiry: CustomerConversation | null;
   /** Server-computed unread BudgetWise messages across all orders. */
   totalUnread: number;
   /** Bumped when realtime (or a read) says something changed — My Orders re-fetches then. */
@@ -143,18 +149,23 @@ export function CustomerMessagesProvider({ children }: { children: React.ReactNo
     onResync: refresh,
   });
 
+  const inquiry = useMemo(() => conversations.find((row) => isInquiryKey(row.orderNumber)) ?? null, [conversations]);
+  useEffect(() => rememberInquiry(inquiry?.orderNumber ?? null), [inquiry]);
+
   const value = useMemo<CustomerMessagesValue>(
     () => ({
       signedIn,
       email,
       conversations,
+      hasOrders: conversations.some((row) => !isInquiryKey(row.orderNumber)),
+      inquiry,
       totalUnread: conversations.reduce((sum, row) => sum + row.unreadCount, 0),
       version,
       refresh,
       pick: () => pickConversation(conversations),
       relevant: relevantConversations(conversations),
     }),
-    [signedIn, email, conversations, version, refresh],
+    [signedIn, email, conversations, inquiry, version, refresh],
   );
 
   return <CustomerMessagesContext.Provider value={value}>{children}</CustomerMessagesContext.Provider>;

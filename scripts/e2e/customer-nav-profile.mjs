@@ -204,7 +204,7 @@ async function layoutChecks(page) {
       background: getComputedStyle(screen).backgroundColor,
       messagesScrollable: scroller ? scroller.scrollHeight > scroller.clientHeight : null,
       siteHeaderVisible: [...document.querySelectorAll("header")].some((h) => !screen.contains(h) && h.getBoundingClientRect().height > 0),
-      floatingButtons: [...document.querySelectorAll('button[aria-label^="Messages from BudgetWise"]')].length,
+      floatingButtons: document.querySelectorAll('[data-testid="message-us-now"]').length,
     };
   });
 }

@@ -8,6 +8,7 @@ import { formatOrderStatus } from "@/components/order-chat/order-status-badge";
 import { visibleRows, type InboxFilter, type InboxRow } from "@/lib/chat/inbox-state.mjs";
 import { describeConversationPresence } from "@/lib/chat/presence-state.mjs";
 import { formatPrice } from "@/lib/pricing";
+import { isInquiryKey } from "@/lib/order-chat.mjs";
 import { cn } from "@/lib/utils";
 
 // Active is the working queue; Done is the archive of handled chats.
@@ -203,7 +204,15 @@ function ConversationRow({ row }: { row: InboxRow }) {
             </time>
           </div>
           <p className="text-muted-foreground truncate text-[11px] font-medium">
-            {row.orderNumber} · {formatPrice(row.totalAmount)} · {formatOrderStatus(row.orderStatus ?? "pending")}
+            {isInquiryKey(row.orderNumber) ? (
+              <span className="bg-primary/10 text-primary rounded-full px-1.5 py-px font-semibold" data-testid="inquiry-label">
+                General Inquiry
+              </span>
+            ) : (
+              <>
+                {row.orderNumber} · {formatPrice(row.totalAmount)} · {formatOrderStatus(row.orderStatus ?? "pending")}
+              </>
+            )}
           </p>
           {activity.text ? (
             <p className="text-primary mt-0.5 truncate text-xs font-semibold">{activity.text}</p>
