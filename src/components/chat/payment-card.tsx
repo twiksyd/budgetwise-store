@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { BadgeCheck, ChevronDown, QrCode, Wallet, X } from "lucide-react";
 import type { PaymentCard as PaymentCardData, PaymentReceived } from "@/lib/chat/dto.mjs";
-import { formatPrice } from "@/lib/pricing";
+import { formatPaymentAmount } from "@/lib/pricing";
 import { CopyButton } from "@/components/chat/copy-button";
 import { ImageLightbox } from "@/components/chat/image-lightbox";
 import { cn } from "@/lib/utils";
@@ -223,7 +223,7 @@ function ReceivedBody({
             ? `Confirmed by ${confirmedByName ?? "an admin"} · ${WHEN.format(new Date(received.confirmedAt))}`
             : "Your payment has been verified by BudgetWise."}
         </p>
-        <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums]">{formatPrice(card.amount)}</p>
+        <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums]">{formatPaymentAmount(card.amount)}</p>
       </div>
 
       <div className="border-border/60 border-t">
@@ -283,7 +283,7 @@ function PaymentDetails({
               compact ? "text-base" : "font-heading text-2xl",
             )}
           >
-            {formatPrice(card.amount)}
+            {formatPaymentAmount(card.amount)}
           </dd>
         </div>
         <div>
@@ -355,7 +355,7 @@ function ConfirmPaymentButton({ card, onConfirm }: { card: PaymentCardData; onCo
             </DialogPrimitive.Close>
           </div>
           <DialogPrimitive.Description className="text-muted-foreground mt-2 text-sm leading-relaxed">
-            Only confirm after checking the BudgetWise {card.label} account: {formatPrice(card.amount)} to{" "}
+            Only confirm after checking the BudgetWise {card.label} account: {formatPaymentAmount(card.amount)} to{" "}
             <span className="text-foreground font-mono font-semibold">{card.accountNumber}</span> has arrived. A receipt or
             screenshot alone is not proof. The customer sees &ldquo;Payment Received&rdquo; right away, and this cannot be undone.
           </DialogPrimitive.Description>

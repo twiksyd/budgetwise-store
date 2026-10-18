@@ -972,6 +972,17 @@ export type AdminDatabase = {
         };
         Returns: { created: boolean; confirmation: StorePaymentConfirmationRow };
       };
+      // 0031: General Inquiry payment card with the admin's quoted amount.
+      store_send_inquiry_payment_details: {
+        Args: {
+          p_key: string;
+          p_actor: string;
+          p_method_id: string;
+          p_amount: number;
+          p_client_message_id: string;
+        };
+        Returns: string;
+      };
       store_send_payment_details: {
         Args: {
           p_order_number: string;
