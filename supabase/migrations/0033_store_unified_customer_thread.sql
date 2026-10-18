@@ -50,6 +50,10 @@
 --    review), latest order total/username, + order_count and
 --    latest_order_number columns.
 -- 9. store_chat_preview: product card previews.
+-- 10. store_chat_settings.unified_order_chat: the recovery switch. Set it
+--     to false and new orders go back to their own per-order chats (the
+--     pre-0033 behaviour) at once, with no deploy and no data change;
+--     orders already in a conversation keep working there. Default true.
 --
 -- XOB orders.status is never written. Realtime public access is untouched.
 -- Deploy order: apply BEFORE deploying the app.
@@ -241,6 +245,19 @@ alter table public.store_payment_confirmations
     references public.store_order_snapshots (order_number) on delete cascade;
 
 -- ===========================================================================
+-- 3a. Recovery switch (one row; service role only)
+-- ===========================================================================
+create table if not exists public.store_chat_settings (
+  id boolean primary key default true,
+  unified_order_chat boolean not null default true,
+  updated_at timestamptz not null default now(),
+  constraint store_chat_settings_singleton check (id)
+);
+insert into public.store_chat_settings (id) values (true) on conflict (id) do nothing;
+alter table public.store_chat_settings enable row level security;
+revoke all on public.store_chat_settings from public, anon, authenticated;
+
+-- ===========================================================================
 -- 3. A new order joins its customer's conversation
 -- ===========================================================================
 create or replace function public.store_attach_order_to_customer(
@@ -291,7 +308,13 @@ begin
   if v_thread.home_key is not null then
     v_home := v_thread.home_key;
   elsif exists (select 1 from public.store_order_messages m where m.order_number = p_order_number) then
-    -- Placed before 0033: its chat (and slip) stays where it is.
+    -- Placed before 0033 (or while the switch was off): its chat stays where it is.
+    return jsonb_build_object('attached', true, 'chat_key', p_order_number, 'unified', false);
+  elsif not coalesce((select s.unified_order_chat from public.store_chat_settings s where s.id), true) then
+    -- Recovery switch off: the pre-0033 per-order chat, exactly as before.
+    insert into public.store_order_messages (order_number, sender_role, sender_user_id, kind, body)
+    values (p_order_number, 'customer', p_user, 'slip', coalesce(p_slip_text, ''))
+    on conflict (order_number) where kind = 'slip' and order_ref is null do nothing;
     return jsonb_build_object('attached', true, 'chat_key', p_order_number, 'unified', false);
   else
     v_home := public.store_open_inquiry(p_user, p_customer_name);
@@ -1167,6 +1190,7 @@ grant execute on function public.store_customer_orders(uuid, text, timestamptz, 
 grant execute on function public.store_admin_inbox(uuid, text, text, timestamptz, text, integer, text, uuid[], boolean) to service_role;
 grant execute on function public.store_admin_inbox_outside_count(uuid, uuid[], boolean) to service_role;
 grant select, insert, update, delete on public.store_order_recommendations to service_role;
+grant select, update on public.store_chat_settings to service_role;
 
 notify pgrst, 'reload schema';
 

@@ -15,6 +15,7 @@ import { PaymentConfirmContext, type PaymentConfirmActions } from "@/components/
 import { MessageActionsContext } from "@/components/chat/message-actions";
 import { TypingIndicator } from "@/components/chat/typing-indicator";
 import { useMessageFeatures } from "@/lib/chat/client/use-message-features";
+import { useOrderPaymentSync } from "@/lib/chat/client/use-order-payment-sync";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useChatThread } from "@/lib/chat/client/use-chat-thread";
 import { fetchJson, jsonInit, RequestError } from "@/lib/chat/client/fetch-json";
@@ -279,6 +280,23 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   useEffect(() => {
     if (staleCardId) void refreshMessage(staleCardId);
   }, [staleCardId, refreshMessage]);
+  // 0033: a confirmation (mine or another admin's) re-reads the orders'
+  // payment states, which then sync every order's slip and latest card.
+  const receivedId = row?.paymentReceivedMessageId ?? null;
+  const seenReceived = useRef(receivedId);
+  useEffect(() => {
+    if (receivedId === seenReceived.current) return;
+    seenReceived.current = receivedId;
+    if (isInquiryKey(orderNumber)) void loadDetails();
+  }, [receivedId, orderNumber, loadDetails]);
+  const orderPaymentStates = useMemo(
+    () =>
+      details?.kind === "inquiry" && details.orders
+        ? new Map(details.orders.map((order) => [order.order.orderNumber, order.order.paymentState ?? "awaiting"] as const))
+        : null,
+    [details],
+  );
+  useOrderPaymentSync(thread.state.messages, orderPaymentStates, thread.patchMessage, refreshMessage);
   const rowRef = useRef(row);
   rowRef.current = row;
   const nameFor = useCallback(

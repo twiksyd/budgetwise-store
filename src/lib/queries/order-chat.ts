@@ -1159,7 +1159,7 @@ async function loadInquiryDetails(key: string): Promise<OrderDetails | null> {
 }
 
 /** Admin panel: how many orders of a conversation are loaded in full. */
-const CONVERSATION_ORDERS_IN_PANEL = 10;
+const CONVERSATION_ORDERS_IN_PANEL = 5;
 
 /**
  * 0033: the orders in a customer conversation for the admin panel, newest
@@ -1169,8 +1169,10 @@ const CONVERSATION_ORDERS_IN_PANEL = 10;
 async function loadConversationOrderDetails(key: string): Promise<{ orders: OrderDetails[]; total: number }> {
   const linked = await listLinkedOrders(key, 200);
   const shown = linked.slice(0, CONVERSATION_ORDERS_IN_PANEL).map((order) => order.orderNumber);
+  // Same customer, no own conversation: skip the per-order account and
+  // conversation lookups (keeps inbox switching / prefetch light).
   const [details, payments] = await Promise.all([
-    Promise.all(shown.map((orderNumber) => loadOrderDetails(orderNumber))),
+    Promise.all(shown.map((orderNumber) => loadOrderDetails(orderNumber, { linked: true }))),
     loadOrderPaymentStates(key, shown),
   ]);
   const orders = details
@@ -1222,7 +1224,10 @@ export async function loadConversationOrders(key: string, limit = 20): Promise<{
 }
 
 /** Admin Order Details panel. Built from order records only — never chat. */
-export async function loadOrderDetails(orderNumber: string): Promise<OrderDetails | null> {
+export async function loadOrderDetails(
+  orderNumber: string,
+  { linked = false }: { linked?: boolean } = {},
+): Promise<OrderDetails | null> {
   if (isInquiryKey(orderNumber)) return loadInquiryDetails(orderNumber);
   if (!isValidOrderNumber(orderNumber)) return null;
   const supabase = createAdminClient();
@@ -1241,8 +1246,8 @@ export async function loadOrderDetails(orderNumber: string): Promise<OrderDetail
     loadViaPlus(orderNumber),
     loadFulfillmentRows(orderNumber),
     loadOrderStatus(orderNumber),
-    getConversation(orderNumber),
-    snapshot.owner_user_id
+    linked ? Promise.resolve(null) : getConversation(orderNumber),
+    snapshot.owner_user_id && !linked
       ? supabase.auth.admin.getUserById(snapshot.owner_user_id)
       : Promise.resolve(null),
   ]);

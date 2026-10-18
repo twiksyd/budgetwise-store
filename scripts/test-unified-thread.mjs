@@ -13,6 +13,7 @@ import { toChatMessage, toOrderSlip } from "../src/lib/chat/dto.mjs";
 import { confirmablePaymentIds, paymentStateByOrder } from "../src/lib/chat/payment-received.mjs";
 import { quotePreview, quotePreviewFromDto } from "../src/lib/chat/message-meta.mjs";
 import { fingerprintOrderRequest } from "../src/lib/order-access.mjs";
+import { createInboxState, inboxReducer } from "../src/lib/chat/inbox-state.mjs";
 
 const GAME = { id: "11111111-1111-4111-8111-111111111111", slug: "blox-fruits", name: "Blox Fruits", availability_status: "available" };
 const PASS = {
@@ -192,5 +193,30 @@ describe("checkout: the card id is a hint, never part of the order", () => {
   test("the idempotency fingerprint ignores it", () => {
     const order = { items: [{ gamepassId: PASS.id, quantity: 1 }], contact: { name: "Juan", robloxUsername: "juan" } };
     assert.equal(fingerprintOrderRequest(order), fingerprintOrderRequest({ ...order, recommendationId: MSG }));
+  });
+});
+
+describe("admin inbox: one row per customer", () => {
+  const row = {
+    conversationId: "c1", orderNumber: "GI-0A1B2C3D", buyerName: "Juan", buyerRobloxUsername: "juan", totalAmount: 100,
+    orderCreatedAt: "2026-10-17T09:00:00+00:00", orderStatus: "pending", assignedAdminId: null, assignedAt: null,
+    lastMessageId: "m1", lastMessageAt: "2026-10-17T09:00:00+00:00", lastMessageKind: "text", lastMessagePreview: "hi",
+    lastSenderRole: "customer", customerReadAt: null, customerReadMessageId: null, paymentDetailsSentAt: null,
+    myReadAt: null, myReadMessageId: null, unreadCount: 0, orderCount: 1, latestOrderNumber: "BW-A",
+  };
+  const event = (kind) => ({
+    conversation_id: "c1", order_number: "GI-0A1B2C3D", is_new_conversation: false,
+    message: { id: "m2", sender_role: "customer", sender_user_id: CUST, kind, created_at: "2026-10-17T10:00:00+00:00", client_message_id: null },
+    row: { last_message_id: "m2", last_message_at: "2026-10-17T10:00:00+00:00", last_message_kind: kind, last_message_preview: "x", last_sender_role: "customer", payment_details_sent_at: null },
+  });
+  test("a new order in the conversation updates the same row and re-reads its order count", () => {
+    const next = inboxReducer(createInboxState({ me: ADMIN, rows: [row] }), { type: "message_event", event: event("slip") });
+    assert.equal(Object.keys(next.rows).length, 1);
+    assert.equal(next.rows["GI-0A1B2C3D"].lastMessageKind, "slip");
+    assert.deepEqual(next.stale, ["GI-0A1B2C3D"]);
+  });
+  test("ordinary messages do not trigger a re-read", () => {
+    const next = inboxReducer(createInboxState({ me: ADMIN, rows: [row] }), { type: "message_event", event: event("text") });
+    assert.deepEqual(next.stale, []);
   });
 });

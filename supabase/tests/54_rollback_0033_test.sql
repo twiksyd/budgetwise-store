@@ -8,7 +8,8 @@ language plpgsql as $$ begin
 \echo '--- 0033 rollback'
 select pg_temp.ok(to_regprocedure('public.store_attach_order_to_customer(text,uuid,text,text,uuid)') is null
   and to_regprocedure('public.store_send_recommendation(text,uuid,jsonb,uuid)') is null
-  and to_regclass('public.store_order_recommendations') is null,
+  and to_regclass('public.store_order_recommendations') is null
+  and to_regclass('public.store_chat_settings') is null,
   '0033 rollback drops the attach / product card functions and the link table');
 select pg_temp.ok(not exists (select 1 from information_schema.columns
     where table_name = 'store_order_messages' and column_name = 'order_ref')

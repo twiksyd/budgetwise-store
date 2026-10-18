@@ -26,6 +26,7 @@ import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
 import { assistantLine, currentAssistant } from "@/lib/chat/assistant.mjs";
 import { reactionsFromEvent } from "@/lib/chat/message-meta.mjs";
 import { useMessageFeatures } from "@/lib/chat/client/use-message-features";
+import { useOrderPaymentSync } from "@/lib/chat/client/use-order-payment-sync";
 import { useTypingIndicator, useTypingSender } from "@/lib/chat/client/use-typing";
 import { jsonInit } from "@/lib/chat/client/fetch-json";
 import { MessageActionsContext } from "@/components/chat/message-actions";
@@ -173,6 +174,12 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
   }, [staleCardId, refreshMessage]);
 
   const paymentReceived = useMemo(() => latestPaymentReceived(thread.state.messages), [thread.state.messages]);
+  // 0033: each order's own payment state (summary reloads on every payment event).
+  const orderPaymentStates = useMemo(
+    () => (details?.orders ? new Map(details.orders.map((order) => [order.orderNumber, order.payment] as const)) : null),
+    [details?.orders],
+  );
+  useOrderPaymentSync(thread.state.messages, orderPaymentStates, thread.patchMessage, refreshMessage);
   const paymentSent = useMemo(
     () => Boolean(summary?.paymentSent) || thread.state.messages.some((message) => message.kind === "payment"),
     [summary?.paymentSent, thread.state.messages],

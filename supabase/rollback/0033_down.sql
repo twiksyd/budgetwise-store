@@ -22,6 +22,7 @@ drop function if exists public.store_order_messages_thread_guard();
 drop function if exists public.store_attach_order_to_customer(text, uuid, text, text, uuid);
 drop function if exists public.store_send_recommendation(text, uuid, jsonb, uuid);
 drop table if exists public.store_order_recommendations;
+drop table if exists public.store_chat_settings;
 alter table public.store_payment_confirmations drop column if exists order_ref;
 
 drop index if exists public.store_order_messages_order_ref_idx;

@@ -227,6 +227,32 @@ select pg_temp.ok(
                 and details ->> 'order_ref' = 'BW-UNI001'),
   'each confirmation is audited with its order');
 
+\echo '--- an older order (own chat) next to the same customer''s conversation (0033)'
+-- Placed on the pre-0033 flow: owner + slip in its own chat.
+select pg_temp.new_order('BW-UNILEG', 210, :game1, :pass1);
+update store_order_snapshots set owner_user_id = :cu where order_number = 'BW-UNILEG';
+insert into store_order_messages (order_number, sender_role, sender_user_id, kind, body)
+  values ('BW-UNILEG', 'customer', :cu, 'slip', 'LEGACY SLIP');
+create temp table gi_pay_before as
+  select payment_request_message_id, payment_received_message_id from store_order_conversations where order_number = :'gi';
+select store_send_payment_details('BW-UNILEG', :robert, :'method', gen_random_uuid()) as leg1 \gset
+select pg_temp.ok(
+  (select order_number = 'BW-UNILEG' and order_ref is null and (payload ->> 'amount')::numeric = 210 and not payload ? 'order_number'
+     from store_order_messages where id = :'leg1'),
+  'an older order''s card stays in its own chat, untagged, with its own total');
+select pg_temp.ok((store_confirm_payment('BW-UNILEG', :'leg1', :robert) ->> 'created')::boolean, 'and is confirmed there');
+select pg_temp.ok(
+  (select c.payment_request_message_id is not distinct from b.payment_request_message_id
+          and c.payment_received_message_id is not distinct from b.payment_received_message_id
+     from store_order_conversations c, gi_pay_before b where c.order_number = :'gi')
+  and (select payment_received_message_id = :'leg1' from store_order_conversations where order_number = 'BW-UNILEG'),
+  'the customer conversation''s payment state is untouched by the older order''s payment');
+select pg_temp.raises(format($q$insert into store_order_messages (order_number, sender_role, sender_user_id, kind, body, payload, order_ref)
+    values (%L, 'admin', %L, 'payment', 'x', '{"amount": 1, "provider": "gcash"}', 'BW-UNILEG')$q$, :'gi', :robert),
+  'BW031', 'an older order''s card can never be posted into the conversation');
+select pg_temp.raises(format($q$select store_confirm_payment(%L, %L, %L)$q$, :'gi', :'leg1', :robert),
+  'P0002', 'a card is only confirmable from the chat it is in');
+
 \echo '--- fulfillment and My Orders (0033)'
 truncate realtime.messages;
 select store_set_fulfillment_detail('BW-UNI001', null, null, 'account_notes', 'please deliver fast', null, :cu, 'customer');
@@ -238,14 +264,33 @@ select pg_temp.ok(
   'fulfillment changes are announced on the customer conversation');
 select pg_temp.ok(
   (select count(*) = 6 and bool_and(t.home_key = :'gi') and bool_and(o.unread_count = 0)
-     from store_customer_orders(:cu, 'open') o join store_chat_threads t on t.key = o.order_number),
+     from store_customer_orders(:cu, 'open') o join store_chat_threads t on t.key = o.order_number
+    where o.order_number like 'BW-UNI00%'),
   'My Orders lists every order (each still its own order) opening the one conversation');
 select pg_temp.ok(
   (select payment_details_sent_at is not null from store_customer_orders(:cu, 'open') where order_number = 'BW-UNI001')
   and (select payment_details_sent_at is null from store_customer_orders(:cu, 'open') where order_number = 'BW-UNI003'),
   'each order on My Orders shows whether ITS payment details were sent');
-select pg_temp.ok((select count(*) = 1 from store_customer_conversations(:cu)),
-  'the customer has a single conversation');
+select pg_temp.ok((select count(*) filter (where order_number like 'GI-%') = 1 and count(*) = 2 from store_customer_conversations(:cu)),
+  'all new orders share one conversation; only the older order keeps its own chat');
+
+\echo '--- recovery switch (0033)'
+update store_chat_settings set unified_order_chat = false;
+select pg_temp.new_order('BW-UNIOFF', 50, :game1, :pass1);
+select store_attach_order_to_customer('BW-UNIOFF', :cu, 'SLIP OFF', 'Uni Customer', null) as attoff \gset
+select pg_temp.ok(:'attoff'::jsonb ->> 'chat_key' = 'BW-UNIOFF' and not (:'attoff'::jsonb ->> 'unified')::boolean
+  and (select home_key is null from store_chat_threads where key = 'BW-UNIOFF')
+  and (select count(*) = 1 from store_order_messages where order_number = 'BW-UNIOFF' and kind = 'slip' and order_ref is null),
+  'switch off: a new order gets its own chat with its slip, exactly as before 0033');
+select pg_temp.ok((store_attach_order_to_customer('BW-UNIOFF', :cu, 'SLIP OFF', 'Uni Customer', null) ->> 'chat_key') = 'BW-UNIOFF'
+  and (select count(*) = 1 from store_order_messages where order_number = 'BW-UNIOFF' and kind = 'slip'),
+  'switch off: a replay posts no second slip');
+select pg_temp.ok(store_post_message(:'gi', 'customer', :cu, 'text', 'still here', null, null, gen_random_uuid()) is not null
+  and (store_attach_order_to_customer('BW-UNI001', :cu, 'SLIP ONE', 'Uni Customer', null) ->> 'chat_key') = :'gi',
+  'switch off: the existing conversation and its linked orders keep working');
+update store_chat_settings set unified_order_chat = true;
+select pg_temp.ok((store_attach_order_to_customer('BW-UNIOFF', :cu, 'SLIP OFF', 'Uni Customer', null) ->> 'chat_key') = 'BW-UNIOFF',
+  'switch back on: an order that already has its own chat never moves');
 
 \echo '--- older chats and XOB are untouched (0033)'
 select pg_temp.ok((store_attach_order_to_customer('BW-AAAAAA', '00000000-0000-0000-0000-0000000000c1', 'x', null, null) ->> 'chat_key') = 'BW-AAAAAA',
