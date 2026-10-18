@@ -44,11 +44,15 @@ export default async function LoginPage({
         <GoogleSignInButton nextPath={nextPath} />
       </div>
 
-      <p className="text-muted-foreground mt-6 flex items-start gap-2 text-xs leading-relaxed">
-        <ShieldCheck className="mt-0.5 size-4 shrink-0" />
-        Google lang ang ginagamit namin para sa sign in. Hindi namin nakikita ang
-        inyong Google password.
-      </p>
+      {/* Right under the button, where the "why Google?" doubt happens. */}
+      <div className="text-muted-foreground mt-3 flex items-start gap-2 text-xs leading-relaxed" data-testid="google-signin-reassurance">
+        <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
+        <p>
+          <span className="text-foreground font-medium">We only use Google to keep your order chat private.</span>
+          <br />
+          We never see your password or post anything.
+        </p>
+      </div>
     </div>
   );
 }
