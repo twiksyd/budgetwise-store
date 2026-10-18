@@ -10,6 +10,7 @@ import {
   OrderCreationError,
 } from "@/lib/queries/orders";
 import { attachOrderOwnerAndSlip } from "@/lib/queries/order-chat";
+import { attachOrderToCustomer } from "@/lib/queries/customer-thread";
 import { buildChatSlipMessage } from "@/lib/messenger";
 import { getCustomerUser } from "@/lib/auth/customer";
 
@@ -247,11 +248,14 @@ export async function POST(request: Request) {
   }
 
   try {
+    // recommendationId is not part of the order (or its fingerprint).
     const { orderNumber } = await createOrder(parsed.data);
+    const recommendationId = parsed.data.recommendationId;
 
-    // Tie the order to this account and post the slip as the first chat
-    // message. Runs on replays too (both steps are idempotent), so a retry
-    // after a lost response still ends with a fully set-up chat.
+    // Tie the order to this account and post its slip in the customer's one
+    // ongoing conversation (0033). Runs on replays too (every step is
+    // idempotent), so a retry after a lost response still ends with the
+    // order in the conversation.
     const confirmation = await getOrderConfirmation(
       orderNumber,
       parsed.data.viewToken,
@@ -260,11 +264,20 @@ export async function POST(request: Request) {
       throw new Error("Order was created but its slip could not be read");
     }
 
-    const attached = await attachOrderOwnerAndSlip({
+    const slipText = buildChatSlipMessage(confirmation);
+    const unified = await attachOrderToCustomer({
       orderNumber,
       userId: customer.id,
-      slipText: buildChatSlipMessage(confirmation),
+      slipText,
+      customerName: customer.name ?? customer.email ?? null,
+      recommendationId: recommendationId ?? null,
     });
+    // Before 0033 is applied: the order's own chat, as before.
+    const attached =
+      unified.status === "unavailable"
+        ? await attachOrderOwnerAndSlip({ orderNumber, userId: customer.id, slipText })
+        : unified.status === "attached";
+    const chatKey = unified.chatKey ?? orderNumber;
     if (!attached) {
       return orderError(
         "IDEMPOTENCY_CONFLICT",
@@ -275,7 +288,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { orderNumber, requestId },
+      { orderNumber, chatKey, requestId },
       { status: 201, headers: { "X-Request-Id": requestId } },
     );
   } catch (error) {

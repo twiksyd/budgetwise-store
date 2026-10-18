@@ -197,8 +197,9 @@ function useArrivalPulse(row: InboxRow, isNew: boolean) {
 }
 
 function newLabel(row: InboxRow, isInquiry: boolean) {
-  if (isInquiry) return "New inquiry";
-  return row.lastMessageKind === "slip" && row.lastCustomerMessageId === row.lastMessageId ? "New order" : "New";
+  // 0033: a new order also arrives in the customer's conversation.
+  if (row.lastMessageKind === "slip" && row.lastCustomerMessageId === row.lastMessageId) return "New order";
+  return isInquiry ? "New inquiry" : "New";
 }
 
 // Whole-row background per shared attention state (0030). Unopened is the
@@ -223,6 +224,9 @@ function ConversationRow({ row }: { row: InboxRow }) {
   const unread = row.unreadCount > 0;
   const activity = describeConversationPresence(presence, row.orderNumber, { me, directory, nowMs });
   const isInquiry = isInquiryKey(row.orderNumber);
+  // 0033: one row per customer — their conversation carries every order.
+  const orderCount = isInquiry ? (row.orderCount ?? 0) : 1;
+  const conversationWithOrders = isInquiry && orderCount > 0;
   const state = attentionState(row);
   const isNew = isNewAttention(row);
   const replier = repliedBy(row);
@@ -276,7 +280,15 @@ function ConversationRow({ row }: { row: InboxRow }) {
             </time>
           </div>
           <p className="text-muted-foreground truncate text-[11px] font-medium">
-            {isInquiry ? (
+            {conversationWithOrders ? (
+              <span data-testid="conversation-orders">
+                {row.buyerRobloxUsername ? <span className="text-foreground/80">@{row.buyerRobloxUsername} · </span> : null}
+                <span className="bg-primary/10 text-primary rounded-full px-1.5 py-px font-semibold">
+                  {orderCount} order{orderCount === 1 ? "" : "s"}
+                </span>{" "}
+                · {row.latestOrderNumber} · {formatPrice(row.totalAmount)} · {formatOrderStatus(row.orderStatus ?? "pending")}
+              </span>
+            ) : isInquiry ? (
               <span className="bg-primary/10 text-primary rounded-full px-1.5 py-px font-semibold" data-testid="inquiry-label">
                 General Inquiry
               </span>
@@ -287,7 +299,7 @@ function ConversationRow({ row }: { row: InboxRow }) {
               </>
             )}
           </p>
-          {!isInquiry && row.gameNames.length > 0 && (
+          {(!isInquiry || conversationWithOrders) && row.gameNames.length > 0 && (
             <p className="text-muted-foreground mt-0.5 flex min-w-0 items-center gap-1 text-[11px]" data-testid="row-games">
               <Gamepad2 className="size-3 shrink-0" aria-hidden />
               <span className="truncate">

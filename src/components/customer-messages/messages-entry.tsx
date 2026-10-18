@@ -8,15 +8,13 @@ import { MessengerViewport } from "@/components/order-chat/messenger-viewport";
 import { useCustomerMessages } from "@/components/customer-messages/customer-messages-provider";
 import { hasSessionCookie, openInquiry } from "@/lib/chat/client/customer-store";
 
-const MY_ORDERS = "/account/orders";
-
 /**
  * Picks the chat for "Message Us Now" and replaces itself with it (so Back
  * from the chat returns to where the button was tapped):
  *   signed out      -> Google sign-in, which comes back here
- *   has orders      -> My Orders (General Inquiry + order chats)
- *   no orders       -> the customer's General Inquiry, created on first use
- * ?to=inquiry always opens the General Inquiry (My Orders' inquiry card).
+ *   signed in       -> the customer's one ongoing conversation (0033: their
+ *                      questions and every order since), created on first use
+ * Older order chats (placed before 0033) stay reachable from My Orders.
  */
 export function MessagesEntry() {
   const router = useRouter();
@@ -25,7 +23,6 @@ export function MessagesEntry() {
   const [attempt, setAttempt] = useState(0);
   const started = useRef(false);
   const signedIn = messages?.signedIn ?? null;
-  const hasOrders = messages?.hasOrders ?? false;
 
   useEffect(() => {
     if (started.current) return;
@@ -36,18 +33,13 @@ export function MessagesEntry() {
     }
     if (signedIn === null) return; // the account is still loading
     started.current = true;
-    const wantsInquiry = new URLSearchParams(window.location.search).get("to") === "inquiry";
-    if (hasOrders && !wantsInquiry) {
-      router.replace(MY_ORDERS);
-      return;
-    }
     openInquiry()
       .then((key) => router.replace(`/orders/${encodeURIComponent(key)}`))
       .catch(() => {
         started.current = false;
         setFailed(true);
       });
-  }, [signedIn, hasOrders, router, attempt]);
+  }, [signedIn, router, attempt]);
 
   return (
     <MessengerViewport>

@@ -22,11 +22,14 @@ export function ClearCartOnSuccess({ orderNumber }: { orderNumber: string }) {
   useEffect(() => {
     if (!hydrated) return;
 
-    const pending = readPendingOrderClear(orderNumber);
+    // 0033: the conversation page says which order was just placed.
+    const placed = new URLSearchParams(window.location.search).get("placed");
+    const target = placed && placed !== "1" ? placed : orderNumber;
+    const pending = readPendingOrderClear(target);
     if (!pending || pending.length === 0) return;
 
     removeOrderedItems(pending);
-    clearPendingOrderClear(orderNumber);
+    clearPendingOrderClear(target);
   }, [hydrated, orderNumber, removeOrderedItems]);
 
   return null;

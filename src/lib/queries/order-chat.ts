@@ -15,6 +15,14 @@ import { toChatMessage, type AttachmentRowLike, type ChatMessageDto } from "@/li
 import { summarizeReactions } from "@/lib/chat/message-meta.mjs";
 import { describeOrderItems, summarizeLines, type SummaryLine } from "@/lib/chat/order-summary.mjs";
 import { getProductArtworkMapSafe, getProductArtworkUrlMap } from "@/lib/queries/product-artwork";
+import {
+  getHomeKeys,
+  listLinkedOrders,
+  loadOrderPaymentStates,
+  loadProductCardData,
+  loadSlipOrders,
+  type OrderPaymentState,
+} from "@/lib/queries/customer-thread";
 import type {
   AlbumAttachmentInput,
   ConversationState,
@@ -73,7 +81,11 @@ export function toChatDataError(error: { code?: string; message?: string }) {
     case "BW012":
       return new ChatDataError("These photos took too long to send. Please choose them again.", 410);
     case "BW020":
-      return new ChatDataError("Newer payment details were sent. Confirm the latest payment card instead.", 409);
+      return new ChatDataError("Newer payment details were sent for this order. Confirm its latest payment card instead.", 409);
+    case "BW030":
+      return new ChatDataError("This order's chat is now the customer's conversation. Please reload.", 409);
+    case "BW031":
+      return new ChatDataError("That order is not part of this conversation.", 409);
     default:
       return new ChatDataError("Something went wrong. Please try again.", 500);
   }
@@ -410,12 +422,17 @@ export async function toChatMessages(
   // Customers see an admin message's public username only (no id, no real name).
   const needsNames =
     viewer.viewer === "customer" && (rows.some((row) => row.sender_role === "admin") || quoted.length > 0);
-  const [attachments, publicNames, paymentConfirmations, reactionRows, fetchedTargets] = await Promise.all([
+  // 0033: slips of orders in a customer conversation, and product cards.
+  const slipRefs = rows.filter((row) => row.kind === "slip" && row.order_ref).map((row) => row.order_ref as string);
+  const productRows = rows.filter((row) => row.kind === "product");
+  const [attachments, publicNames, paymentConfirmations, reactionRows, fetchedTargets, slipOrders, productData] = await Promise.all([
     loadAlbumAttachments(albumIds) as Promise<Map<string, AttachmentRowLike[]>>,
     needsNames ? loadPublicAdminNames() : Promise.resolve(undefined),
     loadPaymentConfirmations(paymentIds),
     loadReactionRows(rows.map((row) => row.id)),
     rows.length ? loadReplyTargets(rows[0].order_number, missingQuoted) : Promise.resolve([]),
+    slipRefs.length ? loadSlipOrders(rows[0].order_number, slipRefs) : Promise.resolve(undefined),
+    productRows.length ? loadProductCardData(productRows) : Promise.resolve(undefined),
   ]);
   const replyTargets = new Map<string, MessageRow>();
   for (const id of quoted) {
@@ -429,7 +446,18 @@ export async function toChatMessages(
   for (const [id, list] of [...attachments, ...offPageAttachments]) albumCounts.set(id, list.length);
   const reactions = summarizeReactions(reactionRows, viewer.viewerUserId);
   return rows.map((row) =>
-    toChatMessage(row, { ...viewer, attachments, publicNames, paymentConfirmations, reactions, replyTargets, albumCounts }),
+    toChatMessage(row, {
+      ...viewer,
+      attachments,
+      publicNames,
+      paymentConfirmations,
+      reactions,
+      replyTargets,
+      albumCounts,
+      slipOrders,
+      productLive: productData?.productLive,
+      productLinks: productData?.productLinks,
+    }),
   );
 }
 
@@ -816,6 +844,9 @@ export function toInboxRow(row: StoreAdminInboxRpcRow): InboxRow {
     lastAdminReplyId: row.last_admin_reply_id ?? null,
     lastAdminReplyBy: row.last_admin_reply_by ?? null,
     viewedBy: row.viewed_by ?? [],
+    // 0033: a customer conversation's orders (an order chat counts as 1).
+    orderCount: row.order_count ?? (isInquiryKey(row.order_number) ? 0 : 1),
+    latestOrderNumber: row.latest_order_number ?? (isInquiryKey(row.order_number) ? null : row.order_number),
   };
 }
 
@@ -1094,9 +1125,10 @@ async function loadInquiryDetails(key: string): Promise<OrderDetails | null> {
   const inquiry = await getChatInquiry(key);
   if (!inquiry) return null;
   const supabase = createAdminClient();
-  const [conversation, owner] = await Promise.all([
+  const [conversation, owner, orders] = await Promise.all([
     getConversation(key),
     supabase.auth.admin.getUserById(inquiry.ownerUserId),
+    loadConversationOrderDetails(key),
   ]);
   const email = owner?.data?.user?.email ?? null;
   return {
@@ -1112,11 +1144,81 @@ async function loadInquiryDetails(key: string): Promise<OrderDetails | null> {
       state: conversation?.state ?? "active",
       doneAt: conversation?.done_at ?? null,
     },
-    customer: { name: inquiry.customerName ?? email ?? "Customer", robloxUsername: "", email },
+    customer: {
+      name: inquiry.customerName ?? email ?? "Customer",
+      // 0033: the Roblox username from the customer's latest order, if any.
+      robloxUsername: orders.orders[0]?.customer.robloxUsername ?? "",
+      email,
+    },
     viaPlus: null,
     groups: [],
-    fulfillmentPending: 0,
+    fulfillmentPending: orders.orders.reduce((sum, order) => sum + order.fulfillmentPending, 0),
+    orders: orders.orders,
+    orderCount: orders.total,
   };
+}
+
+/** Admin panel: how many orders of a conversation are loaded in full. */
+const CONVERSATION_ORDERS_IN_PANEL = 10;
+
+/**
+ * 0033: the orders in a customer conversation for the admin panel, newest
+ * first, each built exactly like an order chat's details (records only),
+ * with that order's own payment state.
+ */
+async function loadConversationOrderDetails(key: string): Promise<{ orders: OrderDetails[]; total: number }> {
+  const linked = await listLinkedOrders(key, 200);
+  const shown = linked.slice(0, CONVERSATION_ORDERS_IN_PANEL).map((order) => order.orderNumber);
+  const [details, payments] = await Promise.all([
+    Promise.all(shown.map((orderNumber) => loadOrderDetails(orderNumber))),
+    loadOrderPaymentStates(key, shown),
+  ]);
+  const orders = details
+    .filter((order): order is OrderDetails => order !== null)
+    .map((order) => {
+      const payment = payments.get(order.order.orderNumber);
+      return {
+        ...order,
+        order: { ...order.order, paymentDetailsSentAt: payment?.sentAt ?? null, paymentState: payment?.state ?? "awaiting" },
+      };
+    });
+  return { orders, total: linked.length };
+}
+
+/** A customer conversation's orders (newest first) for the customer's chat. */
+export interface CustomerConversationOrder {
+  orderNumber: string;
+  createdAt: string;
+  total: number;
+  status: string;
+  itemCount: number;
+  summary: string;
+  payment: OrderPaymentState;
+  slots: CustomerFulfillmentSlot[];
+}
+
+export async function loadConversationOrders(key: string, limit = 20): Promise<{ orders: CustomerConversationOrder[]; total: number }> {
+  const linked = await listLinkedOrders(key, 200);
+  const shown = linked.slice(0, limit).map((order) => order.orderNumber);
+  if (shown.length === 0) return { orders: [], total: 0 };
+  const [slips, slots] = await Promise.all([loadSlipOrders(key, shown), loadCustomerFulfillmentBatch(shown)]);
+  const orders = shown
+    .map((orderNumber) => {
+      const slip = slips.get(orderNumber);
+      if (!slip) return null;
+      return {
+        orderNumber,
+        createdAt: slip.createdAt,
+        total: slip.total,
+        status: slip.status,
+        itemCount: slip.itemCount,
+        summary: describeOrderItems(slip.items),
+        payment: slip.payment,
+        slots: slots.get(orderNumber) ?? [],
+      };
+    })
+    .filter((order): order is CustomerConversationOrder => order !== null);
+  return { orders, total: linked.length };
 }
 
 /** Admin Order Details panel. Built from order records only — never chat. */
@@ -1180,6 +1282,43 @@ export async function loadCustomerFulfillment(orderNumber: string): Promise<Cust
     productName: byIndex.get(slot.lineIndex)?.product_name ?? "",
     gameName: byIndex.get(slot.lineIndex)?.game_name ?? "",
   }));
+}
+
+/** loadCustomerFulfillment for several orders (two queries). */
+async function loadCustomerFulfillmentBatch(orderNumbers: string[]): Promise<Map<string, CustomerFulfillmentSlot[]>> {
+  const result = new Map<string, CustomerFulfillmentSlot[]>();
+  if (orderNumbers.length === 0) return result;
+  const supabase = createAdminClient();
+  const [lines, rows] = await Promise.all([
+    supabase
+      .from("store_order_line_snapshots")
+      .select("order_number, line_index, game_id, game_name, product_name, quantity")
+      .in("order_number", orderNumbers),
+    supabase
+      .from("store_order_fulfillment_details")
+      .select("order_number, line_index, unit_index, field_key, value, external_id, source, updated_at")
+      .in("order_number", orderNumbers),
+  ]);
+  if (lines.error) throw lines.error;
+  if (rows.error) throw rows.error;
+  for (const orderNumber of orderNumbers) {
+    const orderLines = (lines.data ?? []).filter((line) => line.order_number === orderNumber);
+    const orderRows = (rows.data ?? []).filter((row) => row.order_number === orderNumber);
+    const byIndex = new Map(orderLines.map((line) => [line.line_index, line]));
+    const view = buildFulfillmentView(
+      orderLines.map((line) => ({ lineIndex: line.line_index, gameId: line.game_id, quantity: Number(line.quantity) })),
+      orderRows,
+    );
+    result.set(
+      orderNumber,
+      view.map((slot) => ({
+        ...slot,
+        productName: byIndex.get(slot.lineIndex)?.product_name ?? "",
+        gameName: byIndex.get(slot.lineIndex)?.game_name ?? "",
+      })),
+    );
+  }
+  return result;
 }
 
 export async function loadFulfillmentLines(orderNumber: string) {
@@ -1394,7 +1533,8 @@ export async function sendPaymentDetails(input: {
     p_client_message_id: input.clientMessageId,
   });
   if (error) throw toChatDataError(error);
-  const message = await getMessageInOrder(input.orderNumber, messageId as string);
+  // 0033: an order in a customer conversation gets its card there.
+  const message = await getMessageById(messageId as string);
   if (!message) throw new ChatDataError("Not found.", 404);
   return message;
 }
@@ -1508,6 +1648,8 @@ export interface CustomerOrderCard {
   paymentSent: boolean;
   summary: string;
   thumbnails: string[];
+  /** 0033: the chat this order lives in (the customer's conversation, or its own). */
+  chatKey: string;
 }
 
 export interface CustomerOrderCursor {
@@ -1551,7 +1693,7 @@ export async function loadCustomerOrderSection(
     if (lineError) throw lineError;
     return lineRows ?? [];
   };
-  const [statuses, allLines] = await Promise.all([loadOrderStatuses(orderNumbers), loadLines()]);
+  const [statuses, allLines, homeKeys] = await Promise.all([loadOrderStatuses(orderNumbers), loadLines(), getHomeKeys(orderNumbers)]);
   const linesByOrder = new Map<string, typeof allLines>();
   for (const line of allLines) {
     const list = linesByOrder.get(line.order_number) ?? [];
@@ -1577,6 +1719,7 @@ export async function loadCustomerOrderSection(
       paymentSent: Boolean(row.payment_details_sent_at),
       summary: describeOrderItems(lines),
       thumbnails: [...new Set(lines.map((line) => line.imageUrl).filter((url): url is string => Boolean(url)))].slice(0, 3),
+      chatKey: homeKeys.get(row.order_number) ?? row.order_number,
     };
   });
 

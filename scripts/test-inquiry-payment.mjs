@@ -34,7 +34,7 @@ describe("inquiry payment card for the customer", () => {
       },
       { viewer: "customer", viewerUserId: "cust-1" },
     );
-    assert.deepEqual(dto.payment, { provider: "gcash", label: "GCash", accountName: "B W Store", accountNumber: "09170000031", amount: 499.5, currency: "PHP", hasQr: true });
+    assert.deepEqual(dto.payment, { provider: "gcash", label: "GCash", accountName: "B W Store", accountNumber: "09170000031", amount: 499.5, currency: "PHP", hasQr: true, orderNumber: null });
     const wire = JSON.stringify(dto);
     for (const secret of ["qr/secret.png", "m1", "admin_quote", "admin-1"]) assert.equal(wire.includes(secret), false, secret);
   });

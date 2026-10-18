@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, ExternalLink, Pencil } from "lucide-react";
+import { BadgeCheck, CheckCircle2, ChevronDown, Clock, ExternalLink, Pencil, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import type { OrderDetails, OrderDetailsLine } from "@/lib/chat/order-details.mjs";
 import type { FulfillmentSlotView } from "@/lib/chat/fulfillment-fields.mjs";
@@ -10,6 +10,7 @@ import { OrderStatusBadge } from "@/components/order-chat/order-status-badge";
 import { AssignmentControl } from "@/components/admin-inbox/assignment-control";
 import { formatPrice } from "@/lib/pricing";
 import { fetchJson, jsonInit, RequestError } from "@/lib/chat/client/fetch-json";
+import { cn } from "@/lib/utils";
 
 const DATE_TIME = new Intl.DateTimeFormat("en-PH", {
   timeZone: "Asia/Manila",
@@ -77,13 +78,36 @@ export function OrderDetailsPanel({
 
   const { order, customer, viaPlus, groups } = details;
 
-  // A General Inquiry (0026): who is asking and who is assisting. No order,
-  // items, total, XOB status or payment.
+  // A General Inquiry (0026): who is asking and who is assisting. Since 0033
+  // it is the customer's one ongoing conversation: every order placed since
+  // is listed below, each with its own items, details and payment state.
   if (details.kind === "inquiry") {
+    const orders = details.orders ?? [];
+    const orderCount = details.orderCount ?? orders.length;
+    const replaceOrder = (updated: OrderDetails) =>
+      onDetailsChange({
+        ...details,
+        orders: orders.map((item) =>
+          item.order.orderNumber === updated.order.orderNumber
+            ? {
+                ...updated,
+                order: {
+                  ...updated.order,
+                  paymentState: item.order.paymentState,
+                  paymentDetailsSentAt: item.order.paymentDetailsSentAt,
+                },
+              }
+            : item,
+        ),
+      });
     return (
       <div className="text-foreground" data-testid="inquiry-details">
-        <Section title="General Inquiry">
-          <p className="text-muted-foreground pb-1 text-xs">A question that is not about one order.</p>
+        <Section title={orderCount > 0 ? "Customer conversation" : "General Inquiry"}>
+          <p className="text-muted-foreground pb-1 text-xs">
+            {orderCount > 0
+              ? "Questions and every order from this customer, in one chat."
+              : "A question that is not about one order."}
+          </p>
           <Field label="Started" value={<span suppressHydrationWarning>{DATE_TIME.format(new Date(order.createdAt))}</span>} />
           <div className="py-1">
             <p className="text-muted-foreground mb-1 text-[11px]">Assigned to</p>
@@ -92,8 +116,25 @@ export function OrderDetailsPanel({
         </Section>
         <Section title="Customer">
           <Field label="Name" value={customer.name} copy={customer.name} />
+          {customer.robloxUsername && (
+            <Field label="Roblox username (latest order)" value={customer.robloxUsername} copy={customer.robloxUsername} />
+          )}
           {customer.email && <Field label="Google account (internal)" value={customer.email} />}
         </Section>
+        {orders.length > 0 && (
+          <Section title={`Orders (${orderCount})`}>
+            <div className="space-y-2" data-testid="conversation-orders-panel">
+              {orders.map((item, index) => (
+                <ConversationOrder key={item.order.orderNumber} details={item} defaultOpen={index === 0} onDetailsChange={replaceOrder} />
+              ))}
+            </div>
+            {orderCount > orders.length && (
+              <p className="text-muted-foreground mt-2 text-[11px]">
+                Showing the latest {orders.length}. Search the inbox by order number to find older ones.
+              </p>
+            )}
+          </Section>
+        )}
       </div>
     );
   }
@@ -310,6 +351,90 @@ export function ProductThumb({ src, name, className }: { src: string | null; nam
         <img src={src} alt="" loading="lazy" className="size-full object-cover" />
       ) : (
         <span className="text-muted-foreground text-[10px] font-bold uppercase">{name.slice(0, 2)}</span>
+      )}
+    </div>
+  );
+}
+
+const PAYMENT_STATE: Record<"awaiting" | "sent" | "received", { text: string; icon: typeof Clock; tone: string }> = {
+  awaiting: { text: "Payment not sent", icon: Clock, tone: "bg-muted text-muted-foreground" },
+  sent: { text: "Awaiting payment", icon: Wallet, tone: "bg-primary/10 text-primary" },
+  received: { text: "Paid ✓", icon: BadgeCheck, tone: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
+};
+
+/** 0033: one order inside a customer conversation (collapsible). */
+function ConversationOrder({
+  details,
+  defaultOpen,
+  onDetailsChange,
+}: {
+  details: OrderDetails;
+  defaultOpen: boolean;
+  onDetailsChange: (details: OrderDetails) => void;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const { order, viaPlus, groups } = details;
+  const payment = PAYMENT_STATE[order.paymentState ?? "awaiting"];
+  const PaymentIcon = payment.icon;
+  const itemCount = groups.reduce((sum, group) => sum + group.lines.reduce((count, line) => count + line.quantity, 0), 0);
+  return (
+    <div className="border-border/70 overflow-hidden rounded-xl border" data-panel-order={order.orderNumber}>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="hover:bg-muted/50 flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-1.5 text-sm font-bold [font-variant-numeric:tabular-nums]">
+            {order.orderNumber}
+            {details.fulfillmentPending > 0 && (
+              <span className="rounded-full bg-amber-500/15 px-1.5 py-px text-[10px] font-semibold text-amber-800 dark:text-amber-200">
+                {details.fulfillmentPending} link{details.fulfillmentPending === 1 ? "" : "s"} missing
+              </span>
+            )}
+          </p>
+          <p className="text-muted-foreground mt-0.5 text-[11px]" suppressHydrationWarning>
+            {DATE_TIME.format(new Date(order.createdAt))} · {itemCount} item{itemCount === 1 ? "" : "s"}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <OrderStatusBadge status={order.status} />
+            <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold", payment.tone)}>
+              <PaymentIcon className="size-3" aria-hidden />
+              {payment.text}
+            </span>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span className="font-heading text-base font-bold">{formatPrice(order.total)}</span>
+          <ChevronDown className={cn("text-muted-foreground size-4 transition-transform duration-200", open && "rotate-180")} aria-hidden />
+        </div>
+      </button>
+      {open && (
+        <div className="border-border/60 border-t px-3 pt-2 pb-3">
+          <div className="flex items-center justify-between gap-2 pb-1">
+            <p className="text-muted-foreground text-[11px]">Roblox: <span className="text-foreground font-semibold">{details.customer.robloxUsername}</span></p>
+            <CopyButton value={order.orderNumber} label="Copy order no." className="min-h-8" />
+          </div>
+          <div className="space-y-3">
+            {groups.map((group) => (
+              <div key={group.gameName}>
+                <p className="text-xs font-bold">{group.gameName}</p>
+                <ul className="mt-1.5 space-y-2">
+                  {group.lines.map((line) => (
+                    <LineItem key={line.lineIndex} line={line} orderNumber={order.orderNumber} onDetailsChange={onDetailsChange} />
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          {viaPlus && (
+            <p className="text-muted-foreground mt-2 text-xs">
+              Via Plus · {viaPlus.robloxDisplayName} · {viaPlus.robuxAmount.toLocaleString()} Robux · Age 16+:{" "}
+              {viaPlus.age16Confirmed ? "confirmed" : "no"} · Verified: {viaPlus.verifiedAccountConfirmed ? "confirmed" : "no"}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

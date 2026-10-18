@@ -213,6 +213,7 @@ export function previewMessage(message, maxLength = 80) {
     return message.body ? `📷 ${message.body}` : "📷 Photo";
   }
   if (message.kind === "slip") return "Order slip";
+  if (message.kind === "product") return "Product card";
 
   const flat = String(message.body ?? "").replace(/\s+/g, " ").trim();
   return flat.length > maxLength ? `${flat.slice(0, maxLength - 1)}…` : flat;

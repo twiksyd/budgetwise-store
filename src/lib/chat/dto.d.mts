@@ -6,7 +6,34 @@ export interface PaymentCard {
   amount: number;
   currency: "PHP";
   hasQr: boolean;
+  /** 0033: the order this card is for (null = a quote / an order's own chat). */
+  orderNumber: string | null;
 }
+/** 0033: a structured order slip, from the order's records. */
+export interface OrderSlipDto {
+  orderNumber: string;
+  createdAt: string;
+  total: number;
+  /** XOB's order status (read-only). */
+  status: string;
+  itemCount: number;
+  items: { productName: string; gameName: string; quantity: number; lineTotal: number; imageUrl: string | null }[];
+  /** This order's own payment state (its latest card). */
+  payment: "awaiting" | "sent" | "received";
+  /** The order came from a product card in this conversation (verified link). */
+  fromRecommendation: boolean;
+}
+export interface OrderSlipInput {
+  orderNumber: string;
+  createdAt: string;
+  total: number;
+  status: string;
+  itemCount: number;
+  items: { productName: string; gameName: string; quantity: number; lineTotal: number; imageUrl: string | null }[];
+  payment: "awaiting" | "sent" | "received";
+  fromRecommendation: boolean;
+}
+export function toOrderSlip(order: OrderSlipInput | null | undefined): OrderSlipDto | null;
 /** 0027: an admin verified this payment card. Never set by a receipt. */
 export interface PaymentReceived {
   confirmedAt: string;
@@ -19,6 +46,7 @@ export interface PaymentConfirmationLike {
   confirmed_by?: string | null;
 }
 import type { MessageReactions } from "./message-meta.mjs";
+import type { ProductCardDto } from "./recommendation.mjs";
 /** 0032: the quoted original of a reply — a safe summary, never the full message. */
 export interface ReplyQuote {
   id: string;
@@ -30,7 +58,7 @@ export interface ReplyQuote {
   /** Customer view of an admin message: public username (or null = BudgetWise). */
   senderName?: string | null;
 }
-export type ChatMessageKind = "slip" | "text" | "image" | "payment" | "album";
+export type ChatMessageKind = "slip" | "text" | "image" | "payment" | "album" | "product";
 export type AlbumLabel = "proof_of_delivery";
 export interface AlbumItem {
   /** Opaque attachment id; files are served by /api/order-chat/media/<id>. */
@@ -58,6 +86,12 @@ export interface ChatMessageDto {
   reactions: MessageReactions | null;
   /** 0032: the message this one replies to (null when not a reply or unavailable). */
   replyTo: ReplyQuote | null;
+  /** 0033: the order a slip / payment card belongs to (null otherwise). */
+  orderRef: string | null;
+  /** 0033: a slip in a customer conversation, as a structured order. */
+  order: OrderSlipDto | null;
+  /** 0033: a game pricelist / product card. */
+  product: ProductCardDto | null;
   senderUserId?: string | null;
   /** Customer view of an admin message: the admin's public username (never a real name or id). */
   senderName?: string | null;
@@ -86,6 +120,8 @@ export interface ChatMessageRowLike {
   read_at?: string | null;
   /** 0032 */
   reply_to_message_id?: string | null;
+  /** 0033 */
+  order_ref?: string | null;
 }
 export function toPaymentCard(payload: unknown): PaymentCard | null;
 export function toAlbum(payload: unknown, attachments: AttachmentRowLike[] | undefined): AlbumDto;
@@ -106,6 +142,12 @@ export function toChatMessage(
     replyTargets?: Map<string, ChatMessageRowLike>;
     /** 0032: photo counts of referenced albums. */
     albumCounts?: Map<string, number>;
+    /** 0033: slip orders by order number. */
+    slipOrders?: Map<string, OrderSlipInput>;
+    /** 0033: live catalog rows for product cards, by message id. */
+    productLive?: Map<string, Parameters<typeof import("./recommendation.mjs").toProductCard>[1]>;
+    /** 0033: product card message id -> the order it led to. */
+    productLinks?: Map<string, string>;
   },
 ): ChatMessageDto;
 export function toReplyQuote(

@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useContext, useState } from "react";
 import { AlertCircle, BadgeCheck, ImageIcon, ReceiptText, RotateCcw, X } from "lucide-react";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
 import type { PendingMessage } from "@/lib/chat/thread-state.mjs";
 import { albumCaption, albumLayout, ALBUM_LABEL_TEXT } from "@/lib/chat/album.mjs";
 import { uploadProgressText } from "@/lib/chat/upload-queue.mjs";
 import { PaymentCard } from "@/components/chat/payment-card";
+import { OrderSlipCard } from "@/components/chat/order-slip-card";
+import { ProductCardViewerContext, ProductRecommendationCard } from "@/components/chat/product-card";
 import {
   HoverActions,
   QuoteBlock,
@@ -81,6 +83,7 @@ export function MessageBubble({
     if (actions) setPickerOpen(true);
   });
   const align = isMine ? "end" : "start";
+  const viewer = useContext(ProductCardViewerContext);
 
   return (
     <div
@@ -114,8 +117,13 @@ export function MessageBubble({
           messageId={message.id}
           received={message.paymentReceived ?? null}
         />
+      ) : message.kind === "slip" && message.order ? (
+        // 0033: an order inside the customer's conversation.
+        <OrderSlipCard order={message.order} createdAt={message.createdAt} isMine={isMine} viewer={viewer} />
       ) : message.kind === "slip" ? (
         <OrderPlacedCard slip={slip ?? { orderNumber, robloxUsername: null, total: null }} isMine={isMine} />
+      ) : message.kind === "product" && message.product ? (
+        <ProductRecommendationCard card={message.product} messageId={message.id} createdAt={message.createdAt} isMine={isMine} />
       ) : message.kind === "album" && message.album ? (
         <AlbumMessage message={message} isMine={isMine} onOpenMedia={onOpenMedia} onMediaLoad={onMediaLoad} />
       ) : message.kind === "image" && message.hasAttachment ? (

@@ -202,11 +202,17 @@ function LoadError({ onRetry }: { onRetry: () => void }) {
 function OrderCard({ order }: { order: MyOrderCard }) {
   const done = order.state === "done";
   const badge = badgeText(order.unreadCount);
-  const warm = () => warmChat(order.orderNumber);
+  // 0033: an order in the customer's conversation opens it at that order.
+  const chatKey = order.chatKey ?? order.orderNumber;
+  const inConversation = chatKey !== order.orderNumber;
+  const href = inConversation
+    ? `/orders/${encodeURIComponent(chatKey)}?focus=${encodeURIComponent(order.orderNumber)}`
+    : `/orders/${encodeURIComponent(order.orderNumber)}`;
+  const warm = () => warmChat(chatKey);
   return (
     <li>
       <Link
-        href={`/orders/${encodeURIComponent(order.orderNumber)}`}
+        href={href}
         data-order-card={order.orderNumber}
         data-state={order.state}
         onPointerDown={warm}
@@ -260,7 +266,7 @@ function OrderCard({ order }: { order: MyOrderCard }) {
         <div className="shrink-0 text-right">
           <p className="text-sm font-semibold">{formatPrice(order.totalAmount)}</p>
           <span className="text-primary inline-flex items-center text-xs font-semibold">
-            {badge ? "Read" : "Chat"}
+            {badge ? "Read" : inConversation ? "View" : "Chat"}
             <ChevronRight className="size-3.5" />
           </span>
         </div>
@@ -270,8 +276,9 @@ function OrderCard({ order }: { order: MyOrderCard }) {
 }
 
 /**
- * The customer's General Inquiry, pinned above their orders: questions that
- * are not about one order. Opens their one inquiry chat (created on first use).
+ * The customer's one ongoing conversation with BudgetWise, pinned above
+ * their orders: questions and (0033) every order since, in one thread.
+ * Opens it (created on first use).
  */
 function InquiryCard({ inquiry }: { inquiry: CustomerConversation | null }) {
   const badge = badgeText(inquiry?.unreadCount ?? 0);
@@ -294,7 +301,7 @@ function InquiryCard({ inquiry }: { inquiry: CustomerConversation | null }) {
       <BrandAvatar className="size-11" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="font-heading text-sm font-semibold">General Inquiry</p>
+          <p className="font-heading text-sm font-semibold">Chat with BudgetWise</p>
           {badge && (
             <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">
               <MessageCircle className="size-3" /> New reply{(inquiry?.unreadCount ?? 0) > 1 ? ` · ${badge}` : ""}
@@ -302,7 +309,7 @@ function InquiryCard({ inquiry }: { inquiry: CustomerConversation | null }) {
           )}
         </div>
         <p className="text-muted-foreground truncate text-sm">
-          {inquiry?.lastMessagePreview || "Questions about games, Robux or a future order"}
+          {inquiry?.lastMessagePreview || "Questions and your orders, all in one conversation"}
         </p>
       </div>
       <span className="text-primary inline-flex shrink-0 items-center text-xs font-semibold">

@@ -27,6 +27,8 @@ export interface OrderDetails {
     paymentDetailsSentAt: string | null;
     state: "active" | "done";
     doneAt: string | null;
+    /** 0033: an order inside a customer conversation — its own payment state. */
+    paymentState?: "awaiting" | "sent" | "received";
   };
   customer: { name: string; robloxUsername: string; email: string | null };
   viaPlus: {
@@ -37,6 +39,10 @@ export interface OrderDetails {
   } | null;
   groups: { gameName: string; lines: OrderDetailsLine[] }[];
   fulfillmentPending: number;
+  /** 0033 (customer conversation): its orders, newest first (the latest few in full). */
+  orders?: OrderDetails[];
+  /** 0033: how many orders the conversation has in total. */
+  orderCount?: number;
 }
 export function buildOrderDetails(input: {
   snapshot: {

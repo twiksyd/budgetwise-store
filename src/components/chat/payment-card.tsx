@@ -15,8 +15,12 @@ import { cn } from "@/lib/utils";
  * conversation view. Customers have no provider, so they never see them.
  */
 export interface PaymentConfirmActions {
-  /** The one card that can be confirmed now: the order's latest, unconfirmed card. */
-  confirmableId: string | null;
+  /**
+   * Cards that can be confirmed now: the latest unconfirmed card of each
+   * order (0033: a customer conversation can hold several orders and
+   * quotes; each is confirmed on its own).
+   */
+  confirmableIds: ReadonlySet<string>;
   /** Resolves true once the server has recorded (or already had) the confirmation. */
   confirm: (messageId: string) => Promise<boolean>;
   /** Internal admin name for "Confirmed by …". */
@@ -109,7 +113,7 @@ export function PaymentCard({
   const confirmed = Boolean(received);
   const celebrate = useCelebration(messageId, confirmed);
   const animate = celebrate && !reduceMotion;
-  const canConfirm = !confirmed && actions?.confirmableId === messageId;
+  const canConfirm = !confirmed && Boolean(actions?.confirmableIds.has(messageId));
 
   return (
     <div
@@ -134,6 +138,17 @@ export function PaymentCard({
         >
           {card.label} Payment
         </p>
+        {card.orderNumber && (
+          <span
+            className={cn(
+              "ml-auto rounded-full px-2 py-0.5 text-[11px] font-semibold [font-variant-numeric:tabular-nums]",
+              confirmed ? "bg-emerald-600/10 text-emerald-800 dark:text-emerald-200" : "bg-primary/10 text-primary",
+            )}
+            data-testid="payment-order"
+          >
+            For {card.orderNumber}
+          </span>
+        )}
       </div>
 
       <AnimatePresence initial={false} mode="wait" custom={animate}>

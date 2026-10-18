@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { useInbox } from "@/components/admin-inbox/inbox-provider";
 import { OrderDetailsPanel } from "@/components/admin-inbox/order-details-panel";
 import { PaymentDetailsDialog } from "@/components/admin-inbox/payment-details-dialog";
+import { ProductPickerDialog } from "@/components/admin-inbox/product-picker-dialog";
+import { ProductCardViewerContext } from "@/components/chat/product-card";
 import { AssignmentControl } from "@/components/admin-inbox/assignment-control";
 import { ChatThread } from "@/components/chat/chat-thread";
 import { Composer } from "@/components/chat/composer";
@@ -19,7 +21,7 @@ import { fetchJson, jsonInit, RequestError } from "@/lib/chat/client/fetch-json"
 import type { ChatMessageDto, ReplyQuote } from "@/lib/chat/dto.mjs";
 import type { OrderDetails } from "@/lib/chat/order-details.mjs";
 import { isPaymentReceived, type InboxRow } from "@/lib/chat/inbox-state.mjs";
-import { confirmablePaymentId, paymentMessageToRefresh } from "@/lib/chat/payment-received.mjs";
+import { confirmablePaymentIds, paymentMessageToRefresh } from "@/lib/chat/payment-received.mjs";
 import { attentionState, repliedBy } from "@/lib/chat/inbox-attention.mjs";
 import { staffName } from "@/components/admin-inbox/staff-avatar";
 import { describeConversationPresence } from "@/lib/chat/presence-state.mjs";
@@ -78,6 +80,13 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   // Loading is started by the inbox when the chat is selected (thread and
   // details in parallel); realtime updates are merged by the inbox too.
   const loadDetails = useCallback(() => loader.ensureDetails(orderNumber, { force: true }), [loader, orderNumber]);
+  const slipCount = thread.state.messages.filter((message) => message.kind === "slip").length;
+  const seenSlips = useRef<number | null>(null);
+  useEffect(() => {
+    if (!thread.state.loaded) return;
+    if (seenSlips.current !== null && slipCount > seenSlips.current) void loadDetails();
+    seenSlips.current = slipCount;
+  }, [slipCount, thread.state.loaded, loadDetails]);
 
   // Tell the inbox which chat is open (its messages don't add unread).
   useEffect(() => {
@@ -158,6 +167,10 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   const customerName = row?.buyerName ?? details?.customer.name ?? "Customer";
   // A General Inquiry (0026): the customer only — no total, items or payment.
   const isInquiry = isInquiryKey(orderNumber);
+  // 0033: a customer conversation that holds orders.
+  const conversationOrders = details?.kind === "inquiry" ? (details.orders ?? []) : [];
+  const orderCount = isInquiry ? (row?.orderCount ?? details?.orderCount ?? conversationOrders.length) : 1;
+  const hasOrders = isInquiry && orderCount > 0;
   const senderLabelFor = useCallback(
     (message: ChatMessageDto) => {
       if (message.senderRole === "customer") return customerName;
@@ -256,8 +269,12 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   // admin's confirmation arrives as an inbox row update and the card is
   // re-read from the server (also after a missed event).
   const { refreshMessage, addConfirmed, fetchNewer } = thread;
-  // Order chats and (0031) General Inquiry quotes alike.
-  const confirmableId = confirmablePaymentId(thread.state.messages, row?.paymentRequestMessageId);
+  // Order chats, (0031) General Inquiry quotes and (0033) every order in a
+  // customer conversation — each order's latest card on its own.
+  const confirmableIds = useMemo(
+    () => confirmablePaymentIds(thread.state.messages, row?.paymentRequestMessageId),
+    [thread.state.messages, row?.paymentRequestMessageId],
+  );
   const staleCardId = paymentMessageToRefresh(thread.state.messages, row?.paymentReceivedMessageId);
   useEffect(() => {
     if (staleCardId) void refreshMessage(staleCardId);
@@ -305,8 +322,8 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
     [orderNumber, addConfirmed, dispatch, nameFor, fetchNewer],
   );
   const paymentActions = useMemo<PaymentConfirmActions>(
-    () => ({ confirmableId, confirm: confirmPayment, nameFor }),
-    [confirmableId, confirmPayment, nameFor],
+    () => ({ confirmableIds, confirm: confirmPayment, nameFor }),
+    [confirmableIds, confirmPayment, nameFor],
   );
   const paid = isPaymentReceived(row);
   // 0028: shared reply state, independent of my unread and of assignment.
@@ -350,7 +367,11 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold">{customerName}</p>
             <p className="text-muted-foreground truncate text-xs">
-              {isInquiry ? "General Inquiry" : `${orderNumber} · ${formatPrice(total)}`}
+              {hasOrders
+                ? `${orderCount} order${orderCount === 1 ? "" : "s"} · latest ${row?.latestOrderNumber ?? conversationOrders[0]?.order.orderNumber ?? ""}`
+                : isInquiry
+                  ? "General Inquiry"
+                  : `${orderNumber} · ${formatPrice(total)}`}
               {paid ? <span className="font-semibold text-emerald-700 dark:text-emerald-300"> · Paid ✓</span> : null}
               {attention === "unopened" ? (
                 <span className="font-semibold text-rose-700 dark:text-rose-300" data-testid="header-unopened"> · Unopened</span>
@@ -392,7 +413,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
             className="border-border hover:bg-muted inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-semibold xl:hidden"
           >
             <PanelRight className="size-4" />
-            <span className="hidden sm:inline">{isInquiry ? "Customer" : "Order details"}</span>
+            <span className="hidden sm:inline">{hasOrders ? "Customer & orders" : isInquiry ? "Customer" : "Order details"}</span>
           </button>
         </header>
 
@@ -413,6 +434,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
         )}
 
         <PaymentConfirmContext.Provider value={paymentActions}>
+        <ProductCardViewerContext.Provider value="admin">
         <MessageActionsContext.Provider value={features.actions}>
         <ChatThread
           state={thread.state}
@@ -441,6 +463,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           }
         />
         </MessageActionsContext.Provider>
+        </ProductCardViewerContext.Provider>
         </PaymentConfirmContext.Provider>
 
         <Composer
@@ -455,30 +478,40 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           onTyping={onTyping}
           onStopTyping={onStopTyping}
           actions={
-            // Orders use the order total; a General Inquiry (0031) has no
-            // order, so the admin enters the quoted amount.
-            <PaymentDetailsDialog
-              orderNumber={orderNumber}
-              total={total}
-              mode={isInquiry ? "inquiry" : "order"}
-              alreadySent={Boolean(row?.paymentDetailsSentAt ?? details?.order.paymentDetailsSentAt)}
-              onSent={(message) => {
-                thread.addConfirmed(message);
-                void loadDetails();
-              }}
-            />
+            <>
+              {/* 0033: a game pricelist or one product, as a card to order from. */}
+              <ProductPickerDialog orderNumber={orderNumber} onSent={(message) => thread.addConfirmed(message)} />
+              {/* Orders use the order total; a General Inquiry (0031) has no
+                  order, so the admin enters the quoted amount — or (0033)
+                  picks which of the conversation's orders the card is for. */}
+              <PaymentDetailsDialog
+                orderNumber={orderNumber}
+                total={total}
+                mode={isInquiry ? "inquiry" : "order"}
+                alreadySent={Boolean(row?.paymentDetailsSentAt ?? details?.order.paymentDetailsSentAt)}
+                orders={conversationOrders.map((order) => ({
+                  orderNumber: order.order.orderNumber,
+                  total: order.order.total,
+                  paymentState: order.order.paymentState ?? "awaiting",
+                }))}
+                onSent={(message) => {
+                  thread.addConfirmed(message);
+                  void loadDetails();
+                }}
+              />
+            </>
           }
         />
       </section>
 
-      <aside className="border-border/60 hidden min-h-0 w-[360px] shrink-0 overflow-y-auto border-l xl:block" aria-label={isInquiry ? "Customer" : "Order details"}>
+      <aside className="border-border/60 hidden min-h-0 w-[360px] shrink-0 overflow-y-auto border-l xl:block" aria-label={hasOrders ? "Customer and orders" : isInquiry ? "Customer" : "Order details"}>
         {panel}
       </aside>
 
       <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
         <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-md xl:hidden">
           <SheetHeader className="border-border/60 border-b">
-            <SheetTitle>{isInquiry ? "Customer" : "Order details"}</SheetTitle>
+            <SheetTitle>{hasOrders ? "Customer & orders" : isInquiry ? "Customer" : "Order details"}</SheetTitle>
           </SheetHeader>
           {panel}
         </SheetContent>
