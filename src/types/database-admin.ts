@@ -511,6 +511,21 @@ export type StoreAdminInboxRpcRow = {
   last_admin_reply_id?: string | null;
   last_admin_reply_by?: string | null;
   viewed_by?: string[] | null;
+  // Migration 0029 (absent before it is applied). customer_user_id and the
+  // photo URL are server-only: toInboxRow turns them into an opaque avatar
+  // seed and an allow-listed photo URL.
+  customer_user_id?: string | null;
+  customer_photo_url?: string | null;
+  game_ids?: string[] | null;
+  game_names?: string[] | null;
+};
+
+// Migration 0029: per-admin inbox preferences.
+export type StoreAdminInboxPreferencesRow = {
+  admin_user_id: string;
+  game_ids: string[] | null;
+  include_inquiries: boolean;
+  updated_at: string;
 };
 
 // Migration 0027: one row per confirmed payment card.
@@ -750,6 +765,12 @@ export type AdminDatabase = {
         Update: never;
         Relationships: [];
       };
+      store_admin_inbox_preferences: {
+        Row: StoreAdminInboxPreferencesRow;
+        Insert: { admin_user_id: string; game_ids: string[] | null; include_inquiries: boolean; updated_at?: string };
+        Update: { game_ids?: string[] | null; include_inquiries?: boolean; updated_at?: string };
+        Relationships: [];
+      };
       store_payment_confirmations: {
         Row: StorePaymentConfirmationRow;
         Insert: never;
@@ -825,8 +846,15 @@ export type AdminDatabase = {
           p_before_order?: string | null;
           p_limit?: number;
           p_order_number?: string | null;
+          // 0029
+          p_games?: string[] | null;
+          p_include_inquiries?: boolean;
         };
         Returns: StoreAdminInboxRpcRow[];
+      };
+      store_admin_inbox_outside_count: {
+        Args: { p_admin: string; p_games: string[] | null; p_include_inquiries?: boolean };
+        Returns: number;
       };
       store_customer_conversations: {
         Args: { p_user: string };

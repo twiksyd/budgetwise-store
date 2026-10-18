@@ -98,6 +98,10 @@ confirmed).
 "Needs reply" / "Replied by" / "Viewed by" (derived from messages and the
 existing per-admin read cursors). Apply before deploying the code;
 `supabase/rollback/0028_down.sql` undoes it (nothing is lost).
+`supabase/migrations/0029_store_inbox_assign_games_avatars.sql` (after 0028) — payment
+details assign an Unassigned chat to the sender, per-admin game filters, and the
+customer identity the inbox turns into avatars. Apply before deploying the code;
+`supabase/rollback/0029_down.sql` undoes it (saved game filters are dropped).
 
 `supabase/rollback/0021_down.sql` undoes 0021 (only before 0023).
 `supabase/rollback/0024_down.sql` undoes 0024 (refused once any album exists).

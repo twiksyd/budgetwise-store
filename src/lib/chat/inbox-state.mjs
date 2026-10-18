@@ -26,7 +26,7 @@ export function createInboxState({ me, rows = [], hasMore = false, nextCursor = 
     hasMore,
     nextCursor,
     stale: [],
-    view: { filter: "active", search: "", ...view },
+    view: { filter: "active", search: "", games: null, includeInquiries: true, ...view },
   };
   for (const row of rows) state.rows[row.orderNumber] = row;
   state.order = sortOrder(state.rows, Object.keys(state.rows));
@@ -44,9 +44,22 @@ function sortOrder(rows, keys) {
   });
 }
 
+/**
+ * Personal game filter (0029): null games = All games. Orders match when
+ * they contain ANY chosen game (mixed-game orders included); General
+ * Inquiry chats match when includeInquiries is on.
+ */
+export function matchesGames(row, view) {
+  if (!Array.isArray(view?.games)) return true;
+  if (row.orderNumber.startsWith("GI-")) return view.includeInquiries !== false;
+  const chosen = new Set(view.games);
+  return (row.gameIds ?? []).some((id) => chosen.has(id));
+}
+
 export function matchesView(row, view, me, activeOrderNumber) {
   if (excludedByState(row, view.filter)) return false;
   if (row.orderNumber === activeOrderNumber) return true; // never yank the open chat
+  if (!matchesGames(row, view)) return false;
   const search = (view.search ?? "").trim().toLowerCase();
   if (
     search &&
