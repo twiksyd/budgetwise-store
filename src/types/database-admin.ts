@@ -378,6 +378,12 @@ export type StoreOrderConversationRow = {
   done_by: string | null;
   reopened_at: string | null;
   reopened_by: string | null;
+  // Migration 0027: BudgetWise's payment verification (NOT XOB payment
+  // handling). Absent before 0027 is applied.
+  payment_request_message_id?: string | null;
+  payment_received_message_id?: string | null;
+  payment_received_at?: string | null;
+  payment_received_by?: string | null;
 };
 
 // Migration 0024.
@@ -493,6 +499,23 @@ export type StoreAdminInboxRpcRow = {
   state: ConversationState;
   done_at: string | null;
   done_by: string | null;
+  // Migration 0027 (absent before it is applied).
+  payment_request_message_id?: string | null;
+  payment_received_message_id?: string | null;
+  payment_received_at?: string | null;
+  payment_received_by?: string | null;
+};
+
+// Migration 0027: one row per confirmed payment card.
+export type StorePaymentConfirmationRow = {
+  message_id: string;
+  order_number: string;
+  confirmed_by: string | null;
+  amount: number;
+  currency: "PHP";
+  provider: string;
+  account_number: string;
+  confirmed_at: string;
 };
 
 export type StoreCustomerConversationRpcRow = {
@@ -720,6 +743,12 @@ export type AdminDatabase = {
         Update: never;
         Relationships: [];
       };
+      store_payment_confirmations: {
+        Row: StorePaymentConfirmationRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       store_order_fulfillment_details: {
         Row: StoreOrderFulfillmentDetailRow;
         Insert: never;
@@ -899,6 +928,14 @@ export type AdminDatabase = {
           p_sort_order?: number;
         };
         Returns: StorePaymentMethodRow;
+      };
+      store_confirm_payment: {
+        Args: {
+          p_order_number: string;
+          p_message_id: string;
+          p_actor: string;
+        };
+        Returns: { created: boolean; confirmation: StorePaymentConfirmationRow };
       };
       store_send_payment_details: {
         Args: {

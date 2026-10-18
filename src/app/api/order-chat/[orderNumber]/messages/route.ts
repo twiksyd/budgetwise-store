@@ -10,6 +10,7 @@ import {
   MESSAGE_PAGE_SIZE,
   albumFolderFor,
   attachmentPathFor,
+  getMessageInOrder,
   isOverMessageRateLimit,
   listAlbumUploads,
   listMessages,
@@ -40,6 +41,7 @@ type Context = { params: Promise<{ orderNumber: string }> };
  *   &before=<msgId>    the page before that message
  *   &after=<msgId>     everything newer (delta fetch after a realtime ping)
  *   &after=<ISO time>  previous build's polling (tabs open across a deploy)
+ *   &message=<msgId>   just that message, re-read (payment confirmed, 0027)
  */
 export async function GET(request: Request, { params }: Context) {
   const { orderNumber } = await params;
@@ -49,9 +51,16 @@ export async function GET(request: Request, { params }: Context) {
   const url = new URL(request.url);
   const before = url.searchParams.get("before");
   const after = url.searchParams.get("after");
+  const single = url.searchParams.get("message");
   const viewer = { viewer: actor.role, viewerUserId: actor.userId } as const;
 
   try {
+    if (single !== null) {
+      if (!isUuid(single)) return chatError("Invalid message.", 400);
+      // Scoped to this conversation: another order's message is "not found".
+      const row = await getMessageInOrder(orderNumber, single);
+      return chatJson({ messages: row ? await toChatMessages([row], viewer) : [] });
+    }
     if (after && !isUuid(after)) {
       if (Number.isNaN(Date.parse(after))) return chatError("Invalid cursor.", 400);
       const rows = await listMessagesSinceTimestamp(orderNumber, after);

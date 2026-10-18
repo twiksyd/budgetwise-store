@@ -25,6 +25,18 @@ export function toPaymentCard(payload) {
   };
 }
 
+/**
+ * A payment card's verification (0027): set only by an admin's explicit
+ * confirmation, never by a receipt. Customers get the time alone; admins
+ * also get which admin confirmed it.
+ */
+export function toPaymentReceived(confirmation, viewer) {
+  if (!confirmation || typeof confirmation.confirmed_at !== "string") return null;
+  const received = { confirmedAt: confirmation.confirmed_at };
+  if (viewer === "admin") received.confirmedBy = confirmation.confirmed_by ?? null;
+  return received;
+}
+
 const ALBUM_LABELS = new Set(["proof_of_delivery"]);
 
 /**
@@ -51,7 +63,7 @@ export function toAlbum(payload, attachments) {
  *                          only on the customer's own messages (for
  *                          optimistic reconcile)
  */
-export function toChatMessage(row, { viewer, viewerUserId, attachments, publicNames } = {}) {
+export function toChatMessage(row, { viewer, viewerUserId, attachments, publicNames, paymentConfirmations } = {}) {
   const base = {
     id: row.id,
     orderNumber: row.order_number,
@@ -62,6 +74,7 @@ export function toChatMessage(row, { viewer, viewerUserId, attachments, publicNa
     createdAt: row.created_at,
     clientMessageId: null,
     payment: row.kind === "payment" ? toPaymentCard(row.payload) : null,
+    paymentReceived: row.kind === "payment" ? toPaymentReceived(paymentConfirmations?.get(row.id), viewer) : null,
     album: row.kind === "album" ? toAlbum(row.payload, attachments?.get(row.id)) : null,
   };
 

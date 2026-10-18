@@ -28,6 +28,8 @@ export interface CustomerOrderSummaryData {
   status: string;
   state: "active" | "done";
   paymentSent: boolean;
+  /** 0027: the most recently confirmed payment card (absent from older servers). */
+  paymentReceivedMessageId?: string | null;
   itemCount: number;
   summary: string;
   lines: SummaryLine[];

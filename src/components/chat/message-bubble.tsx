@@ -84,7 +84,12 @@ export function MessageBubble({
       )}
 
       {message.kind === "payment" && message.payment ? (
-        <PaymentCard card={message.payment} orderNumber={orderNumber} messageId={message.id} />
+        <PaymentCard
+          card={message.payment}
+          orderNumber={orderNumber}
+          messageId={message.id}
+          received={message.paymentReceived ?? null}
+        />
       ) : message.kind === "slip" ? (
         <OrderPlacedCard slip={slip ?? { orderNumber, robloxUsername: null, total: null }} isMine={isMine} />
       ) : message.kind === "album" && message.album ? (

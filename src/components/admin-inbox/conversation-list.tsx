@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { Loader2, Search } from "lucide-react";
+import { Check, Loader2, Search } from "lucide-react";
 import { useInbox } from "@/components/admin-inbox/inbox-provider";
 import { ConnectionBadge } from "@/components/chat/connection-badge";
 import { formatOrderStatus } from "@/components/order-chat/order-status-badge";
-import { visibleRows, type InboxFilter, type InboxRow } from "@/lib/chat/inbox-state.mjs";
+import { isPaymentReceived, visibleRows, type InboxFilter, type InboxRow } from "@/lib/chat/inbox-state.mjs";
 import { describeConversationPresence } from "@/lib/chat/presence-state.mjs";
 import { formatPrice } from "@/lib/pricing";
 import { isInquiryKey } from "@/lib/order-chat.mjs";
@@ -226,6 +226,16 @@ function ConversationRow({ row }: { row: InboxRow }) {
             {row.state === "done" && (
               <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
                 Done
+              </span>
+            )}
+            {isPaymentReceived(row) && (
+              <span
+                className="inline-flex items-center gap-0.5 rounded-full border border-emerald-600/30 px-1.5 py-px text-[10px] font-semibold text-emerald-700 dark:border-emerald-400/30 dark:text-emerald-300"
+                data-testid="paid-indicator"
+                title="Payment Received (confirmed by an admin)"
+              >
+                <Check className="size-3" aria-hidden strokeWidth={3} />
+                Paid
               </span>
             )}
             {assignee ? (

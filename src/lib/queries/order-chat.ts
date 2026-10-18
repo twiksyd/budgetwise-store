@@ -19,6 +19,7 @@ import type {
   StoreOrderConversationRow,
   StoreOrderMessageAttachmentRow,
   StoreOrderMessageRowExport,
+  StorePaymentConfirmationRow,
   StorePaymentMethodRow,
   StoreQuickReplyRow,
 } from "@/types/database-admin";
@@ -68,6 +69,8 @@ export function toChatDataError(error: { code?: string; message?: string }) {
       return new ChatDataError("The customer just sent a new message. Read it before marking this Done.", 409);
     case "BW012":
       return new ChatDataError("These photos took too long to send. Please choose them again.", 410);
+    case "BW020":
+      return new ChatDataError("Newer payment details were sent. Confirm the latest payment card instead.", 409);
     default:
       return new ChatDataError("Something went wrong. Please try again.", 500);
   }
@@ -332,19 +335,48 @@ export async function loadAlbumAttachments(
   return byMessage;
 }
 
-/** Rows -> DTOs for one viewer, with album items (no extra query without albums). */
+/** Before 0027 is applied the table does not exist: nothing is confirmed. */
+function isMissingRelation(error: { code?: string }) {
+  return error.code === "42P01" || error.code === "PGRST205";
+}
+
+/** Confirmations of payment messages, keyed by message id (one query). */
+export async function loadPaymentConfirmations(
+  messageIds: string[],
+): Promise<Map<string, StorePaymentConfirmationRow>> {
+  const byMessage = new Map<string, StorePaymentConfirmationRow>();
+  if (messageIds.length === 0) return byMessage;
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("store_payment_confirmations")
+    .select("*")
+    .in("message_id", messageIds);
+  if (error) {
+    if (isMissingRelation(error)) return byMessage;
+    throw error;
+  }
+  for (const row of data ?? []) byMessage.set(row.message_id, row);
+  return byMessage;
+}
+
+/**
+ * Rows -> DTOs for one viewer, with album items and payment confirmations
+ * (no extra query when the page has no albums / payment cards).
+ */
 export async function toChatMessages(
   rows: MessageRow[],
   viewer: { viewer: ChatRole; viewerUserId: string },
 ): Promise<ChatMessageDto[]> {
   const albumIds = rows.filter((row) => row.kind === "album").map((row) => row.id);
+  const paymentIds = rows.filter((row) => row.kind === "payment").map((row) => row.id);
   // Customers see an admin message's public username only (no id, no real name).
   const needsNames = viewer.viewer === "customer" && rows.some((row) => row.sender_role === "admin");
-  const [attachments, publicNames] = await Promise.all([
+  const [attachments, publicNames, paymentConfirmations] = await Promise.all([
     loadAlbumAttachments(albumIds) as Promise<Map<string, AttachmentRowLike[]>>,
     needsNames ? loadPublicAdminNames() : Promise.resolve(undefined),
+    loadPaymentConfirmations(paymentIds),
   ]);
-  return rows.map((row) => toChatMessage(row, { ...viewer, attachments, publicNames }));
+  return rows.map((row) => toChatMessage(row, { ...viewer, attachments, publicNames, paymentConfirmations }));
 }
 
 export async function getAttachment(id: string): Promise<StoreOrderMessageAttachmentRow | null> {
@@ -674,6 +706,10 @@ export function toInboxRow(row: StoreAdminInboxRpcRow): InboxRow {
     state: row.state ?? "active",
     doneAt: row.done_at ?? null,
     doneBy: row.done_by ?? null,
+    paymentRequestMessageId: row.payment_request_message_id ?? null,
+    paymentReceivedMessageId: row.payment_received_message_id ?? null,
+    paymentReceivedAt: row.payment_received_at ?? null,
+    paymentReceivedBy: row.payment_received_by ?? null,
   };
 }
 
@@ -1179,6 +1215,27 @@ export async function sendPaymentDetails(input: {
   return message;
 }
 
+/**
+ * "Payment Received" for one payment card (0027). The database checks the
+ * admin, that the card belongs to this order and is its latest one, and
+ * serializes concurrent confirmations; a repeat returns the first one.
+ * BudgetWise-internal only: XOB orders.status is never touched.
+ */
+export async function confirmPaymentReceived(input: {
+  orderNumber: string;
+  messageId: string;
+  actorId: string;
+}): Promise<{ created: boolean; confirmation: StorePaymentConfirmationRow }> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("store_confirm_payment", {
+    p_order_number: input.orderNumber,
+    p_message_id: input.messageId,
+    p_actor: input.actorId,
+  });
+  if (error) throw toChatDataError(error);
+  return data as { created: boolean; confirmation: StorePaymentConfirmationRow };
+}
+
 // ------------------------------------------------------------------ customer
 
 async function loadOrderStatuses(orderNumbers: string[]) {
@@ -1335,6 +1392,8 @@ export interface CustomerOrderSummary {
   status: string;
   state: ConversationState;
   paymentSent: boolean;
+  /** 0027: the most recently confirmed payment card (the client re-syncs that message). */
+  paymentReceivedMessageId: string | null;
   itemCount: number;
   summary: string;
   lines: SummaryLine[];
@@ -1355,6 +1414,7 @@ export async function loadCustomerOrderSummary(orderNumber: string): Promise<Cus
       status: "",
       state: conversation?.state ?? "active",
       paymentSent: false,
+      paymentReceivedMessageId: null,
       itemCount: 0,
       summary: "General Inquiry",
       lines: [],
@@ -1379,6 +1439,7 @@ export async function loadCustomerOrderSummary(orderNumber: string): Promise<Cus
     status: status ?? "pending",
     state: conversation?.state ?? "active",
     paymentSent: Boolean(conversation?.payment_details_sent_at),
+    paymentReceivedMessageId: conversation?.payment_received_message_id ?? null,
     itemCount: summarized.reduce((sum, line) => sum + line.quantity, 0),
     summary: describeOrderItems(summarized),
     lines: summarized,

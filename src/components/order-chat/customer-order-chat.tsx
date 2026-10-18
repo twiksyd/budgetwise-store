@@ -23,6 +23,7 @@ import {
 } from "@/lib/chat/client/customer-store";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
 import { assistantLine, currentAssistant } from "@/lib/chat/assistant.mjs";
+import { latestPaymentReceived, paymentMessageToRefresh } from "@/lib/chat/payment-received.mjs";
 import { isInquiryKey } from "@/lib/order-chat.mjs";
 import { BrandAvatar } from "@/components/brand/brand-avatar";
 import { formatPrice } from "@/lib/pricing";
@@ -34,7 +35,8 @@ type Cursor = { at: string | null; messageId: string | null };
 
 const MY_ORDERS = "/account/orders";
 // "assistant": the assignment changed (migration 0025); the payload is empty.
-const EVENTS = ["message", "seen", "fulfillment", "state", "assistant"] as const;
+// "payment": an admin confirmed a payment (0027); the payload is empty too.
+const EVENTS = ["message", "seen", "fulfillment", "state", "assistant", "payment"] as const;
 // Mobile networks drop and recover constantly; only a drop that lasts
 // this long is worth telling the customer about.
 const CONNECTION_GRACE_MS = 8000;
@@ -102,7 +104,7 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
         });
       }
       // The events only say "it changed"; what is shown always comes from the server.
-      if (event === "fulfillment" || event === "state" || event === "assistant") reloadDetails();
+      if (event === "fulfillment" || event === "state" || event === "assistant" || event === "payment") reloadDetails();
     },
     onResync: () => {
       void fetchNewer();
@@ -123,6 +125,17 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
     }
   }, [version, summary?.conversationId, reloadDetails, fetchNewer]);
 
+  // Payment Received (0027): the summary names the confirmed card; a card
+  // still shown unconfirmed is re-read once (this is also how a missed
+  // event or a cached thread catches up). Only an admin's confirmation
+  // sets it — never a receipt the customer sent.
+  const { refreshMessage } = thread;
+  const staleCardId = paymentMessageToRefresh(thread.state.messages, summary?.paymentReceivedMessageId);
+  useEffect(() => {
+    if (staleCardId) void refreshMessage(staleCardId);
+  }, [staleCardId, refreshMessage]);
+
+  const paymentReceived = useMemo(() => latestPaymentReceived(thread.state.messages), [thread.state.messages]);
   const paymentSent = useMemo(
     () => Boolean(summary?.paymentSent) || thread.state.messages.some((message) => message.kind === "payment"),
     [summary?.paymentSent, thread.state.messages],
@@ -237,7 +250,9 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
         <OrderUnavailable isInquiry={isInquiry} />
       ) : (
         <>
-          {summary && !isInquiry && <OrderNotice completed={completed} paymentSent={paymentSent} />}
+          {summary && !isInquiry && (
+            <OrderNotice completed={completed} paymentSent={paymentSent} paymentReceived={paymentReceived} />
+          )}
 
           {summary && summary.lines.length > 0 && (
             <OrderSummaryStrip lines={summary.lines} itemCount={summary.itemCount} total={summary.totalAmount} />
@@ -298,12 +313,28 @@ function OrderUnavailable({ isInquiry }: { isInquiry: boolean }) {
 }
 
 /** One compact line, chosen from structured state only (never chat text). */
-function OrderNotice({ completed, paymentSent }: { completed: boolean; paymentSent: boolean }) {
+function OrderNotice({
+  completed,
+  paymentSent,
+  paymentReceived,
+}: {
+  completed: boolean;
+  paymentSent: boolean;
+  paymentReceived: boolean;
+}) {
   if (completed) {
     return (
       <p className="flex items-center gap-2 border-b border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-900 sm:px-4 dark:text-emerald-100">
         <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
         Completed ✓ — this order is finished. Message us here anytime.
+      </p>
+    );
+  }
+  if (paymentReceived) {
+    return (
+      <p className="flex items-center gap-2 border-b border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-900 sm:px-4 dark:text-emerald-100">
+        <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+        Payment Received ✓ — BudgetWise verified your payment.
       </p>
     );
   }
