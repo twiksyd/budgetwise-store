@@ -1,4 +1,4 @@
-export type InboxFilter = "active" | "needs_reply" | "unread" | "mine" | "unassigned" | "done" | "all" | "under_review";
+export type InboxFilter = "active" | "needs_reply" | "unopened" | "seen_no_reply" | "unread" | "mine" | "unassigned" | "done" | "all" | "under_review";
 export type ConversationState = "active" | "done";
 export const INBOX_FILTERS: readonly InboxFilter[];
 export interface InboxRow {
@@ -119,7 +119,7 @@ export type InboxAction =
   | { type: "upsert_row"; row: InboxRow; activeOrderNumber?: string | null }
   | { type: "message_event"; event: InboxMessageEvent; activeOrderNumber?: string | null; activeIsRead?: boolean }
   | { type: "conversation_event"; event: InboxConversationEvent; activeOrderNumber?: string | null }
-  | { type: "read_event"; event: InboxReadEvent }
+  | { type: "read_event"; event: InboxReadEvent; activeOrderNumber?: string | null }
   | { type: "mark_read"; orderNumber: string; at: string; messageId: string };
 export function createInboxState(input: {
   me: string;

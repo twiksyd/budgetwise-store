@@ -380,7 +380,7 @@ export function InboxProvider({
           });
           break;
         case "read":
-          dispatch({ type: "read_event", event: payload as unknown as InboxReadEvent });
+          dispatch({ type: "read_event", event: payload as unknown as InboxReadEvent, activeOrderNumber: active.orderNumber });
           break;
         case "signal":
           setPresence((current) =>

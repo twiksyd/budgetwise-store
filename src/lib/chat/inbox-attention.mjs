@@ -99,3 +99,20 @@ export function applyReadToViewedBy(row, adminId, at, messageId) {
   const covers = comparePositions(position(at, messageId), position(row.lastCustomerMessageAt, row.lastCustomerMessageId)) >= 0;
   return covers ? { ...row, viewedBy: [...viewed, adminId] } : row;
 }
+
+/**
+ * The shared attention state every admin sees for a row (0030):
+ *   unopened  needs a reply and no admin's read cursor reached it
+ *   seen      needs a reply and at least one admin read it (no reply yet)
+ *   replied   an admin answered after the latest customer message
+ *   done      the chat is Done
+ *   quiet     nothing from the customer to answer (e.g. admin-started)
+ * "Seen" only ever comes from persisted read cursors — never from
+ * assignment, typing, realtime delivery, payment details or Payment Received.
+ */
+export function attentionState(row) {
+  if (!row) return "quiet";
+  if ((row.state ?? "active") === "done") return "done";
+  if (needsReply(row)) return (row.viewedBy ?? []).length > 0 ? "seen" : "unopened";
+  return repliedBy(row) ? "replied" : "quiet";
+}

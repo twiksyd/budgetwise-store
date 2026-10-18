@@ -3,12 +3,12 @@
 // (brand-new chat) or cannot recompute exactly (another tab's read) is put
 // in `stale`, and only that one row is fetched.
 import { comparePositions, toMicros } from "./cursor.mjs";
-import { applyMessageToReplyState, applyReadToViewedBy, needsReply } from "./inbox-attention.mjs";
+import { applyMessageToReplyState, applyReadToViewedBy, attentionState, needsReply } from "./inbox-attention.mjs";
 
 // "active" is the working queue (default). unread / unassigned / mine are
 // views of the Active queue; "done" is the archive; "all" is everything.
-export const INBOX_FILTERS = Object.freeze(["active", "needs_reply", "unread", "mine", "unassigned", "done", "all", "under_review"]);
-const ACTIVE_QUEUE_FILTERS = new Set(["active", "needs_reply", "unread", "unassigned", "mine"]);
+export const INBOX_FILTERS = Object.freeze(["active", "needs_reply", "unopened", "seen_no_reply", "unread", "mine", "unassigned", "done", "all", "under_review"]);
+const ACTIVE_QUEUE_FILTERS = new Set(["active", "needs_reply", "unopened", "seen_no_reply", "unread", "unassigned", "mine"]);
 
 /** Done conversations never sit in the Active queue, even while open. */
 function excludedByState(row, filter) {
@@ -72,6 +72,10 @@ export function matchesView(row, view, me, activeOrderNumber) {
   switch (view.filter) {
     case "needs_reply":
       return needsReply(row);
+    case "unopened":
+      return attentionState(row) === "unopened";
+    case "seen_no_reply":
+      return attentionState(row) === "seen";
     case "unread":
       return row.unreadCount > 0;
     case "unassigned":
@@ -219,7 +223,8 @@ export function inboxReducer(state, action) {
       // viewed the latest customer activity ("Viewed by", 0028).
       if (event.admin_user_id !== state.me) {
         const viewed = applyReadToViewedBy(row, event.admin_user_id, event.last_read_at, event.last_read_message_id);
-        return viewed === row ? state : { ...state, rows: { ...state.rows, [row.orderNumber]: viewed } };
+        // Re-filtered (0030): it may leave Unopened or enter Seen, no reply.
+        return viewed === row ? state : withRow(state, viewed, action.activeOrderNumber);
       }
       const coversLast =
         comparePositions(

@@ -16,3 +16,5 @@ export function isNewAttention(row: InboxRow | null | undefined): boolean;
 export function attentionLevel(row: InboxRow | null | undefined, me: string): AttentionLevel;
 export function applyMessageToReplyState<T extends InboxRow>(row: T, message: MessageLike): T;
 export function applyReadToViewedBy<T extends InboxRow>(row: T, adminId: string, at: string, messageId: string): T;
+export type AttentionState = "unopened" | "seen" | "replied" | "done" | "quiet";
+export function attentionState(row: InboxRow | null | undefined): AttentionState;
