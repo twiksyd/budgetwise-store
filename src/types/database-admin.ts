@@ -316,7 +316,7 @@ type StoreOrderSnapshotRow = {
 };
 
 // "product" (0033): a catalog card an admin sends (game pricelist or one product).
-type StoreOrderMessageKind = "slip" | "text" | "image" | "payment" | "album" | "product";
+type StoreOrderMessageKind = "slip" | "text" | "image" | "payment" | "album" | "product" | "vouch";
 
 type StoreOrderMessageRow = {
   id: string;
@@ -957,6 +957,11 @@ export type AdminDatabase = {
           p_reply_to?: string | null;
         };
         Returns: { created: boolean; message: StoreOrderMessageRow };
+      };
+      // 0034: one idempotent vouch card per customer conversation.
+      store_send_vouch_request: {
+        Args: { p_key: string; p_actor: string };
+        Returns: { created: boolean; message_id: string };
       };
       // 0032: one reaction per person per message (null removes it).
       store_set_reaction: {

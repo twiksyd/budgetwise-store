@@ -7,6 +7,7 @@ import { useInbox } from "@/components/admin-inbox/inbox-provider";
 import { OrderDetailsPanel } from "@/components/admin-inbox/order-details-panel";
 import { PaymentDetailsDialog } from "@/components/admin-inbox/payment-details-dialog";
 import { ProductPickerDialog } from "@/components/admin-inbox/product-picker-dialog";
+import { VouchRequestAction } from "@/components/admin-inbox/vouch-request-action";
 import { ProductCardViewerContext } from "@/components/chat/product-card";
 import { AssignmentControl } from "@/components/admin-inbox/assignment-control";
 import { ChatThread } from "@/components/chat/chat-thread";
@@ -28,6 +29,7 @@ import { staffName } from "@/components/admin-inbox/staff-avatar";
 import { describeConversationPresence } from "@/lib/chat/presence-state.mjs";
 import { formatPrice } from "@/lib/pricing";
 import { isInquiryKey } from "@/lib/order-chat.mjs";
+import { hasVouchRequest } from "@/lib/chat/vouch-request.mjs";
 
 const VIEWING_HEARTBEAT_MS = 20_000;
 const VIEWING_SETTLE_MS = 250;
@@ -499,6 +501,11 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
             <>
               {/* 0033: a game pricelist or one product, as a card to order from. */}
               <ProductPickerDialog orderNumber={orderNumber} onSent={(message) => thread.addConfirmed(message)} />
+              <VouchRequestAction
+                orderNumber={orderNumber}
+                alreadyRequested={hasVouchRequest(thread.state.messages)}
+                onSent={(message) => thread.addConfirmed(message)}
+              />
               {/* Orders use the order total; a General Inquiry (0031) has no
                   order, so the admin enters the quoted amount — or (0033)
                   picks which of the conversation's orders the card is for. */}

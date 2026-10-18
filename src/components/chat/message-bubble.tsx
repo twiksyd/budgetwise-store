@@ -9,6 +9,7 @@ import { uploadProgressText } from "@/lib/chat/upload-queue.mjs";
 import { PaymentCard } from "@/components/chat/payment-card";
 import { OrderSlipCard } from "@/components/chat/order-slip-card";
 import { ProductCardViewerContext, ProductRecommendationCard } from "@/components/chat/product-card";
+import { VouchRequestCard } from "@/components/chat/vouch-request-card";
 import {
   HoverActions,
   QuoteBlock,
@@ -124,6 +125,8 @@ export function MessageBubble({
         <OrderPlacedCard slip={slip ?? { orderNumber, robloxUsername: null, total: null }} isMine={isMine} />
       ) : message.kind === "product" && message.product ? (
         <ProductRecommendationCard card={message.product} messageId={message.id} createdAt={message.createdAt} isMine={isMine} />
+      ) : message.kind === "vouch" && message.vouch ? (
+        <VouchRequestCard request={message.vouch} isMine={isMine} />
       ) : message.kind === "album" && message.album ? (
         <AlbumMessage message={message} isMine={isMine} onOpenMedia={onOpenMedia} onMediaLoad={onMediaLoad} />
       ) : message.kind === "image" && message.hasAttachment ? (
