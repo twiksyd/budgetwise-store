@@ -102,6 +102,9 @@ existing per-admin read cursors). Apply before deploying the code;
 details assign an Unassigned chat to the sender, per-admin game filters, and the
 customer identity the inbox turns into avatars. Apply before deploying the code;
 `supabase/rollback/0029_down.sql` undoes it (saved game filters are dropped).
+`supabase/migrations/0030_store_inbox_attention_filters.sql` (after 0029) — the
+"Unopened" and "Seen, no reply" inbox filters (same function, two filter values; no
+new writes). Apply before deploying; `supabase/rollback/0030_down.sql` undoes it.
 
 `supabase/rollback/0021_down.sql` undoes 0021 (only before 0023).
 `supabase/rollback/0024_down.sql` undoes 0024 (refused once any album exists).

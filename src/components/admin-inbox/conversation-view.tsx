@@ -17,7 +17,7 @@ import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
 import type { OrderDetails } from "@/lib/chat/order-details.mjs";
 import { isPaymentReceived, type InboxRow } from "@/lib/chat/inbox-state.mjs";
 import { confirmablePaymentId, paymentMessageToRefresh } from "@/lib/chat/payment-received.mjs";
-import { needsReply, repliedBy, viewedByOthers } from "@/lib/chat/inbox-attention.mjs";
+import { attentionState, repliedBy } from "@/lib/chat/inbox-attention.mjs";
 import { staffName } from "@/components/admin-inbox/staff-avatar";
 import { describeConversationPresence } from "@/lib/chat/presence-state.mjs";
 import { formatPrice } from "@/lib/pricing";
@@ -284,9 +284,10 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   );
   const paid = isPaymentReceived(row);
   // 0028: shared reply state, independent of my unread and of assignment.
-  const waiting = needsReply(row);
+  // 0030: the same three shared states as the list.
+  const attention = attentionState(row);
   const replier = repliedBy(row);
-  const viewers = waiting ? viewedByOthers(row, me) : [];
+  const viewers = attention === "seen" ? (row?.viewedBy ?? []) : [];
   const staffLabel = (id: string) => (id === me ? "you" : staffName(directory[id], "another admin"));
 
   const slip = useMemo(
@@ -325,9 +326,11 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
             <p className="text-muted-foreground truncate text-xs">
               {isInquiry ? "General Inquiry" : `${orderNumber} · ${formatPrice(total)}`}
               {paid && !isInquiry ? <span className="font-semibold text-emerald-700 dark:text-emerald-300"> · Paid ✓</span> : null}
-              {waiting ? (
-                <span className="text-primary font-semibold" data-testid="header-needs-reply"> · Needs reply</span>
-              ) : replier ? (
+              {attention === "unopened" ? (
+                <span className="font-semibold text-rose-700 dark:text-rose-300" data-testid="header-unopened"> · Unopened</span>
+              ) : attention === "seen" ? (
+                <span className="font-semibold text-amber-800 dark:text-amber-200" data-testid="header-seen"> · Seen · No reply</span>
+              ) : replier && attention !== "quiet" ? (
                 <span data-testid="header-replied"> · Replied by {staffLabel(replier)}</span>
               ) : null}
               {viewers.length > 0 ? <span> · Viewed by {viewers.map(staffLabel).join(", ")}</span> : null}
