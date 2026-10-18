@@ -14,4 +14,6 @@ export function createSignalHandler(deps: {
   publish: (event: SignalEvent) => Promise<void>;
   limiter: RateLimiter;
   now?: () => number;
-}): (body: unknown) => Promise<{ status: number; body: unknown; retryAfterMs?: number }>;
+  /** 0032: also notify the customer (failures are swallowed). */
+  afterPublish?: (event: SignalEvent) => Promise<void> | void;
+}):(body: unknown) => Promise<{ status: number; body: unknown; retryAfterMs?: number }>;

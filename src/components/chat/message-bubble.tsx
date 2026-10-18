@@ -1,11 +1,20 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { AlertCircle, BadgeCheck, ImageIcon, ReceiptText, RotateCcw, X } from "lucide-react";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
 import type { PendingMessage } from "@/lib/chat/thread-state.mjs";
 import { albumCaption, albumLayout, ALBUM_LABEL_TEXT } from "@/lib/chat/album.mjs";
 import { uploadProgressText } from "@/lib/chat/upload-queue.mjs";
 import { PaymentCard } from "@/components/chat/payment-card";
+import {
+  HoverActions,
+  QuoteBlock,
+  ReactionChips,
+  ReactionPicker,
+  useLongPress,
+  useMessageActions,
+} from "@/components/chat/message-actions";
 import type { ViewerItem } from "@/components/chat/media-viewer";
 import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
@@ -64,11 +73,19 @@ export function MessageBubble({
   onMediaLoad: () => void;
 }) {
   const isMedia = message.kind === "image" || message.kind === "album";
+  // 0032: reactions + reply (only where the page provides them).
+  const actions = useMessageActions();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const closePicker = useCallback(() => setPickerOpen(false), []);
+  const longPress = useLongPress(() => {
+    if (actions) setPickerOpen(true);
+  });
+  const align = isMine ? "end" : "start";
 
   return (
     <div
       data-message-id={message.id}
-      className={cn("flex flex-col", isMine ? "items-end" : "items-start", firstInGroup ? "mt-3" : "mt-0.5")}
+      className={cn("group/msg flex flex-col", isMine ? "items-end" : "items-start", firstInGroup ? "mt-3" : "mt-0.5")}
     >
       {firstInGroup && senderLabel && (
         <p
@@ -83,6 +100,13 @@ export function MessageBubble({
         </p>
       )}
 
+      <div
+        {...(actions ? longPress : {})}
+        className={cn(
+          "relative flex w-full items-center gap-1 [-webkit-touch-callout:none]",
+          isMine ? "flex-row-reverse" : "flex-row",
+        )}
+      >
       {message.kind === "payment" && message.payment ? (
         <PaymentCard
           card={message.payment}
@@ -104,9 +128,28 @@ export function MessageBubble({
             isMine ? "bg-primary text-primary-foreground" : "bg-muted text-foreground",
           )}
         >
+          {message.replyTo && actions && (
+            <QuoteBlock
+              quote={message.replyTo}
+              isMine={isMine}
+              label={actions.quoteLabel(message.replyTo)}
+              onJump={() => actions.jumpTo(message.replyTo!.id)}
+            />
+          )}
           <p className="break-words whitespace-pre-wrap">{message.body}</p>
         </div>
       )}
+      {actions && <HoverActions onOpenPicker={() => setPickerOpen(true)} onReply={() => actions.reply(message)} />}
+      {actions && pickerOpen && (
+        <ReactionPicker
+          mine={message.reactions?.mine ?? null}
+          align={align}
+          onPick={(reaction) => actions.react(message.id, reaction)}
+          onReply={() => actions.reply(message)}
+          onClose={closePicker}
+        />
+      )}
+      </div>
 
       {isMedia && message.body && (
         <p
@@ -117,6 +160,10 @@ export function MessageBubble({
         >
           {message.body}
         </p>
+      )}
+
+      {actions && (
+        <ReactionChips reactions={message.reactions ?? null} align={align} onToggle={(reaction) => actions.react(message.id, reaction)} />
       )}
 
       {lastInGroup && (
@@ -361,6 +408,12 @@ export function PendingBubble({
                 </div>
               )}
             </div>
+          )}
+          {item.replyTo && (
+            <span className="border-primary-foreground/70 bg-primary-foreground/15 mb-1 block rounded-lg border-l-2 px-2.5 py-1 text-xs">
+              <span className="block font-semibold">{item.replyTo.senderLabel}</span>
+              <span className="text-primary-foreground/85 line-clamp-2 break-words">{item.replyTo.preview}</span>
+            </span>
           )}
           {item.body && <p className="break-words whitespace-pre-wrap">{item.body}</p>}
         </div>

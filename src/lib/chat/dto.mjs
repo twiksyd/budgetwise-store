@@ -1,3 +1,5 @@
+import { quotePreview } from "./message-meta.mjs";
+
 // The only shapes chat data leaves the server in. Whitelists, never spreads:
 // a new database column can never leak by accident.
 //
@@ -63,8 +65,34 @@ export function toAlbum(payload, attachments) {
  *                          only on the customer's own messages (for
  *                          optimistic reconcile)
  */
-export function toChatMessage(row, { viewer, viewerUserId, attachments, publicNames, paymentConfirmations } = {}) {
+/**
+ * The quoted original of a reply (0032): who and a safe summary only.
+ * Customers see an admin as their public username (or BudgetWise), never
+ * an id; admins get the sender's user id for their own directory.
+ */
+export function toReplyQuote(target, { viewer, publicNames, albumCounts } = {}) {
+  if (!target) return null;
+  const quote = {
+    id: target.id,
+    senderRole: target.sender_role,
+    kind: target.kind,
+    preview: quotePreview(target, { albumCount: albumCounts?.get(target.id) }),
+  };
+  if (viewer === "admin") quote.senderUserId = target.sender_user_id ?? null;
+  else if (target.sender_role === "admin") quote.senderName = (target.sender_user_id && publicNames?.get(target.sender_user_id)) || null;
+  return quote;
+}
+
+export function toChatMessage(
+  row,
+  { viewer, viewerUserId, attachments, publicNames, paymentConfirmations, reactions, replyTargets, albumCounts } = {},
+) {
   const base = {
+    // 0032: only present when there is something to show.
+    reactions: reactions?.get(row.id) ?? null,
+    replyTo: row.reply_to_message_id
+      ? toReplyQuote(replyTargets?.get(row.reply_to_message_id), { viewer, publicNames, albumCounts })
+      : null,
     id: row.id,
     orderNumber: row.order_number,
     senderRole: row.sender_role,

@@ -8,7 +8,23 @@ export const TYPING_TTL_MS = 6_000;
 
 export const emptyPresence = Object.freeze({});
 
+// 0032: the CUSTOMER typing in a conversation. Server-published with no
+// user id (the order number is the key); never mixed with admin entries.
+const CUSTOMER_PREFIX = "customer:";
+
 export function applySignal(state, event, nowMs) {
+  if (event?.type === "customer_typing" || event?.type === "customer_stopped") {
+    if (typeof event.order_number !== "string") return state;
+    const key = CUSTOMER_PREFIX + event.order_number;
+    const next = { ...state };
+    if (event.type === "customer_stopped") {
+      if (!state[key]) return state;
+      delete next[key];
+      return next;
+    }
+    next[key] = { orderNumber: event.order_number, customer: true, viewingUntil: nowMs + TYPING_TTL_MS, typingUntil: nowMs + TYPING_TTL_MS };
+    return next;
+  }
   const id = event?.admin_user_id;
   if (typeof id !== "string" || typeof event.order_number !== "string") return state;
   const current = state[id];
@@ -63,7 +79,8 @@ export function prunePresence(state, nowMs) {
 }
 
 function nameFor(id, directory) {
-  return directory?.[id]?.displayName ?? "Another admin";
+  // Public username first (Twicks / Zuno / Akio), like the rest of the inbox.
+  return directory?.[id]?.publicUsername || directory?.[id]?.displayName || "Another admin";
 }
 
 function joinNames(names) {
@@ -76,15 +93,22 @@ function joinNames(names) {
 export function describeConversationPresence(state, orderNumber, { me, directory, nowMs }) {
   const viewers = [];
   const typers = [];
+  let customerTyping = false;
   for (const [id, entry] of Object.entries(state)) {
-    if (id === me || entry.orderNumber !== orderNumber || entry.viewingUntil <= nowMs) continue;
+    if (entry.orderNumber !== orderNumber || entry.viewingUntil <= nowMs) continue;
+    if (entry.customer) {
+      if (entry.typingUntil > nowMs) customerTyping = true;
+      continue;
+    }
+    if (id === me) continue;
     if (entry.typingUntil > nowMs) typers.push(nameFor(id, directory));
     else viewers.push(nameFor(id, directory));
   }
   typers.sort();
   viewers.sort();
   const parts = [];
+  if (customerTyping) parts.push("Customer is typing");
   if (typers.length) parts.push(`${joinNames(typers)} ${typers.length === 1 ? "is" : "are"} typing`);
   if (viewers.length) parts.push(`${joinNames(viewers)} ${viewers.length === 1 ? "is" : "are"} viewing`);
-  return { viewers, typers, text: parts.join(" · ") };
+  return { viewers, typers, customerTyping, text: parts.join(" · ") };
 }

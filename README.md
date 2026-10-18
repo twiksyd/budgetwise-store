@@ -108,6 +108,10 @@ new writes). Apply before deploying; `supabase/rollback/0030_down.sql` undoes it
 `supabase/migrations/0031_store_inquiry_payment_details.sql` (after 0030) — GCash
 payment cards in General Inquiry with an admin-quoted amount, and Payment Received
 for them. Apply before deploying; `supabase/rollback/0031_down.sql` undoes it.
+`supabase/migrations/0032_store_message_reactions_and_replies.sql` (after 0031) —
+message reactions and reply-to-message. Apply before deploying; typing indicators
+need no SQL. `supabase/rollback/0032_down.sql` undoes it (reactions and reply links
+are dropped; messages are kept).
 
 `supabase/rollback/0021_down.sql` undoes 0021 (only before 0023).
 `supabase/rollback/0024_down.sql` undoes 0024 (refused once any album exists).

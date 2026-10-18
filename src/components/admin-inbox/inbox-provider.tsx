@@ -39,6 +39,7 @@ import { createConversationLoader, type ConversationLoader } from "@/lib/chat/co
 import type { OrderDetails } from "@/lib/chat/order-details.mjs";
 import { isValidOrderNumber } from "@/lib/order-chat.mjs";
 import { gamesParam } from "@/lib/chat/inbox-games.mjs";
+import { reactionsFromEvent } from "@/lib/chat/message-meta.mjs";
 
 export interface DirectoryEntry {
   userId: string;
@@ -116,7 +117,7 @@ export function useInbox() {
 // Hidden-urgent count (0029): re-read at most this often after activity.
 const OUTSIDE_RECOUNT_MS = 1500;
 
-const EVENTS = ["message", "conversation", "read", "signal", "quick_replies", "fulfillment"] as const;
+const EVENTS = ["message", "conversation", "read", "signal", "quick_replies", "fulfillment", "reaction"] as const;
 
 export interface InboxGameOption {
   id: string;
@@ -367,6 +368,25 @@ export function InboxProvider({
           // one still loading its first page gets a follow-up delta.
           if (orderNumber && cache.has(orderNumber)) void loader.fetchNewer(orderNumber);
           refreshOutside();
+          // 0032: their message arrived, so they are no longer typing it.
+          if (orderNumber && (payload.message as { sender_role?: string } | undefined)?.sender_role === "customer") {
+            setPresence((current) => applySignal(current, { type: "customer_stopped", order_number: orderNumber }, Date.now()));
+          }
+          break;
+        case "reaction":
+          // 0032: patch the cached thread only. Inbox rows (unread, Needs
+          // reply, Replied by, assignment, Done, Paid) are never touched.
+          if (orderNumber && cache.has(orderNumber) && typeof payload.message_id === "string") {
+            cache.dispatch(
+              orderNumber,
+              {
+                type: "patch_message",
+                messageId: payload.message_id,
+                patch: { reactions: reactionsFromEvent(payload, { viewer: "admin", me }) },
+              },
+              { create: false },
+            );
+          }
           break;
         case "fulfillment":
           if (orderNumber && orderNumber === active.orderNumber) void loader.ensureDetails(orderNumber, { force: true });
@@ -395,7 +415,7 @@ export function InboxProvider({
       }
       emit(event, payload);
     },
-    [emit, cache, loader, refreshOutside],
+    [emit, cache, loader, refreshOutside, me],
   );
 
   const onResync = useCallback(() => {

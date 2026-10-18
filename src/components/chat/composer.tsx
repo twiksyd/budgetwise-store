@@ -48,7 +48,12 @@ export function Composer({
   onStopTyping,
   actions,
   disabled = false,
+  replyTo = null,
+  onCancelReply,
 }: {
+  /** 0032: the message being replied to (applies to the next text message). */
+  replyTo?: { key: string; senderLabel: string; preview: string } | null;
+  onCancelReply?: () => void;
   placeholder: string;
   onSendText: (text: string) => void;
   /** 1..10 images (with an optional caption) sent as ONE message. */
@@ -194,6 +199,12 @@ export function Composer({
       }
     }
 
+    if (event.key === "Escape" && replyTo && onCancelReply) {
+      event.preventDefault();
+      onCancelReply();
+      return;
+    }
+
     if (event.key === "Enter" && !event.shiftKey && !isTouchKeyboard()) {
       event.preventDefault();
       send();
@@ -202,8 +213,31 @@ export function Composer({
 
   const canSend = !disabled && (text.trim().length > 0 || picked.length > 0);
 
+  // Starting a reply puts the cursor in the box (the keyboard opens on phones,
+  // which is what someone who tapped Reply expects).
+  const replyKey = replyTo?.key ?? null;
+  useEffect(() => {
+    if (replyKey) textarea.current?.focus({ preventScroll: true });
+  }, [replyKey]);
+
   return (
     <div className="border-border/60 bg-background relative border-t px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4">
+      {replyTo && (
+        <div className="border-primary bg-muted/60 mb-2 flex items-start gap-2 rounded-lg border-l-2 py-1.5 pr-1 pl-2.5" data-testid="reply-preview">
+          <div className="min-w-0 flex-1">
+            <p className="text-primary text-[11px] font-semibold">Replying to {replyTo.senderLabel}</p>
+            <p className="text-muted-foreground truncate text-xs">{replyTo.preview}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onCancelReply}
+            className="hover:bg-muted text-muted-foreground inline-flex size-8 shrink-0 items-center justify-center rounded-full"
+            aria-label="Cancel reply"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
       {menu.open && (
         <div
           className="border-border bg-popover absolute right-3 bottom-full left-3 z-20 mb-2 overflow-hidden rounded-xl border shadow-lg sm:right-4 sm:left-4"
