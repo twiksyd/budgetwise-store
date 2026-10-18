@@ -87,6 +87,14 @@ Database changes, in order (see each file's header):
 5. `supabase/migrations/0023_store_chat_legacy_cleanup.sql` — only after every
    open browser tab runs the new code; then turn off Realtime "Allow public access"
 
+Later, independent of 0023: `0025` (public usernames), `0026` (General
+Inquiry threads), then `supabase/migrations/0027_store_payment_received.sql`
+— "Payment Received": an admin confirms the order's latest payment card
+(BudgetWise-internal; never changes XOB `orders.status`). Apply 0027 before
+deploying the code that shows the confirm button.
+`supabase/rollback/0027_down.sql` undoes it (refused once any payment was
+confirmed).
+
 `supabase/rollback/0021_down.sql` undoes 0021 (only before 0023).
 `supabase/rollback/0024_down.sql` undoes 0024 (refused once any album exists).
 After albums were sent, a database rollback is: roll the app back first, then

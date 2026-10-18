@@ -386,6 +386,30 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
     dispatch({ type: "received", messages: [message] });
   }, [dispatch]);
 
+  /**
+   * Re-reads one message already on screen (a payment card that was just
+   * confirmed, 0027). One request per message at a time. A failure leaves
+   * the card as it was; reopening the chat re-reads the page anyway.
+   */
+  const refreshing = useRef(new Set<string>());
+  const refreshMessage = useCallback(
+    async (messageId: string) => {
+      if (refreshing.current.has(messageId)) return;
+      refreshing.current.add(messageId);
+      try {
+        const body = await fetchJson<{ messages: ChatMessageDto[] }>(
+          `${base}/messages?${actingAs}&message=${encodeURIComponent(messageId)}`,
+        );
+        if (body.messages.length) dispatch({ type: "received", messages: body.messages });
+      } catch {
+        // Next reconcile tries again.
+      } finally {
+        refreshing.current.delete(messageId);
+      }
+    },
+    [base, actingAs, dispatch],
+  );
+
   // ---- read position (fire-and-forget; never blocks the thread)
   const lastMarked = useRef<string | null>(null);
   /** "skipped" = already reported; "failed" = the server did not record it. */
@@ -404,5 +428,5 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
     [base, actingAs],
   );
 
-  return { state, loadError, reload, loadOlder, fetchNewer, sendText, sendImage, sendAlbum, retry, discard, addConfirmed, markRead };
+  return { state, loadError, reload, loadOlder, fetchNewer, sendText, sendImage, sendAlbum, retry, discard, addConfirmed, refreshMessage, markRead };
 }

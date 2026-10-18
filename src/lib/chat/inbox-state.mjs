@@ -160,6 +160,9 @@ export function inboxReducer(state, action) {
           : {}),
         state: event.row.state ?? row.state,
         paymentDetailsSentAt: event.row.payment_details_sent_at ?? row.paymentDetailsSentAt,
+        // A newer payment card is the one awaiting confirmation (0027); the
+        // conversation event that follows says the same.
+        ...(isNewer && event.message.kind === "payment" ? { paymentRequestMessageId: event.message.id } : {}),
         unreadCount: countsAsUnread ? row.unreadCount + 1 : row.unreadCount,
       };
       return withRow(state, next, action.activeOrderNumber);
@@ -177,6 +180,15 @@ export function inboxReducer(state, action) {
           assignedAt: event.assigned_at ?? null,
           customerReadAt: event.customer_read_at ?? null,
           customerReadMessageId: event.customer_read_message_id ?? null,
+          // 0027 (events from before it carry no payment fields).
+          ...("payment_received_message_id" in event
+            ? {
+                paymentRequestMessageId: event.payment_request_message_id ?? null,
+                paymentReceivedMessageId: event.payment_received_message_id ?? null,
+                paymentReceivedAt: event.payment_received_at ?? null,
+                paymentReceivedBy: event.payment_received_by ?? null,
+              }
+            : {}),
           ...(event.state ? { state: event.state, doneAt: event.done_at ?? null, doneBy: event.done_by ?? null } : {}),
         },
         action.activeOrderNumber,
@@ -225,6 +237,17 @@ export function inboxReducer(state, action) {
     default:
       return state;
   }
+}
+
+/**
+ * "Paid" (0027): an admin confirmed the order's LATEST payment card. Newer
+ * payment details after a confirmation read as unpaid again; a receipt
+ * from the customer never counts.
+ */
+export function isPaymentReceived(row) {
+  return Boolean(
+    row?.paymentReceivedMessageId && row.paymentReceivedMessageId === row.paymentRequestMessageId,
+  );
 }
 
 export function visibleRows(state) {

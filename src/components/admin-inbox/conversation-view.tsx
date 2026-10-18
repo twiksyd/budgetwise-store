@@ -9,12 +9,14 @@ import { PaymentDetailsDialog } from "@/components/admin-inbox/payment-details-d
 import { AssignmentControl } from "@/components/admin-inbox/assignment-control";
 import { ChatThread } from "@/components/chat/chat-thread";
 import { Composer } from "@/components/chat/composer";
+import { PaymentConfirmContext, type PaymentConfirmActions } from "@/components/chat/payment-card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useChatThread } from "@/lib/chat/client/use-chat-thread";
 import { fetchJson, jsonInit, RequestError } from "@/lib/chat/client/fetch-json";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
 import type { OrderDetails } from "@/lib/chat/order-details.mjs";
-import type { InboxRow } from "@/lib/chat/inbox-state.mjs";
+import { isPaymentReceived, type InboxRow } from "@/lib/chat/inbox-state.mjs";
+import { confirmablePaymentId, paymentMessageToRefresh } from "@/lib/chat/payment-received.mjs";
 import { describeConversationPresence } from "@/lib/chat/presence-state.mjs";
 import { formatPrice } from "@/lib/pricing";
 import { isInquiryKey } from "@/lib/order-chat.mjs";
@@ -222,6 +224,64 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   const doneBy = liveState ? liveState.doneBy : (row?.doneBy ?? null);
   const doneByName = doneBy ? (doneBy === me ? "you" : (directory[doneBy]?.displayName ?? "another admin")) : null;
 
+  // ---- Payment Received (0027). BudgetWise's own verification state, never
+  // XOB's. The card to confirm is the order's latest payment card; another
+  // admin's confirmation arrives as an inbox row update and the card is
+  // re-read from the server (also after a missed event).
+  const { refreshMessage, addConfirmed, fetchNewer } = thread;
+  const confirmableId = isInquiry ? null : confirmablePaymentId(thread.state.messages, row?.paymentRequestMessageId);
+  const staleCardId = paymentMessageToRefresh(thread.state.messages, row?.paymentReceivedMessageId);
+  useEffect(() => {
+    if (staleCardId) void refreshMessage(staleCardId);
+  }, [staleCardId, refreshMessage]);
+  const rowRef = useRef(row);
+  rowRef.current = row;
+  const nameFor = useCallback(
+    (adminId: string | null | undefined) =>
+      !adminId ? null : adminId === me ? "you" : (directory[adminId]?.displayName ?? "another admin"),
+    [me, directory],
+  );
+  const confirmPayment = useCallback(
+    async (messageId: string) => {
+      try {
+        const result = await fetchJson<{ created: boolean; message: ChatMessageDto }>(
+          `/api/admin/orders/${encodeURIComponent(orderNumber)}/payment-confirmation`,
+          jsonInit("POST", { messageId }),
+        );
+        addConfirmed(result.message);
+        const received = result.message.paymentReceived;
+        const current = rowRef.current;
+        if (current && received) {
+          dispatch({
+            type: "upsert_row",
+            row: {
+              ...current,
+              paymentRequestMessageId: current.paymentRequestMessageId ?? messageId,
+              paymentReceivedMessageId: messageId,
+              paymentReceivedAt: received.confirmedAt,
+              paymentReceivedBy: received.confirmedBy ?? null,
+            },
+            activeOrderNumber: orderNumber,
+          });
+        }
+        if (result.created) toast.success("Payment Received. The customer can see it now.");
+        else toast.info(`Already confirmed by ${nameFor(received?.confirmedBy) ?? "another admin"}.`);
+        return true;
+      } catch (error) {
+        // Replaced by newer details meanwhile: show them.
+        if (error instanceof RequestError && error.status === 409) void fetchNewer();
+        toast.error(error instanceof RequestError ? error.message : "Could not confirm. Please try again.");
+        return false;
+      }
+    },
+    [orderNumber, addConfirmed, dispatch, nameFor, fetchNewer],
+  );
+  const paymentActions = useMemo<PaymentConfirmActions>(
+    () => ({ confirmableId, confirm: confirmPayment, nameFor }),
+    [confirmableId, confirmPayment, nameFor],
+  );
+  const paid = isPaymentReceived(row);
+
   const slip = useMemo(
     () => ({
       orderNumber,
@@ -257,6 +317,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
             <p className="truncate text-sm font-bold">{customerName}</p>
             <p className="text-muted-foreground truncate text-xs">
               {isInquiry ? "General Inquiry" : `${orderNumber} · ${formatPrice(total)}`}
+              {paid && !isInquiry ? <span className="font-semibold text-emerald-700 dark:text-emerald-300"> · Paid ✓</span> : null}
               {activity.text ? <span className="text-primary font-semibold"> · {activity.text}</span> : null}
             </p>
           </div>
@@ -309,6 +370,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           </div>
         )}
 
+        <PaymentConfirmContext.Provider value={paymentActions}>
         <ChatThread
           state={thread.state}
           slip={slip}
@@ -330,6 +392,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
             ) : null
           }
         />
+        </PaymentConfirmContext.Provider>
 
         <Composer
           placeholder="Reply… (/ for saved replies)"

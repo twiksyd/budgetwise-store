@@ -1,5 +1,5 @@
 // Database tests without psql (e.g. Windows + a portable PostgreSQL such as
-// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026.
+// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026/0027.
 // Runs ONLY against a throwaway LOCAL server — never production:
 //
 //   PGHOST=127.0.0.1 PGPORT=54329 PGUSER=postgres node scripts/test-db.mjs
@@ -246,6 +246,51 @@ async function expectFailure(db, name, label) {
   }
 }
 
+/**
+ * Two admins confirm the same payment card at the same moment, on two real
+ * connections: the second waits for the first's lock, then gets the first
+ * confirmation back. Exactly one row and one audit entry.
+ */
+async function concurrentConfirmations(db) {
+  const label = "two admins confirming at the same moment create one confirmation";
+  const robert = "00000000-0000-0000-0000-0000000000a1";
+  const andre = "00000000-0000-0000-0000-0000000000a2";
+  try {
+    await withDb(db, async (setup) => {
+      await setup.query(`insert into store_order_snapshots (order_number, idempotency_key, request_fingerprint, view_token_hash,
+          buyer_name, buyer_roblox_username, total_amount, owner_user_id)
+        values ('BW-RACE27', 'idem-race-0027-00000000', repeat('9', 64), repeat('9', 64), 'Race', 'raceRBX', 120,
+          '00000000-0000-0000-0000-0000000000c1')`);
+      await setup.query(`insert into store_order_messages (order_number, sender_role, sender_user_id, kind, body)
+        values ('BW-RACE27', 'customer', '00000000-0000-0000-0000-0000000000c1', 'slip', 'SLIP')`);
+      const method = await setup.query("select id from store_payment_methods where is_active limit 1");
+      const sent = await setup.query("select store_send_payment_details('BW-RACE27', $1, $2, gen_random_uuid()) as id", [robert, method.rows[0].id]);
+      const messageId = sent.rows[0].id;
+      const confirm = "select store_confirm_payment('BW-RACE27', $1, $2) as result";
+      await withDb(db, (first) => withDb(db, async (second) => {
+        await first.query("begin");
+        const a = await first.query(confirm, [messageId, robert]);
+        const pending = second.query(confirm, [messageId, andre]);
+        await new Promise((resolve) => setTimeout(resolve, 300)); // second is now waiting on the lock
+        await first.query("commit");
+        const b = await pending;
+        const counts = await setup.query(`select
+            (select count(*)::int from store_payment_confirmations where order_number = 'BW-RACE27') as rows,
+            (select count(*)::int from store_chat_audit_log where action = 'payment.confirmed' and order_number = 'BW-RACE27') as audits`);
+        const ok = a.rows[0].result.created === true
+          && b.rows[0].result.created === false
+          && b.rows[0].result.confirmation.confirmed_by === robert
+          && counts.rows[0].rows === 1 && counts.rows[0].audits === 1;
+        if (!ok) throw new Error(JSON.stringify({ a: a.rows[0], b: b.rows[0], counts: counts.rows[0] }));
+      }));
+    });
+    console.log(`ok - ${label}`);
+  } catch (error) {
+    failures += 1;
+    console.log(`FAIL: ${label}: ${error.message}`);
+  }
+}
+
 async function freshBase(db) {
   await admin(`create database ${db}`);
   for (const name of [
@@ -276,6 +321,10 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0026_store_general_inquiries.sql"));
   await later(() => apply(MAIN, "../migrations/0026_store_general_inquiries.sql")); // second run
   await later(() => check(MAIN, "28_general_inquiry_test.sql"));
+  await later(() => apply(MAIN, "../migrations/0027_store_payment_received.sql"));
+  await later(() => apply(MAIN, "../migrations/0027_store_payment_received.sql")); // second run
+  await later(() => check(MAIN, "29_payment_received_test.sql"));
+  await later(() => concurrentConfirmations(MAIN));
   // The repository's own sequence also covers a database where 0023 ran
   // (throwaway local database only; production never runs 0023 here).
   await apply(MAIN, "../migrations/0023_store_chat_legacy_cleanup.sql");
@@ -284,6 +333,7 @@ async function run() {
   await apply(MAIN, "../migrations/0024_store_conversation_workflow_and_albums.sql");
   await later(() => apply(MAIN, "../migrations/0025_store_admin_public_usernames.sql"));
   await later(() => apply(MAIN, "../migrations/0026_store_general_inquiries.sql"));
+  await later(() => apply(MAIN, "../migrations/0027_store_payment_received.sql"));
 
   // ---- Database 2: rollbacks.
   await freshBase(ROLL);
@@ -309,6 +359,15 @@ async function run() {
   await later(() => apply(ROLL, "../rollback/0026_down.sql"));
   await later(() => check(ROLL, "47_rollback_0026_test.sql"));
   await later(() => apply(ROLL, "../migrations/0026_store_general_inquiries.sql")); // re-apply after rollback
+  // 0027 round trip: refused while a confirmation exists.
+  await later(() => apply(ROLL, "../migrations/0027_store_payment_received.sql"));
+  await later(() => withDb(ROLL, (c) => c.query(`insert into store_payment_confirmations (message_id, order_number, amount, provider, account_number)
+    select id, order_number, 1, 'gcash', '0917' from store_order_messages where order_number = 'BW-AAAAAA' limit 1`)));
+  await later(() => expectFailure(ROLL, "../rollback/0027_down.sql", "0027 rollback refuses while a payment confirmation exists"));
+  await later(() => withDb(ROLL, (c) => c.query("delete from store_payment_confirmations")));
+  await later(() => apply(ROLL, "../rollback/0027_down.sql"));
+  await later(() => check(ROLL, "48_rollback_0027_test.sql"));
+  await later(() => apply(ROLL, "../migrations/0027_store_payment_received.sql")); // re-apply after rollback
 
   // ---- Database 3: order-chat regression. 0026 is in place BEFORE the
   // existing order-chat suites run, so every order behaviour they check
@@ -321,6 +380,7 @@ async function run() {
       "../migrations/0024_store_conversation_workflow_and_albums.sql",
       "../migrations/0025_store_admin_public_usernames.sql",
       "../migrations/0026_store_general_inquiries.sql",
+      "../migrations/0027_store_payment_received.sql",
     ]) await apply(REGR, name);
     await check(REGR, "25_fulfillment_test.sql");
     await check(REGR, "26_workflow_albums_test.sql");

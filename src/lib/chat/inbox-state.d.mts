@@ -26,6 +26,11 @@ export interface InboxRow {
   state: ConversationState;
   doneAt: string | null;
   doneBy: string | null;
+  /** 0027: the latest payment card, and the most recently confirmed one. */
+  paymentRequestMessageId: string | null;
+  paymentReceivedMessageId: string | null;
+  paymentReceivedAt: string | null;
+  paymentReceivedBy: string | null;
 }
 export interface InboxView {
   filter: InboxFilter;
@@ -79,6 +84,10 @@ export interface InboxConversationEvent {
   state?: ConversationState;
   done_at?: string | null;
   done_by?: string | null;
+  payment_request_message_id?: string | null;
+  payment_received_message_id?: string | null;
+  payment_received_at?: string | null;
+  payment_received_by?: string | null;
 }
 export interface InboxReadEvent {
   order_number: string;
@@ -104,3 +113,4 @@ export function createInboxState(input: {
 export function matchesView(row: InboxRow, view: InboxView, me: string, activeOrderNumber?: string | null): boolean;
 export function inboxReducer(state: InboxState, action: InboxAction): InboxState;
 export function visibleRows(state: InboxState): InboxRow[];
+export function isPaymentReceived(row: Partial<InboxRow> | null | undefined): boolean;
