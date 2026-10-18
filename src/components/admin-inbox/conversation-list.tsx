@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Loader2, Search } from "lucide-react";
+import { Check, Gamepad2, Loader2, Search } from "lucide-react";
 import { useInbox } from "@/components/admin-inbox/inbox-provider";
 import { ConnectionBadge } from "@/components/chat/connection-badge";
 import { StaffAvatar, StaffAvatarGroup, staffName } from "@/components/admin-inbox/staff-avatar";
+import { CustomerAvatar } from "@/components/admin-inbox/customer-avatar";
+import { GameFilter } from "@/components/admin-inbox/game-filter";
 import { attentionLevel, isNewAttention, needsReply, repliedBy, viewedByOthers } from "@/lib/chat/inbox-attention.mjs";
 import { formatOrderStatus } from "@/components/order-chat/order-status-badge";
 import { isPaymentReceived, visibleRows, type InboxFilter, type InboxRow } from "@/lib/chat/inbox-state.mjs";
@@ -37,13 +39,9 @@ function listTime(iso: string, nowMs: number) {
   return DAY.format(date) === DAY.format(new Date(nowMs)) ? SHORT_TIME.format(date) : SHORT_DATE.format(date);
 }
 
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return (parts[0]?.[0] ?? "?").toUpperCase() + (parts[1]?.[0] ?? "").toUpperCase();
-}
-
 export function ConversationList() {
-  const { inbox, view, setView, status, loadingPage, loadMore, activeOrderNumber, loader } = useInbox();
+  const { inbox, view, setView, status, loadingPage, loadMore, activeOrderNumber, loader, outsideNeedsReply } = useInbox();
+  const gameFiltered = Array.isArray(view.games);
   const rows = visibleRows(inbox);
 
   // Likely next conversations: the few rows below the open one (or the top
@@ -85,8 +83,11 @@ export function ConversationList() {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-border/60 space-y-2.5 border-b p-3">
         <div className="flex items-center justify-between gap-2">
-          <h1 className="font-heading text-base font-semibold">Order Chats</h1>
-          <ConnectionBadge status={status} />
+          <h1 className="font-heading shrink-0 text-base font-semibold whitespace-nowrap">Order Chats</h1>
+          <div className="flex items-center gap-2">
+            <GameFilter />
+            <ConnectionBadge status={status} />
+          </div>
         </div>
         <label className="relative block">
           <span className="sr-only">Search chats</span>
@@ -118,6 +119,20 @@ export function ConversationList() {
             </button>
           ))}
         </div>
+        {/* The game filter never hides urgent chats silently (0029). */}
+        {gameFiltered && outsideNeedsReply > 0 && (
+          <button
+            type="button"
+            onClick={() => setView({ ...view, filter: "needs_reply", games: null, includeInquiries: true })}
+            className="border-primary/25 bg-primary/5 text-primary flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-left text-xs font-medium"
+            data-testid="outside-needs-reply"
+          >
+            <span>
+              {outsideNeedsReply} {outsideNeedsReply === 1 ? "chat needs" : "chats need"} a reply in other games
+            </span>
+            <span className="shrink-0 font-semibold underline">Show</span>
+          </button>
+        )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -227,8 +242,8 @@ function ConversationRow({ row }: { row: InboxRow }) {
       >
         {/* High attention: a thin edge mark, never a coloured row. */}
         {level === "high" && <span aria-hidden className="bg-primary absolute inset-y-2 left-0 w-0.5 rounded-full" />}
-        <div className="bg-primary/10 text-primary relative flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold">
-          {initials(row.buyerName)}
+        <div className="relative size-10 shrink-0">
+          <CustomerAvatar name={row.buyerName} seed={row.avatarSeed} photoUrl={row.avatarPhotoUrl} />
           {unread && <span className="bg-primary ring-background absolute -top-0.5 -right-0.5 size-3 rounded-full ring-2" aria-hidden />}
         </div>
         <div className="min-w-0 flex-1">
@@ -247,10 +262,20 @@ function ConversationRow({ row }: { row: InboxRow }) {
               </span>
             ) : (
               <>
+                {row.buyerRobloxUsername ? <span className="text-foreground/80">@{row.buyerRobloxUsername} · </span> : null}
                 {row.orderNumber} · {formatPrice(row.totalAmount)} · {formatOrderStatus(row.orderStatus ?? "pending")}
               </>
             )}
           </p>
+          {!isInquiry && row.gameNames.length > 0 && (
+            <p className="text-muted-foreground mt-0.5 flex min-w-0 items-center gap-1 text-[11px]" data-testid="row-games">
+              <Gamepad2 className="size-3 shrink-0" aria-hidden />
+              <span className="truncate">
+                {row.gameNames[0]}
+                {row.gameNames.length > 1 ? ` +${row.gameNames.length - 1}` : ""}
+              </span>
+            </p>
+          )}
           {activity.text ? (
             <p className="text-primary mt-0.5 truncate text-xs font-semibold">{activity.text}</p>
           ) : (

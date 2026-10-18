@@ -1,5 +1,7 @@
 import "server-only";
+import { createHmac } from "node:crypto";
 import { cache } from "react";
+import { safeGooglePhotoUrl } from "@/lib/chat/customer-avatar.mjs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isInquiryKey, isUuid, isValidOrderNumber, MESSAGE_RATE_LIMIT } from "@/lib/order-chat.mjs";
@@ -680,8 +682,30 @@ export async function signPaymentQr(path: string) {
 
 // --------------------------------------------------------------------- inbox
 
+/**
+ * Opaque, stable avatar seed for a customer (0029): an HMAC of the account
+ * id, so every conversation of the same customer shares one design and the
+ * seed reveals nothing. Legacy orders without an account fall back to the
+ * Roblox username, then the order number.
+ */
+function customerAvatarSeed(row: StoreAdminInboxRpcRow) {
+  const subject = row.customer_user_id
+    ? `user:${row.customer_user_id}`
+    : row.buyer_roblox_username
+      ? `roblox:${row.buyer_roblox_username.trim().toLowerCase()}`
+      : `order:${row.order_number}`;
+  const key = process.env.CUSTOMER_AVATAR_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "budgetwise-avatar";
+  return createHmac("sha256", key).update(subject).digest("hex").slice(0, 16);
+}
+
 export function toInboxRow(row: StoreAdminInboxRpcRow): InboxRow {
   return {
+    // 0029: never the account id or raw Google metadata — an opaque seed and
+    // a photo URL only if it is on Google's photo host.
+    avatarSeed: customerAvatarSeed(row),
+    avatarPhotoUrl: safeGooglePhotoUrl(row.customer_photo_url),
+    gameIds: row.game_ids ?? [],
+    gameNames: row.game_names ?? [],
     conversationId: row.conversation_id,
     orderNumber: row.order_number,
     // General Inquiry rows (0026) have no order fields.
@@ -738,7 +762,16 @@ export async function loadInboxPage(
     filter = "active",
     search = "",
     before = null,
-  }: { filter?: InboxFilter; search?: string; before?: InboxCursor | null } = {},
+    games = null,
+    includeInquiries = true,
+  }: {
+    filter?: InboxFilter;
+    search?: string;
+    before?: InboxCursor | null;
+    /** 0029: null = All games; otherwise orders containing any of these game ids. */
+    games?: string[] | null;
+    includeInquiries?: boolean;
+  } = {},
 ): Promise<{ rows: InboxRow[]; hasMore: boolean; nextCursor: InboxCursor | null }> {
   const supabase = createAdminClient();
   const trimmed = search.trim().slice(0, 80);
@@ -749,6 +782,8 @@ export async function loadInboxPage(
     p_before_at: before?.at ?? null,
     p_before_order: before?.orderNumber ?? null,
     p_limit: INBOX_PAGE_SIZE + 1,
+    // Only sent when a game filter is on (All games is the default).
+    ...(games ? { p_games: games, p_include_inquiries: includeInquiries } : {}),
   });
   if (error) throw toChatDataError(error);
   const all = (data ?? []).map(toInboxRow);
@@ -761,6 +796,69 @@ export async function loadInboxPage(
       ? { at: last.lastMessageAt, orderNumber: last.orderNumber }
       : null,
   };
+}
+
+/** 0029: Active chats needing a reply that the game filter hides. */
+export async function loadOutsideNeedsReply(adminId: string, games: string[] | null, includeInquiries: boolean) {
+  if (!games) return 0;
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("store_admin_inbox_outside_count", {
+    p_admin: adminId,
+    p_games: games,
+    p_include_inquiries: includeInquiries,
+  });
+  if (error) throw toChatDataError(error);
+  return Number(data ?? 0);
+}
+
+// ----------------------------------------------- inbox game filter (0029)
+
+export interface InboxGameOption {
+  id: string;
+  name: string;
+}
+
+export interface InboxPreferences {
+  /** null = All games. */
+  games: string[] | null;
+  includeInquiries: boolean;
+}
+
+export const DEFAULT_INBOX_PREFERENCES: InboxPreferences = { games: null, includeInquiries: true };
+
+/** Every game in the catalog (hidden ones too: old orders still name them). */
+export async function listInboxGames(): Promise<InboxGameOption[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.from("games").select("id, name").order("name", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((game) => ({ id: game.id, name: game.name }));
+}
+
+/** This admin's saved filter; defaults (and the pre-0029 schema) mean All games. */
+export async function loadInboxPreferences(adminId: string): Promise<InboxPreferences> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("store_admin_inbox_preferences")
+    .select("*")
+    .eq("admin_user_id", adminId)
+    .maybeSingle();
+  if (error) {
+    if (isMissingRelation(error)) return DEFAULT_INBOX_PREFERENCES;
+    throw error;
+  }
+  return data ? { games: data.game_ids, includeInquiries: data.include_inquiries } : DEFAULT_INBOX_PREFERENCES;
+}
+
+/** Saves the caller's own filter (the admin id comes from the session). */
+export async function saveInboxPreferences(adminId: string, preferences: InboxPreferences) {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("store_admin_inbox_preferences").upsert({
+    admin_user_id: adminId,
+    game_ids: preferences.games,
+    include_inquiries: preferences.includeInquiries,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw toChatDataError(error);
 }
 
 export async function loadInboxRow(adminId: string, orderNumber: string): Promise<InboxRow | null> {

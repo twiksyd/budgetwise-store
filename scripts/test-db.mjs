@@ -1,5 +1,5 @@
 // Database tests without psql (e.g. Windows + a portable PostgreSQL such as
-// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026/0027/0028.
+// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026/0027/0028/0029.
 // Runs ONLY against a throwaway LOCAL server — never production:
 //
 //   PGHOST=127.0.0.1 PGPORT=54329 PGUSER=postgres node scripts/test-db.mjs
@@ -291,6 +291,63 @@ async function concurrentConfirmations(db) {
   }
 }
 
+/**
+ * 0029: two admins send payment details to the same Unassigned chat at the
+ * same moment, and a manual assignment races a payment card. Ownership is
+ * always one admin with one audit entry.
+ */
+async function concurrentAutoAssign(db) {
+  const robert = "00000000-0000-0000-0000-0000000000a1";
+  const andre = "00000000-0000-0000-0000-0000000000a2";
+  const kenneth = "00000000-0000-0000-0000-0000000000a3";
+  const order = async (setup, key) => {
+    await setup.query(`insert into store_order_snapshots (order_number, idempotency_key, request_fingerprint, view_token_hash,
+        buyer_name, buyer_roblox_username, total_amount, owner_user_id)
+      values ($1, 'idem-' || lower($1) || '-race-0029', repeat('8', 64), repeat('8', 64), 'Race', 'raceRBX', 90,
+        '00000000-0000-0000-0000-0000000000c1')`, [key]);
+    await setup.query(`insert into store_order_messages (order_number, sender_role, sender_user_id, kind, body)
+      values ($1, 'customer', '00000000-0000-0000-0000-0000000000c1', 'slip', 'SLIP')`, [key]);
+  };
+  const audits = (setup, key) =>
+    setup.query("select count(*)::int as n from store_chat_audit_log where order_number = $1 and action = 'conversation.assigned'", [key]);
+  const owner = (setup, key) =>
+    setup.query("select assigned_admin_id as id from store_order_conversations where order_number = $1", [key]);
+  const send = "select store_send_payment_details($1, $2, (select id from store_payment_methods where is_active limit 1), gen_random_uuid())";
+
+  for (const [label, run] of [
+    ["two admins sending payment details at once: one owner, one audit entry", async (setup, first, second) => {
+      await order(setup, "BW-RACEP1");
+      await first.query("begin");
+      await first.query(send, ["BW-RACEP1", robert]);
+      const pending = second.query(send, ["BW-RACEP1", andre]);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await first.query("commit");
+      await pending;
+      const [o, a] = [await owner(setup, "BW-RACEP1"), await audits(setup, "BW-RACEP1")];
+      if (o.rows[0].id !== robert || a.rows[0].n !== 1) throw new Error(JSON.stringify({ owner: o.rows[0], audits: a.rows[0] }));
+    }],
+    ["manual assignment committed first wins over a racing payment card", async (setup, first, second) => {
+      await order(setup, "BW-RACEP2");
+      await first.query("begin");
+      await first.query("select store_assign_conversation('BW-RACEP2', $1, $2)", [kenneth, robert]);
+      const pending = second.query(send, ["BW-RACEP2", andre]);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await first.query("commit");
+      await pending;
+      const [o, a] = [await owner(setup, "BW-RACEP2"), await audits(setup, "BW-RACEP2")];
+      if (o.rows[0].id !== kenneth || a.rows[0].n !== 1) throw new Error(JSON.stringify({ owner: o.rows[0], audits: a.rows[0] }));
+    }],
+  ]) {
+    try {
+      await withDb(db, (setup) => withDb(db, (first) => withDb(db, (second) => run(setup, first, second))));
+      console.log(`ok - ${label}`);
+    } catch (error) {
+      failures += 1;
+      console.log(`FAIL: ${label}: ${error.message}`);
+    }
+  }
+}
+
 async function freshBase(db) {
   await admin(`create database ${db}`);
   for (const name of [
@@ -328,6 +385,10 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0028_store_inbox_reply_state.sql"));
   await later(() => apply(MAIN, "../migrations/0028_store_inbox_reply_state.sql")); // second run
   await later(() => check(MAIN, "31_inbox_reply_state_test.sql"));
+  await later(() => apply(MAIN, "../migrations/0029_store_inbox_assign_games_avatars.sql"));
+  await later(() => apply(MAIN, "../migrations/0029_store_inbox_assign_games_avatars.sql")); // second run
+  await later(() => check(MAIN, "32_assign_games_avatars_test.sql"));
+  await later(() => concurrentAutoAssign(MAIN));
   // The repository's own sequence also covers a database where 0023 ran
   // (throwaway local database only; production never runs 0023 here).
   await apply(MAIN, "../migrations/0023_store_chat_legacy_cleanup.sql");
@@ -338,6 +399,7 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0026_store_general_inquiries.sql"));
   await later(() => apply(MAIN, "../migrations/0027_store_payment_received.sql"));
   await later(() => apply(MAIN, "../migrations/0028_store_inbox_reply_state.sql"));
+  await later(() => apply(MAIN, "../migrations/0029_store_inbox_assign_games_avatars.sql"));
 
   // ---- Database 2: rollbacks.
   await freshBase(ROLL);
@@ -377,6 +439,11 @@ async function run() {
   await later(() => apply(ROLL, "../rollback/0028_down.sql"));
   await later(() => check(ROLL, "49_rollback_0028_test.sql"));
   await later(() => apply(ROLL, "../migrations/0028_store_inbox_reply_state.sql")); // re-apply after rollback
+  // 0029 round trip.
+  await later(() => apply(ROLL, "../migrations/0029_store_inbox_assign_games_avatars.sql"));
+  await later(() => apply(ROLL, "../rollback/0029_down.sql"));
+  await later(() => check(ROLL, "50_rollback_0029_test.sql"));
+  await later(() => apply(ROLL, "../migrations/0029_store_inbox_assign_games_avatars.sql")); // re-apply after rollback
 
   // ---- Database 3: order-chat regression. 0026 is in place BEFORE the
   // existing order-chat suites run, so every order behaviour they check
@@ -391,6 +458,7 @@ async function run() {
       "../migrations/0026_store_general_inquiries.sql",
       "../migrations/0027_store_payment_received.sql",
       "../migrations/0028_store_inbox_reply_state.sql",
+      "../migrations/0029_store_inbox_assign_games_avatars.sql",
     ]) await apply(REGR, name);
     await check(REGR, "25_fulfillment_test.sql");
     await check(REGR, "26_workflow_albums_test.sql");

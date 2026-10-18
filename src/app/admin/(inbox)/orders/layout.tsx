@@ -3,8 +3,11 @@ import { requireAdmin } from "@/lib/auth/admin";
 import {
   listPaymentMethods,
   listQuickReplies,
+  listInboxGames,
   loadAdminDirectory,
   loadInboxPage,
+  loadInboxPreferences,
+  loadOutsideNeedsReply,
 } from "@/lib/queries/order-chat";
 import { InboxProvider } from "@/components/admin-inbox/inbox-provider";
 import { InboxShell } from "@/components/admin-inbox/inbox-shell";
@@ -24,11 +27,20 @@ export const dynamic = "force-dynamic";
 export default async function AdminInboxLayout({ children }: { children: React.ReactNode }) {
   // Must run before any privileged read.
   const admin = await requireAdmin();
-  const [directory, initialPage, quickReplies, paymentMethods] = await Promise.all([
+  // The saved game filter (0029) is read first and the first page follows it,
+  // inside the same parallel batch, so it adds no extra wait to the others.
+  const [directory, { preferences, initialPage }, quickReplies, paymentMethods, games] = await Promise.all([
     loadAdminDirectory(),
-    loadInboxPage(admin.id),
+    loadInboxPreferences(admin.id).then(async (preferences) => {
+      const [page, outsideNeedsReply] = await Promise.all([
+        loadInboxPage(admin.id, preferences),
+        loadOutsideNeedsReply(admin.id, preferences.games, preferences.includeInquiries),
+      ]);
+      return { preferences, initialPage: { ...page, outsideNeedsReply } };
+    }),
     listQuickReplies(),
     listPaymentMethods({ activeOnly: true }),
+    listInboxGames(),
   ]);
 
   return (
@@ -44,6 +56,8 @@ export default async function AdminInboxLayout({ children }: { children: React.R
         me={admin.id}
         directory={directory}
         initialPage={initialPage}
+        initialPreferences={preferences}
+        games={games}
         initialQuickReplies={quickReplies.map((reply) => ({
           id: reply.id,
           shortcut: reply.shortcut,

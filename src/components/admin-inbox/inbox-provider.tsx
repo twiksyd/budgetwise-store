@@ -38,6 +38,7 @@ import { createConversationCache, type ConversationCache } from "@/lib/chat/conv
 import { createConversationLoader, type ConversationLoader } from "@/lib/chat/conversation-loader.mjs";
 import type { OrderDetails } from "@/lib/chat/order-details.mjs";
 import { isValidOrderNumber } from "@/lib/order-chat.mjs";
+import { gamesParam } from "@/lib/chat/inbox-games.mjs";
 
 export interface DirectoryEntry {
   userId: string;
@@ -69,7 +70,11 @@ interface InboxContextValue {
   quickReplies: QuickReplyItem[];
   paymentMethods: ActivePaymentMethod[];
   view: InboxView;
-  setView: (view: InboxView) => void;
+  /** persist: also save the game filter as this admin's preference (0029). */
+  setView: (view: InboxView, options?: { persist?: boolean }) => void;
+  /** 0029: catalog games for the filter, and urgent chats the filter hides. */
+  games: InboxGameOption[];
+  outsideNeedsReply: number;
   loadingPage: boolean;
   loadMore: () => void;
   /** The open conversation reports itself here (for unread counting). */
@@ -108,25 +113,43 @@ export function useInbox() {
   return value;
 }
 
+// Hidden-urgent count (0029): re-read at most this often after activity.
+const OUTSIDE_RECOUNT_MS = 1500;
+
 const EVENTS = ["message", "conversation", "read", "signal", "quick_replies", "fulfillment"] as const;
+
+export interface InboxGameOption {
+  id: string;
+  name: string;
+}
 
 export function InboxProvider({
   me,
   directory: directoryList,
   initialPage,
+  initialPreferences = { games: null, includeInquiries: true },
+  games = [],
   initialQuickReplies,
   paymentMethods,
   children,
 }: {
   me: string;
   directory: DirectoryEntry[];
-  initialPage: { rows: InboxRow[]; hasMore: boolean; nextCursor: InboxCursor | null };
+  initialPage: { rows: InboxRow[]; hasMore: boolean; nextCursor: InboxCursor | null; outsideNeedsReply?: number };
+  initialPreferences?: { games: string[] | null; includeInquiries: boolean };
+  games?: InboxGameOption[];
   initialQuickReplies: QuickReplyItem[];
   paymentMethods: ActivePaymentMethod[];
   children: React.ReactNode;
 }) {
+  const initialView: InboxView = {
+    filter: "active",
+    search: "",
+    games: initialPreferences.games,
+    includeInquiries: initialPreferences.includeInquiries,
+  };
   const [inbox, dispatch] = useReducer(inboxReducer, undefined, () =>
-    createInboxState({ me, ...initialPage }),
+    createInboxState({ me, rows: initialPage.rows, hasMore: initialPage.hasMore, nextCursor: initialPage.nextCursor, view: initialView }),
   );
   const inboxRef = useRef(inbox);
   inboxRef.current = inbox;
@@ -134,7 +157,8 @@ export function InboxProvider({
   const [presence, setPresence] = useState<PresenceState>(emptyPresence);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [quickReplies, setQuickReplies] = useState(initialQuickReplies);
-  const [view, setViewState] = useState<InboxView>({ filter: "active", search: "" });
+  const [view, setViewState] = useState<InboxView>(initialView);
+  const [outsideNeedsReply, setOutsideNeedsReply] = useState(initialPage.outsideNeedsReply ?? 0);
   const viewRef = useRef(view);
   viewRef.current = view;
   const [loadingPage, setLoadingPage] = useState(false);
@@ -241,16 +265,22 @@ export function InboxProvider({
   const loadPage = useCallback(async (nextView: InboxView, cursor: InboxCursor | null) => {
     const seq = ++requestSeq.current;
     setLoadingPage(true);
-    const params = new URLSearchParams({ filter: nextView.filter, search: nextView.search });
+    const params = new URLSearchParams({
+      filter: nextView.filter,
+      search: nextView.search,
+      games: gamesParam(nextView.games),
+      inquiries: nextView.includeInquiries === false ? "0" : "1",
+    });
     if (cursor) {
       params.set("beforeAt", cursor.at);
       params.set("beforeOrder", cursor.orderNumber);
     }
     try {
-      const page = await fetchJson<{ rows: InboxRow[]; hasMore: boolean; nextCursor: InboxCursor | null }>(
+      const page = await fetchJson<{ rows: InboxRow[]; hasMore: boolean; nextCursor: InboxCursor | null; outsideNeedsReply?: number }>(
         `/api/admin/inbox?${params}`,
       );
       if (seq !== requestSeq.current) return;
+      if (typeof page.outsideNeedsReply === "number") setOutsideNeedsReply(page.outsideNeedsReply);
       dispatch(
         cursor
           ? { type: "append", ...page }
@@ -265,7 +295,14 @@ export function InboxProvider({
 
   const searchTimer = useRef<number | undefined>(undefined);
   const setView = useCallback(
-    (next: InboxView) => {
+    (next: InboxView, options?: { persist?: boolean }) => {
+      if (options?.persist) {
+        // The admin's own preference; the server takes the id from the session.
+        void fetchJson("/api/admin/inbox/preferences", jsonInit("PUT", {
+          games: next.games ?? null,
+          includeInquiries: next.includeInquiries !== false,
+        })).catch(() => undefined);
+      }
       setViewState(next);
       window.clearTimeout(searchTimer.current);
       const delay = next.search !== viewRef.current.search ? 300 : 0;
@@ -300,6 +337,20 @@ export function InboxProvider({
     for (const listener of listeners.current) listener(event, payload);
   }, []);
 
+  const outsideTimer = useRef<number | undefined>(undefined);
+  const refreshOutside = useCallback(() => {
+    const current = viewRef.current;
+    if (!Array.isArray(current.games)) return;
+    window.clearTimeout(outsideTimer.current);
+    outsideTimer.current = window.setTimeout(() => {
+      const params = new URLSearchParams({ games: gamesParam(current.games), inquiries: current.includeInquiries === false ? "0" : "1" });
+      void fetchJson<{ count: number }>(`/api/admin/inbox/outside?${params}`)
+        .then(({ count }) => setOutsideNeedsReply(count))
+        .catch(() => undefined);
+    }, OUTSIDE_RECOUNT_MS);
+  }, []);
+  useEffect(() => () => window.clearTimeout(outsideTimer.current), []);
+
   const onEvent = useCallback(
     (event: string, payload: Record<string, unknown>) => {
       const active = activeRef.current;
@@ -315,6 +366,7 @@ export function InboxProvider({
           // Any cached thread (open or not) pulls just the new message(s);
           // one still loading its first page gets a follow-up delta.
           if (orderNumber && cache.has(orderNumber)) void loader.fetchNewer(orderNumber);
+          refreshOutside();
           break;
         case "fulfillment":
           if (orderNumber && orderNumber === active.orderNumber) void loader.ensureDetails(orderNumber, { force: true });
@@ -343,7 +395,7 @@ export function InboxProvider({
       }
       emit(event, payload);
     },
-    [emit, cache, loader],
+    [emit, cache, loader, refreshOutside],
   );
 
   const onResync = useCallback(() => {
@@ -396,6 +448,8 @@ export function InboxProvider({
     paymentMethods,
     view,
     setView,
+    games,
+    outsideNeedsReply,
     loadingPage,
     loadMore,
     activeRef,

@@ -39,10 +39,20 @@ export interface InboxRow {
   lastAdminReplyBy: string | null;
   /** Admins whose own read cursor reached the latest customer message. */
   viewedBy: string[];
+  /** 0029: opaque avatar seed (16 hex) and an allow-listed Google photo URL. */
+  avatarSeed: string;
+  avatarPhotoUrl: string | null;
+  /** 0029: the order's games (empty for General Inquiry). */
+  gameIds: string[];
+  gameNames: string[];
 }
 export interface InboxView {
   filter: InboxFilter;
   search: string;
+  /** 0029: null = All games; otherwise game ids (orders with any of them). */
+  games?: string[] | null;
+  /** 0029: include General Inquiry chats while a game filter is on. */
+  includeInquiries?: boolean;
 }
 export interface InboxCursor {
   at: string;
@@ -121,4 +131,5 @@ export function createInboxState(input: {
 export function matchesView(row: InboxRow, view: InboxView, me: string, activeOrderNumber?: string | null): boolean;
 export function inboxReducer(state: InboxState, action: InboxAction): InboxState;
 export function visibleRows(state: InboxState): InboxRow[];
+export function matchesGames(row: InboxRow, view: Partial<InboxView>): boolean;
 export function isPaymentReceived(row: Partial<InboxRow> | null | undefined): boolean;
