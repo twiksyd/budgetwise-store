@@ -10,10 +10,13 @@ import { AssignmentControl } from "@/components/admin-inbox/assignment-control";
 import { ChatThread } from "@/components/chat/chat-thread";
 import { Composer } from "@/components/chat/composer";
 import { PaymentConfirmContext, type PaymentConfirmActions } from "@/components/chat/payment-card";
+import { MessageActionsContext } from "@/components/chat/message-actions";
+import { TypingIndicator } from "@/components/chat/typing-indicator";
+import { useMessageFeatures } from "@/lib/chat/client/use-message-features";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useChatThread } from "@/lib/chat/client/use-chat-thread";
 import { fetchJson, jsonInit, RequestError } from "@/lib/chat/client/fetch-json";
-import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
+import type { ChatMessageDto, ReplyQuote } from "@/lib/chat/dto.mjs";
 import type { OrderDetails } from "@/lib/chat/order-details.mjs";
 import { isPaymentReceived, type InboxRow } from "@/lib/chat/inbox-state.mjs";
 import { confirmablePaymentId, paymentMessageToRefresh } from "@/lib/chat/payment-received.mjs";
@@ -165,6 +168,28 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   );
 
   const activity = describeConversationPresence(presence, orderNumber, { me, directory, nowMs });
+
+  // 0032: reactions (as my own admin identity), Reply and jump-to-original.
+  const staffLabelOf = useCallback(
+    (adminId: string | null | undefined) =>
+      !adminId ? "BudgetWise" : adminId === me ? "you" : staffName(directory[adminId], "another admin"),
+    [me, directory],
+  );
+  const quoteLabel = useCallback(
+    (quote: ReplyQuote) => (quote.senderRole === "customer" ? customerName : staffLabelOf(quote.senderUserId)),
+    [customerName, staffLabelOf],
+  );
+  const replySenderLabel = useCallback(
+    (message: ChatMessageDto) => (message.senderRole === "customer" ? customerName : staffLabelOf(message.senderUserId)),
+    [customerName, staffLabelOf],
+  );
+  const features = useMessageFeatures({ thread, senderLabelOf: replySenderLabel, quoteLabel });
+  const sendText = useCallback(
+    (text: string) => {
+      features.sendText(text);
+    },
+    [features],
+  );
   const assignedAdminId = row?.assignedAdminId ?? details?.order.assignedAdminId ?? null;
   const handlerName = assignedAdminId && assignedAdminId !== me ? staffName(directory[assignedAdminId], "Another admin") : null;
   const total = row?.totalAmount ?? details?.order.total ?? 0;
@@ -388,6 +413,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
         )}
 
         <PaymentConfirmContext.Provider value={paymentActions}>
+        <MessageActionsContext.Provider value={features.actions}>
         <ChatThread
           state={thread.state}
           slip={slip}
@@ -404,16 +430,24 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           onDiscard={thread.discard}
           onReadUpTo={onReadUpTo}
           footer={
-            activity.typers.length > 0 ? (
-              <p className="text-muted-foreground mt-2 text-xs italic">{activity.typers.join(", ")} {activity.typers.length === 1 ? "is" : "are"} typing…</p>
+            activity.customerTyping || activity.typers.length > 0 ? (
+              <>
+                {activity.customerTyping && <TypingIndicator label={`${customerName} is typing…`} />}
+                {activity.typers.length > 0 && (
+                  <TypingIndicator label={`${activity.typers.join(", ")} ${activity.typers.length === 1 ? "is" : "are"} typing…`} />
+                )}
+              </>
             ) : null
           }
         />
+        </MessageActionsContext.Provider>
         </PaymentConfirmContext.Provider>
 
         <Composer
           placeholder="Reply… (/ for saved replies)"
-          onSendText={thread.sendText}
+          onSendText={sendText}
+          replyTo={features.replyTo}
+          onCancelReply={features.cancelReply}
           onSendImages={thread.sendAlbum}
           allowProofLabel
           quickReplies={quickReplies}

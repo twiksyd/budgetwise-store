@@ -37,6 +37,8 @@ function dropReconciled(pending, messages) {
  *   retry    { clientMessageId }
  *   discard  { clientMessageId }
  *   confirmed{ clientMessageId, message } server accepted (also dedupes replays)
+ *   patch_message { messageId, patch }   update a loaded message in place
+ *                                        (reactions, 0032); unknown ids are ignored
  */
 export function threadReducer(state, action) {
   switch (action.type) {
@@ -113,6 +115,13 @@ export function threadReducer(state, action) {
         messages,
         pending: state.pending.filter((item) => item.clientMessageId !== action.clientMessageId),
       };
+    }
+    case "patch_message": {
+      const index = state.messages.findIndex((message) => message.id === action.messageId);
+      if (index < 0) return state;
+      const messages = state.messages.slice();
+      messages[index] = { ...messages[index], ...action.patch };
+      return { ...state, messages };
     }
     default:
       return state;

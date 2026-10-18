@@ -13,6 +13,10 @@ import { runUploadQueue } from "@/lib/chat/upload-queue.mjs";
 import { prepareAlbumImage, type PreparedAlbumImage } from "@/lib/prepare-chat-image";
 import { createConversationLoader, type ConversationLoader } from "@/lib/chat/conversation-loader.mjs";
 import { fetchJson, jsonInit, newClientId, RequestError } from "@/lib/chat/client/fetch-json";
+import { applyMyReaction, type MessageReactions, type ReactionKey } from "@/lib/chat/message-meta.mjs";
+
+/** 0032: how far back "jump to the quoted message" may page (50 messages each). */
+const MAX_JUMP_PAGES = 25;
 
 type Viewer = "admin" | "customer";
 
@@ -89,13 +93,13 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
 
   // ---- sending
   const postText = useCallback(
-    async (clientMessageId: string, text: string) => {
+    async (clientMessageId: string, text: string, replyToMessageId: string | null = null) => {
       if (inFlight.has(clientMessageId)) return;
       inFlight.add(clientMessageId);
       try {
         const body = await fetchJson<{ message: ChatMessageDto }>(
           `${base}/messages?${actingAs}`,
-          jsonInit("POST", { body: text, clientMessageId }),
+          jsonInit("POST", replyToMessageId ? { body: text, clientMessageId, replyToMessageId } : { body: text, clientMessageId }),
         );
         dispatch({ type: "confirmed", clientMessageId, message: body.message });
       } catch (error) {
@@ -150,13 +154,13 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
   );
 
   const sendText = useCallback(
-    (text: string) => {
+    (text: string, replyTo: { id: string; senderLabel: string; preview: string } | null = null) => {
       const clientMessageId = newClientId();
       dispatch({
         type: "send",
-        item: { clientMessageId, kind: "text", body: text, createdAt: new Date().toISOString() },
+        item: { clientMessageId, kind: "text", body: text, replyTo, createdAt: new Date().toISOString() },
       });
-      void postText(clientMessageId, text);
+      void postText(clientMessageId, text, replyTo?.id ?? null);
       return clientMessageId;
     },
     [postText, dispatch],
@@ -351,7 +355,8 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
       } else if (item.kind === "image") {
         if (entry?.kind === "image") postImage(clientMessageId, entry.file, entry.caption);
       } else {
-        void postText(clientMessageId, item.body);
+        // Same client id AND same reply target, so a retry can never fork.
+        void postText(clientMessageId, item.body, item.replyTo?.id ?? null);
       }
     },
     [postImage, postText, postAlbumMessage, getThread, dispatch, files],
@@ -380,6 +385,64 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
     revokePreview(clientMessageId);
     dispatch({ type: "discard", clientMessageId });
   }, [revokePreview, dispatch, files, base, viewer]);
+
+  /**
+   * 0032: my reaction on a message (null removes it). Shown at once; the
+   * server's answer (or a failure) settles it. Never marks anything read.
+   */
+  const reactingTo = useRef(new Map<string, number>());
+  const react = useCallback(
+    async (messageId: string, reaction: ReactionKey | null) => {
+      const message = getThread().messages.find((item) => item.id === messageId);
+      if (!message) return;
+      const before: MessageReactions | null = message.reactions ?? null;
+      dispatch({ type: "patch_message", messageId, patch: { reactions: applyMyReaction(before, reaction) } });
+      const seq = (reactingTo.current.get(messageId) ?? 0) + 1;
+      reactingTo.current.set(messageId, seq);
+      try {
+        const body = await fetchJson<{ reactions: MessageReactions | null }>(
+          `${base}/reactions?${actingAs}`,
+          jsonInit("POST", { messageId, reaction }),
+        );
+        // Only the latest tap on this message decides what is shown.
+        if (reactingTo.current.get(messageId) === seq) {
+          dispatch({ type: "patch_message", messageId, patch: { reactions: body.reactions } });
+        }
+      } catch {
+        if (reactingTo.current.get(messageId) === seq) {
+          dispatch({ type: "patch_message", messageId, patch: { reactions: before } });
+        }
+      }
+    },
+    [base, actingAs, dispatch, getThread],
+  );
+
+  /** 0032: a realtime 'reaction' event, applied to the loaded message (if any). */
+  const patchMessage = useCallback(
+    (messageId: string, patch: Partial<ChatMessageDto>) => dispatch({ type: "patch_message", messageId, patch }),
+    [dispatch],
+  );
+
+  /**
+   * 0032: make sure a quoted message is loaded (older pages are fetched in
+   * order, so the history never gets a gap). Resolves true once it is.
+   */
+  const ensureMessageLoaded = useCallback(
+    async (messageId: string) => {
+      for (let page = 0; page <= MAX_JUMP_PAGES; page += 1) {
+        const thread = getThread();
+        if (thread.messages.some((message) => message.id === messageId)) return true;
+        if (!thread.hasOlder) return false;
+        if (thread.loadingOlder) {
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          continue;
+        }
+        await loader.loadOlder(orderNumber);
+      }
+      return getThread().messages.some((message) => message.id === messageId);
+    },
+    [getThread, loader, orderNumber],
+  );
 
   /** Adds a message the server already created (e.g. payment details). */
   const addConfirmed = useCallback((message: ChatMessageDto) => {
@@ -428,5 +491,8 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
     [base, actingAs],
   );
 
-  return { state, loadError, reload, loadOlder, fetchNewer, sendText, sendImage, sendAlbum, retry, discard, addConfirmed, refreshMessage, markRead };
+  return {
+    state, loadError, reload, loadOlder, fetchNewer, sendText, sendImage, sendAlbum, retry, discard, addConfirmed,
+    refreshMessage, markRead, react, patchMessage, ensureMessageLoaded,
+  };
 }

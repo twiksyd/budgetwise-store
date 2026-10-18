@@ -21,7 +21,12 @@ export function parseSignalBody(body) {
   return { type, orderNumber };
 }
 
-export function createSignalHandler({ resolveAdmin, publish, limiter, now = () => Date.now() }) {
+/**
+ * afterPublish (0032, optional): called with the published event so the
+ * route can also tell the CUSTOMER that an admin is typing. Its failure is
+ * swallowed: typing must never break the signal response.
+ */
+export function createSignalHandler({ resolveAdmin, publish, limiter, now = () => Date.now(), afterPublish }) {
   return async function handleSignal(body) {
     const admin = await resolveAdmin();
     if (!admin) return { status: 401, body: { error: "Not allowed." } };
@@ -45,6 +50,7 @@ export function createSignalHandler({ resolveAdmin, publish, limiter, now = () =
       at: new Date(now()).toISOString(),
     };
     await publish(event);
+    if (afterPublish) await Promise.resolve(afterPublish(event)).catch(() => undefined);
     return { status: 202, body: { ok: true } };
   };
 }

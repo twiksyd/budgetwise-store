@@ -12,6 +12,7 @@ import type { FulfillmentSlotView } from "@/lib/chat/fulfillment-fields.mjs";
 import { INBOX_FILTERS } from "@/lib/chat/inbox-state.mjs";
 import type { InboxCursor, InboxFilter, InboxRow } from "@/lib/chat/inbox-state.mjs";
 import { toChatMessage, type AttachmentRowLike, type ChatMessageDto } from "@/lib/chat/dto.mjs";
+import { summarizeReactions } from "@/lib/chat/message-meta.mjs";
 import { describeOrderItems, summarizeLines, type SummaryLine } from "@/lib/chat/order-summary.mjs";
 import { getProductArtworkMapSafe, getProductArtworkUrlMap } from "@/lib/queries/product-artwork";
 import type {
@@ -361,9 +362,41 @@ export async function loadPaymentConfirmations(
   return byMessage;
 }
 
+/** 0032: reaction rows for these messages (one query; none before 0032). */
+async function loadReactionRows(messageIds: string[]) {
+  if (messageIds.length === 0) return [];
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("store_message_reactions")
+    .select("message_id, actor_user_id, reaction")
+    .in("message_id", messageIds);
+  if (error) {
+    if (isMissingRelation(error)) return [];
+    throw error;
+  }
+  return data ?? [];
+}
+
 /**
- * Rows -> DTOs for one viewer, with album items and payment confirmations
- * (no extra query when the page has no albums / payment cards).
+ * 0032: originals quoted by replies on this page that are not on the page
+ * themselves — one query, and only from the same conversation.
+ */
+async function loadReplyTargets(orderNumber: string, ids: string[]): Promise<MessageRow[]> {
+  if (ids.length === 0) return [];
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("store_order_messages")
+    .select("*")
+    .eq("order_number", orderNumber)
+    .in("id", ids);
+  if (error) throw error;
+  return (data ?? []) as MessageRow[];
+}
+
+/**
+ * Rows -> DTOs for one viewer, with album items, payment confirmations,
+ * reactions and reply quotes (each a single batched query, skipped when the
+ * page has nothing of that kind).
  */
 export async function toChatMessages(
   rows: MessageRow[],
@@ -371,14 +404,53 @@ export async function toChatMessages(
 ): Promise<ChatMessageDto[]> {
   const albumIds = rows.filter((row) => row.kind === "album").map((row) => row.id);
   const paymentIds = rows.filter((row) => row.kind === "payment").map((row) => row.id);
+  const onPage = new Map(rows.map((row) => [row.id, row]));
+  const quoted = [...new Set(rows.map((row) => row.reply_to_message_id).filter((id): id is string => Boolean(id)))];
+  const missingQuoted = quoted.filter((id) => !onPage.has(id));
   // Customers see an admin message's public username only (no id, no real name).
-  const needsNames = viewer.viewer === "customer" && rows.some((row) => row.sender_role === "admin");
-  const [attachments, publicNames, paymentConfirmations] = await Promise.all([
+  const needsNames =
+    viewer.viewer === "customer" && (rows.some((row) => row.sender_role === "admin") || quoted.length > 0);
+  const [attachments, publicNames, paymentConfirmations, reactionRows, fetchedTargets] = await Promise.all([
     loadAlbumAttachments(albumIds) as Promise<Map<string, AttachmentRowLike[]>>,
     needsNames ? loadPublicAdminNames() : Promise.resolve(undefined),
     loadPaymentConfirmations(paymentIds),
+    loadReactionRows(rows.map((row) => row.id)),
+    rows.length ? loadReplyTargets(rows[0].order_number, missingQuoted) : Promise.resolve([]),
   ]);
-  return rows.map((row) => toChatMessage(row, { ...viewer, attachments, publicNames, paymentConfirmations }));
+  const replyTargets = new Map<string, MessageRow>();
+  for (const id of quoted) {
+    const target = onPage.get(id) ?? fetchedTargets.find((row) => row.id === id);
+    if (target) replyTargets.set(id, target);
+  }
+  // Photo counts for quoted albums (on the page: already loaded).
+  const albumCounts = new Map<string, number>();
+  const offPageAlbums = fetchedTargets.filter((row) => row.kind === "album").map((row) => row.id);
+  const offPageAttachments = offPageAlbums.length ? await loadAlbumAttachments(offPageAlbums) : new Map();
+  for (const [id, list] of [...attachments, ...offPageAttachments]) albumCounts.set(id, list.length);
+  const reactions = summarizeReactions(reactionRows, viewer.viewerUserId);
+  return rows.map((row) =>
+    toChatMessage(row, { ...viewer, attachments, publicNames, paymentConfirmations, reactions, replyTargets, albumCounts }),
+  );
+}
+
+/** 0032: set (or with null, remove) my reaction on one message. */
+export async function setReaction(input: {
+  orderNumber: string;
+  messageId: string;
+  actorId: string;
+  role: ChatRole;
+  reaction: string | null;
+}) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("store_set_reaction", {
+    p_order_number: input.orderNumber,
+    p_message_id: input.messageId,
+    p_actor: input.actorId,
+    p_role: input.role,
+    p_reaction: input.reaction,
+  });
+  if (error) throw toChatDataError(error);
+  return data as { counts: Record<string, number>; customer: string | null; admins: Record<string, string> };
 }
 
 export async function getAttachment(id: string): Promise<StoreOrderMessageAttachmentRow | null> {
@@ -461,6 +533,8 @@ export async function postMessage(input: {
   attachmentPath?: string | null;
   attachmentMime?: string | null;
   clientMessageId: string | null;
+  /** 0032: the message this one replies to (same conversation, checked by the database). */
+  replyTo?: string | null;
 }): Promise<{ created: boolean; message: MessageRow }> {
   const supabase = createAdminClient();
   const { data, error } = await supabase.rpc("store_post_message", {
@@ -472,6 +546,8 @@ export async function postMessage(input: {
     p_attachment_path: input.attachmentPath ?? null,
     p_attachment_mime: input.attachmentMime ?? null,
     p_client_message_id: input.clientMessageId,
+    // Only sent for replies, so plain messages work the same before 0032.
+    ...(input.replyTo ? { p_reply_to: input.replyTo } : {}),
   });
   if (error) throw toChatDataError(error);
   return data as { created: boolean; message: MessageRow };

@@ -109,6 +109,9 @@ export async function POST(request: Request, { params }: Context) {
   let rawClientId: unknown = null;
   let file: File | null = null;
   let albumRequest: unknown = null;
+  // 0032: a text reply names the message it answers (checked by the database
+  // to be in this same conversation).
+  let rawReplyTo: unknown = null;
 
   try {
     if (contentType.startsWith("multipart/form-data")) {
@@ -118,10 +121,13 @@ export async function POST(request: Request, { params }: Context) {
       const maybeFile = form.get("file");
       if (maybeFile instanceof File && maybeFile.size > 0) file = maybeFile;
     } else if (contentType.startsWith("application/json")) {
-      const json = (await request.json()) as { kind?: unknown; body?: unknown; clientMessageId?: unknown } | null;
+      const json = (await request.json()) as
+        | { kind?: unknown; body?: unknown; clientMessageId?: unknown; replyToMessageId?: unknown }
+        | null;
       if (json?.kind === "album") albumRequest = json;
       rawBody = json?.body;
       rawClientId = json?.clientMessageId ?? null;
+      rawReplyTo = json?.replyToMessageId ?? null;
     } else {
       return chatError("Unsupported request.", 415);
     }
@@ -136,6 +142,8 @@ export async function POST(request: Request, { params }: Context) {
     return chatError("Invalid request.", 400);
   }
   const clientMessageId = isUuid(rawClientId) ? rawClientId : null;
+  if (rawReplyTo !== null && !isUuid(rawReplyTo)) return chatError("Invalid request.", 400);
+  const replyTo = isUuid(rawReplyTo) ? rawReplyTo : null;
 
   const body = validateMessageBody(rawBody, { allowEmpty: file !== null });
   if (!body.ok) return chatError(body.error, 400);
@@ -155,6 +163,7 @@ export async function POST(request: Request, { params }: Context) {
         kind: "text",
         body: body.body,
         clientMessageId,
+        replyTo,
       });
       const [message] = await toChatMessages([result.message], viewer);
       return chatJson({ message }, result.created ? 201 : 200);

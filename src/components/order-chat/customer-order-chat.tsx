@@ -23,6 +23,13 @@ import {
 } from "@/lib/chat/client/customer-store";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
 import { assistantLine, currentAssistant } from "@/lib/chat/assistant.mjs";
+import { reactionsFromEvent } from "@/lib/chat/message-meta.mjs";
+import { useMessageFeatures } from "@/lib/chat/client/use-message-features";
+import { useTypingIndicator, useTypingSender } from "@/lib/chat/client/use-typing";
+import { jsonInit } from "@/lib/chat/client/fetch-json";
+import { MessageActionsContext } from "@/components/chat/message-actions";
+import { TypingIndicator } from "@/components/chat/typing-indicator";
+import type { ReplyQuote } from "@/lib/chat/dto.mjs";
 import { latestPaymentReceived, paymentMessageToRefresh } from "@/lib/chat/payment-received.mjs";
 import { isInquiryKey } from "@/lib/order-chat.mjs";
 import { BrandAvatar } from "@/components/brand/brand-avatar";
@@ -36,7 +43,9 @@ type Cursor = { at: string | null; messageId: string | null };
 const MY_ORDERS = "/account/orders";
 // "assistant": the assignment changed (migration 0025); the payload is empty.
 // "payment": an admin confirmed a payment (0027); the payload is empty too.
-const EVENTS = ["message", "seen", "fulfillment", "state", "assistant", "payment"] as const;
+// "typing" / "reaction" (0032): an admin is composing (public username only);
+// a message's reactions changed (counts + my own, no admin ids).
+const EVENTS = ["message", "seen", "fulfillment", "state", "assistant", "payment", "typing", "reaction"] as const;
 // Mobile networks drop and recover constantly; only a drop that lasts
 // this long is worth telling the customer about.
 const CONNECTION_GRACE_MS = 8000;
@@ -89,12 +98,22 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
   const ownRead = useRef<Cursor | null>(null);
   if (!ownRead.current && details) ownRead.current = details.ownRead;
 
-  const { fetchNewer } = thread;
+  const { fetchNewer, patchMessage } = thread;
+  const typingIndicator = useTypingIndicator();
+  const { onEvent: onTypingEvent, reset: resetTyping } = typingIndicator;
   const status = useRealtimeChannel({
     topic: summary?.conversationId ? `chat:${summary.conversationId}` : null,
     events: EVENTS,
     onEvent: (event, payload) => {
-      if (event === "message") void fetchNewer();
+      if (event === "message") {
+        void fetchNewer();
+        // Their message arrived: they are no longer typing it.
+        resetTyping();
+      }
+      if (event === "typing") onTypingEvent(payload);
+      if (event === "reaction" && typeof payload.message_id === "string") {
+        patchMessage(payload.message_id, { reactions: reactionsFromEvent(payload, { viewer: "customer" }) });
+      }
       if (event === "seen") {
         patchDetails({
           adminRead: {
@@ -107,10 +126,20 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
       if (event === "fulfillment" || event === "state" || event === "assistant" || event === "payment") reloadDetails();
     },
     onResync: () => {
+      // Reconnected: no stale "is typing…" from before the gap.
+      resetTyping();
       void fetchNewer();
       reloadDetails();
     },
   });
+
+  // 0032: my own typing, throttled, to the admins (server-published).
+  const typingUrl = `/api/order-chat/${encodeURIComponent(orderNumber)}/typing`;
+  const typingSender = useTypingSender(
+    summary?.conversationId
+      ? (state) => void fetch(typingUrl, { ...jsonInit("POST", { state }), keepalive: true }).catch(() => undefined)
+      : null,
+  );
 
   // No conversation yet (nothing to subscribe to): the account-wide topic
   // still says when something changed for this customer.
@@ -151,6 +180,24 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
   const senderIconFor = useCallback(
     (message: ChatMessageDto) => (message.senderRole === "admin" ? <BrandAvatar className="size-4" /> : null),
     [],
+  );
+  // 0032: reactions, Reply and jump-to-original.
+  const quoteLabel = useCallback(
+    (quote: ReplyQuote) => (quote.senderRole === "customer" ? "You" : (quote.senderName ?? "BudgetWise")),
+    [],
+  );
+  const replySenderLabel = useCallback(
+    (message: ChatMessageDto) => (message.senderRole === "customer" ? "yourself" : (message.senderName ?? "BudgetWise")),
+    [],
+  );
+  const features = useMessageFeatures({ thread, senderLabelOf: replySenderLabel, quoteLabel });
+  const { stop: stopTyping } = typingSender;
+  const sendText = useCallback(
+    (text: string) => {
+      stopTyping();
+      features.sendText(text);
+    },
+    [stopTyping, features],
   );
   const assistant = useMemo(
     () => (details ? currentAssistant(details.assistant ?? null, thread.state.messages) : null),
@@ -264,12 +311,18 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
 
           {welcome.show && !isInquiry && <WelcomeCard onDismiss={welcome.dismiss} />}
 
+          <MessageActionsContext.Provider value={features.actions}>
           <ChatThread
             state={thread.state}
             orderNumber={orderNumber}
             slip={slip}
             isOwnSide={isOwnSide}
             isMine={isOwnSide}
+            footer={
+              typingIndicator.typingName !== undefined && status === "live" ? (
+                <TypingIndicator label={`${typingIndicator.typingName ?? "BudgetWise"} is typing…`} />
+              ) : null
+            }
             senderLabelFor={senderLabelFor}
             senderIconFor={senderIconFor}
             otherSideReadCursor={adminRead}
@@ -291,8 +344,17 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
               )
             }
           />
+          </MessageActionsContext.Provider>
 
-          <Composer placeholder="Type a message…" onSendText={thread.sendText} onSendImages={thread.sendAlbum} />
+          <Composer
+            placeholder="Type a message…"
+            onSendText={sendText}
+            onSendImages={thread.sendAlbum}
+            onTyping={typingSender.typing}
+            onStopTyping={typingSender.stop}
+            replyTo={features.replyTo}
+            onCancelReply={features.cancelReply}
+          />
         </>
       )}
     </div>

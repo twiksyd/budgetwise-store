@@ -331,6 +331,8 @@ type StoreOrderMessageRow = {
   // Migration 0021.
   client_message_id: string | null;
   payload: Record<string, unknown> | null;
+  // Migration 0032 (absent before it is applied).
+  reply_to_message_id?: string | null;
 };
 
 type StoreOrderMessageInsert = {
@@ -771,6 +773,20 @@ export type AdminDatabase = {
         Update: { game_ids?: string[] | null; include_inquiries?: boolean; updated_at?: string };
         Relationships: [];
       };
+      store_message_reactions: {
+        Row: {
+          message_id: string;
+          order_number: string;
+          actor_user_id: string;
+          actor_role: "customer" | "admin";
+          reaction: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       store_payment_confirmations: {
         Row: StorePaymentConfirmationRow;
         Insert: never;
@@ -919,8 +935,21 @@ export type AdminDatabase = {
           p_attachment_path: string | null;
           p_attachment_mime: string | null;
           p_client_message_id: string | null;
+          // 0032
+          p_reply_to?: string | null;
         };
         Returns: { created: boolean; message: StoreOrderMessageRow };
+      };
+      // 0032: one reaction per person per message (null removes it).
+      store_set_reaction: {
+        Args: {
+          p_order_number: string;
+          p_message_id: string;
+          p_actor: string;
+          p_role: "customer" | "admin";
+          p_reaction: string | null;
+        };
+        Returns: { counts: Record<string, number>; customer: string | null; admins: Record<string, string> };
       };
       store_mark_admin_read: {
         Args: { p_order_number: string; p_admin: string; p_message_id: string };

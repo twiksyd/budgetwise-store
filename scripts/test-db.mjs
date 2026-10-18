@@ -1,5 +1,5 @@
 // Database tests without psql (e.g. Windows + a portable PostgreSQL such as
-// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026/0027/0028/0029/0030/0031.
+// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026/0027/0028/0029/0030/0031/0032.
 // Runs ONLY against a throwaway LOCAL server — never production:
 //
 //   PGHOST=127.0.0.1 PGPORT=54329 PGUSER=postgres node scripts/test-db.mjs
@@ -392,6 +392,34 @@ async function concurrentInquiryPayments(db) {
   }
 }
 
+/**
+ * 0032: the same admin reacting from two tabs at once, and two admins
+ * reacting at once: one row per person, counts consistent.
+ */
+async function concurrentReactions(db) {
+  const robert = "00000000-0000-0000-0000-0000000000a1";
+  const andre = "00000000-0000-0000-0000-0000000000a2";
+  const label = "simultaneous reactions: one row per person, consistent counts";
+  try {
+    await withDb(db, (setup) => withDb(db, (first) => withDb(db, async (second) => {
+      const message = (await setup.query("select id from store_order_messages where order_number = 'BW-RCT032' and kind = 'text' order by created_at limit 1")).rows[0].id;
+      const react = "select store_set_reaction('BW-RCT032', $1, $2, 'admin', $3) as s";
+      await Promise.all([first.query(react, [message, robert, "wow"]), second.query(react, [message, robert, "sad"])]);
+      await Promise.all([first.query(react, [message, andre, "love"]), second.query(react, [message, robert, "love"])]);
+      const facts = (await setup.query(`select
+          (select count(*)::int from store_message_reactions where message_id = $1 and actor_user_id = $2) as robert_rows,
+          (select count(*)::int from store_message_reactions where message_id = $1 and actor_role = 'admin') as admin_rows,
+          store_reaction_summary($1) as summary`, [message, robert])).rows[0];
+      const ok = facts.robert_rows === 1 && facts.admin_rows === 2 && facts.summary.counts.love >= 2;
+      if (!ok) throw new Error(JSON.stringify(facts));
+    })));
+    console.log(`ok - ${label}`);
+  } catch (error) {
+    failures += 1;
+    console.log(`FAIL: ${label}: ${error.message}`);
+  }
+}
+
 async function freshBase(db) {
   await admin(`create database ${db}`);
   for (const name of [
@@ -440,6 +468,10 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0031_store_inquiry_payment_details.sql")); // second run
   await later(() => check(MAIN, "34_inquiry_payment_test.sql"));
   await later(() => concurrentInquiryPayments(MAIN));
+  await later(() => apply(MAIN, "../migrations/0032_store_message_reactions_and_replies.sql"));
+  await later(() => apply(MAIN, "../migrations/0032_store_message_reactions_and_replies.sql")); // second run
+  await later(() => check(MAIN, "35_reactions_replies_test.sql"));
+  await later(() => concurrentReactions(MAIN));
   // The repository's own sequence also covers a database where 0023 ran
   // (throwaway local database only; production never runs 0023 here).
   await apply(MAIN, "../migrations/0023_store_chat_legacy_cleanup.sql");
@@ -453,6 +485,7 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0029_store_inbox_assign_games_avatars.sql"));
   await later(() => apply(MAIN, "../migrations/0030_store_inbox_attention_filters.sql"));
   await later(() => apply(MAIN, "../migrations/0031_store_inquiry_payment_details.sql"));
+  await later(() => apply(MAIN, "../migrations/0032_store_message_reactions_and_replies.sql"));
 
   // ---- Database 2: rollbacks.
   await freshBase(ROLL);
@@ -507,6 +540,11 @@ async function run() {
   await later(() => apply(ROLL, "../rollback/0031_down.sql"));
   await later(() => check(ROLL, "52_rollback_0031_test.sql"));
   await later(() => apply(ROLL, "../migrations/0031_store_inquiry_payment_details.sql")); // re-apply after rollback
+  // 0032 round trip.
+  await later(() => apply(ROLL, "../migrations/0032_store_message_reactions_and_replies.sql"));
+  await later(() => apply(ROLL, "../rollback/0032_down.sql"));
+  await later(() => check(ROLL, "53_rollback_0032_test.sql"));
+  await later(() => apply(ROLL, "../migrations/0032_store_message_reactions_and_replies.sql")); // re-apply after rollback
 
   // ---- Database 3: order-chat regression. 0026 is in place BEFORE the
   // existing order-chat suites run, so every order behaviour they check
@@ -524,6 +562,7 @@ async function run() {
       "../migrations/0029_store_inbox_assign_games_avatars.sql",
       "../migrations/0030_store_inbox_attention_filters.sql",
       "../migrations/0031_store_inquiry_payment_details.sql",
+      "../migrations/0032_store_message_reactions_and_replies.sql",
     ]) await apply(REGR, name);
     await check(REGR, "25_fulfillment_test.sql");
     await check(REGR, "26_workflow_albums_test.sql");

@@ -13,6 +13,8 @@ export interface PendingMessage {
   /** Albums: local previews in order, and the optional label. */
   previews?: string[];
   label?: "proof_of_delivery" | null;
+  /** 0032: the message a pending text replies to (id + display quote). */
+  replyTo?: { id: string; senderLabel: string; preview: string } | null;
   createdAt: string;
   progress: number;
   /** Albums: how many images are fully uploaded. */
@@ -39,7 +41,8 @@ export type ThreadAction =
   | { type: "failed"; clientMessageId: string; error: string; failedFiles?: PendingFileError[] }
   | { type: "retry"; clientMessageId: string }
   | { type: "discard"; clientMessageId: string }
-  | { type: "confirmed"; clientMessageId: string; message: ChatMessageDto };
+  | { type: "confirmed"; clientMessageId: string; message: ChatMessageDto }
+  | { type: "patch_message"; messageId: string; patch: Partial<ChatMessageDto> };
 export function mergeMessages(current: ChatMessageDto[], incoming: ChatMessageDto[]): ChatMessageDto[];
 export function threadReducer(state: ThreadState, action: ThreadAction): ThreadState;
 export function newestMessageId(state: ThreadState): string | null;
