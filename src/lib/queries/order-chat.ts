@@ -710,6 +710,12 @@ export function toInboxRow(row: StoreAdminInboxRpcRow): InboxRow {
     paymentReceivedMessageId: row.payment_received_message_id ?? null,
     paymentReceivedAt: row.payment_received_at ?? null,
     paymentReceivedBy: row.payment_received_by ?? null,
+    lastCustomerMessageAt: row.last_customer_message_at ?? null,
+    lastCustomerMessageId: row.last_customer_message_id ?? null,
+    lastAdminReplyAt: row.last_admin_reply_at ?? null,
+    lastAdminReplyId: row.last_admin_reply_id ?? null,
+    lastAdminReplyBy: row.last_admin_reply_by ?? null,
+    viewedBy: row.viewed_by ?? [],
   };
 }
 
@@ -808,6 +814,8 @@ export async function setConversationState(input: {
 export interface AdminDirectoryEntry {
   userId: string;
   displayName: string;
+  /** Public username (Twicks / Zuno / Akio), 0025; null when not set. */
+  publicUsername: string | null;
   email: string | null;
 }
 
@@ -820,7 +828,8 @@ export const loadAdminDirectory = cache(async (): Promise<AdminDirectoryEntry[]>
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("admin_users")
-    .select("user_id, display_name")
+    // select *: public_username (0025) reads as missing on older databases.
+    .select("*")
     .order("created_at", { ascending: true });
   if (error) throw error;
 
@@ -832,6 +841,7 @@ export const loadAdminDirectory = cache(async (): Promise<AdminDirectoryEntry[]>
       return {
         userId: row.user_id,
         displayName: row.display_name?.trim() || fallback,
+        publicUsername: (row as { public_username?: string | null }).public_username?.trim() || null,
         email,
       };
     }),

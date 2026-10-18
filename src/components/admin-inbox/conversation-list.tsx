@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Loader2, Search } from "lucide-react";
 import { useInbox } from "@/components/admin-inbox/inbox-provider";
 import { ConnectionBadge } from "@/components/chat/connection-badge";
+import { StaffAvatar, StaffAvatarGroup, staffName } from "@/components/admin-inbox/staff-avatar";
+import { attentionLevel, isNewAttention, needsReply, repliedBy, viewedByOthers } from "@/lib/chat/inbox-attention.mjs";
 import { formatOrderStatus } from "@/components/order-chat/order-status-badge";
 import { isPaymentReceived, visibleRows, type InboxFilter, type InboxRow } from "@/lib/chat/inbox-state.mjs";
 import { describeConversationPresence } from "@/lib/chat/presence-state.mjs";
@@ -14,6 +16,7 @@ import { cn } from "@/lib/utils";
 // Active is the working queue; Done is the archive of handled chats.
 const FILTERS: { value: InboxFilter; label: string }[] = [
   { value: "active", label: "Active" },
+  { value: "needs_reply", label: "Needs reply" },
   { value: "unread", label: "Unread" },
   { value: "mine", label: "Assigned to me" },
   { value: "unassigned", label: "Unassigned" },
@@ -156,6 +159,31 @@ export function ConversationList() {
   );
 }
 
+// A row whose customer activity arrived this recently pulses once when it
+// first renders as New (a live arrival, not an old chat met on a filter
+// switch). Keyed by that message, so the same arrival never pulses twice.
+const NEW_PULSE_WINDOW_MS = 60_000;
+const pulsedArrivals = new Set<string>();
+
+function useArrivalPulse(row: InboxRow, isNew: boolean) {
+  const key = row.lastCustomerMessageId;
+  const [pulse] = useState(() => {
+    if (!isNew || !key || pulsedArrivals.has(key)) return false;
+    const at = row.lastCustomerMessageAt ? Date.parse(row.lastCustomerMessageAt) : NaN;
+    return Date.now() - at < NEW_PULSE_WINDOW_MS;
+  });
+  useEffect(() => {
+    if (pulse && key) pulsedArrivals.add(key);
+  }, [pulse, key]);
+  // Acknowledged (viewed or answered) mid-pulse: stop.
+  return pulse && isNew;
+}
+
+function newLabel(row: InboxRow, isInquiry: boolean) {
+  if (isInquiry) return "New inquiry";
+  return row.lastMessageKind === "slip" && row.lastCustomerMessageId === row.lastMessageId ? "New order" : "New";
+}
+
 function ConversationRow({ row }: { row: InboxRow }) {
   const { me, directory, presence, nowMs, activeOrderNumber, select, loader } = useInbox();
   const active = activeOrderNumber === row.orderNumber;
@@ -163,17 +191,21 @@ function ConversationRow({ row }: { row: InboxRow }) {
   useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
   const unread = row.unreadCount > 0;
   const activity = describeConversationPresence(presence, row.orderNumber, { me, directory, nowMs });
-  const assignee = row.assignedAdminId
-    ? row.assignedAdminId === me
-      ? "You"
-      : (directory[row.assignedAdminId]?.displayName ?? "Another admin")
-    : null;
+  const isInquiry = isInquiryKey(row.orderNumber);
+  const waiting = needsReply(row);
+  const isNew = isNewAttention(row);
+  const replier = repliedBy(row);
+  const viewers = waiting ? viewedByOthers(row, me) : [];
+  const level = attentionLevel(row, me);
+  const pulse = useArrivalPulse(row, isNew);
+  const nameOf = (id: string) => (id === me ? "you" : staffName(directory[id], "another admin"));
 
   return (
     <li>
       <a
         href={`/admin/orders/${encodeURIComponent(row.orderNumber)}`}
         data-order-number={row.orderNumber}
+        data-attention={level}
         onClick={(event) => {
           // New tab / window keeps the browser's behaviour.
           if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -188,23 +220,28 @@ function ConversationRow({ row }: { row: InboxRow }) {
         onFocus={() => loader.prefetchNow(row.orderNumber)}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "border-border/40 flex gap-3 border-b px-3 py-3 transition-colors",
+          "border-border/40 relative flex gap-3 border-b px-3 py-3 transition-colors",
           active ? "bg-primary/8" : "hover:bg-muted/50",
+          pulse && "bw-arrival-pulse",
         )}
       >
+        {/* High attention: a thin edge mark, never a coloured row. */}
+        {level === "high" && <span aria-hidden className="bg-primary absolute inset-y-2 left-0 w-0.5 rounded-full" />}
         <div className="bg-primary/10 text-primary relative flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold">
           {initials(row.buyerName)}
           {unread && <span className="bg-primary ring-background absolute -top-0.5 -right-0.5 size-3 rounded-full ring-2" aria-hidden />}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
-            <p className={cn("truncate text-sm", unread ? "font-bold" : "font-semibold")}>{row.buyerName}</p>
+            <p className={cn("truncate text-sm", unread ? "font-bold" : level === "low" ? "font-medium" : "font-semibold")}>
+              {row.buyerName}
+            </p>
             <time className="text-muted-foreground shrink-0 text-[11px]" dateTime={row.lastMessageAt} suppressHydrationWarning>
               {listTime(row.lastMessageAt, nowMs)}
             </time>
           </div>
           <p className="text-muted-foreground truncate text-[11px] font-medium">
-            {isInquiryKey(row.orderNumber) ? (
+            {isInquiry ? (
               <span className="bg-primary/10 text-primary rounded-full px-1.5 py-px font-semibold" data-testid="inquiry-label">
                 General Inquiry
               </span>
@@ -222,7 +259,27 @@ function ConversationRow({ row }: { row: InboxRow }) {
               {row.lastMessagePreview}
             </p>
           )}
-          <div className="mt-1 flex items-center gap-1.5">
+          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1" data-testid="row-status">
+            {waiting ? (
+              <span
+                className="border-primary/30 text-primary inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[10px] font-semibold"
+                data-testid={isNew ? "new-indicator" : "needs-reply-indicator"}
+              >
+                <span aria-hidden className="bg-primary size-1.5 rounded-full" />
+                {isNew ? newLabel(row, isInquiry) : "Needs reply"}
+              </span>
+            ) : replier ? (
+              <span className="text-muted-foreground inline-flex items-center gap-1 text-[10px] font-medium" data-testid="replied-indicator">
+                <StaffAvatar entry={directory[replier]} size="xs" className="ring-0" />
+                Replied by {nameOf(replier)}
+              </span>
+            ) : null}
+            {viewers.length > 0 && (
+              <span className="text-muted-foreground inline-flex items-center gap-1 text-[10px]" data-testid="viewed-indicator">
+                <StaffAvatarGroup entries={viewers.map((id) => directory[id])} />
+                Viewed by {viewers.map(nameOf).join(", ")}
+              </span>
+            )}
             {row.state === "done" && (
               <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
                 Done
@@ -238,20 +295,30 @@ function ConversationRow({ row }: { row: InboxRow }) {
                 Paid
               </span>
             )}
-            {assignee ? (
-              <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-semibold">
-                {assignee}
-              </span>
-            ) : (
-              <span className="rounded-full border border-dashed px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-                Unassigned
-              </span>
-            )}
-            {unread && (
-              <span className="bg-primary text-primary-foreground ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold">
-                {row.unreadCount}
-              </span>
-            )}
+            <span className="ml-auto inline-flex items-center gap-1.5">
+              {row.assignedAdminId ? (
+                <span
+                  className="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full py-0.5 pr-2 pl-0.5 text-[10px] font-semibold"
+                  title="Assigned to"
+                  data-testid="assignee"
+                >
+                  <StaffAvatar entry={directory[row.assignedAdminId]} size="xs" className="ring-0" />
+                  {row.assignedAdminId === me ? "You" : staffName(directory[row.assignedAdminId], "Another admin")}
+                </span>
+              ) : (
+                <span className="rounded-full border border-dashed px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                  Unassigned
+                </span>
+              )}
+              {unread && (
+                <span
+                  className="bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                  aria-label={`${row.unreadCount} unread`}
+                >
+                  {row.unreadCount}
+                </span>
+              )}
+            </span>
           </div>
         </div>
       </a>

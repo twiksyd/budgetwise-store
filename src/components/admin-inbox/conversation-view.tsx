@@ -17,6 +17,8 @@ import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
 import type { OrderDetails } from "@/lib/chat/order-details.mjs";
 import { isPaymentReceived, type InboxRow } from "@/lib/chat/inbox-state.mjs";
 import { confirmablePaymentId, paymentMessageToRefresh } from "@/lib/chat/payment-received.mjs";
+import { needsReply, repliedBy, viewedByOthers } from "@/lib/chat/inbox-attention.mjs";
+import { staffName } from "@/components/admin-inbox/staff-avatar";
 import { describeConversationPresence } from "@/lib/chat/presence-state.mjs";
 import { formatPrice } from "@/lib/pricing";
 import { isInquiryKey } from "@/lib/order-chat.mjs";
@@ -164,7 +166,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
 
   const activity = describeConversationPresence(presence, orderNumber, { me, directory, nowMs });
   const assignedAdminId = row?.assignedAdminId ?? details?.order.assignedAdminId ?? null;
-  const handlerName = assignedAdminId && assignedAdminId !== me ? (directory[assignedAdminId]?.displayName ?? "Another admin") : null;
+  const handlerName = assignedAdminId && assignedAdminId !== me ? staffName(directory[assignedAdminId], "Another admin") : null;
   const total = row?.totalAmount ?? details?.order.total ?? 0;
 
   const templateValues = useMemo(
@@ -281,6 +283,11 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
     [confirmableId, confirmPayment, nameFor],
   );
   const paid = isPaymentReceived(row);
+  // 0028: shared reply state, independent of my unread and of assignment.
+  const waiting = needsReply(row);
+  const replier = repliedBy(row);
+  const viewers = waiting ? viewedByOthers(row, me) : [];
+  const staffLabel = (id: string) => (id === me ? "you" : staffName(directory[id], "another admin"));
 
   const slip = useMemo(
     () => ({
@@ -318,6 +325,12 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
             <p className="text-muted-foreground truncate text-xs">
               {isInquiry ? "General Inquiry" : `${orderNumber} · ${formatPrice(total)}`}
               {paid && !isInquiry ? <span className="font-semibold text-emerald-700 dark:text-emerald-300"> · Paid ✓</span> : null}
+              {waiting ? (
+                <span className="text-primary font-semibold" data-testid="header-needs-reply"> · Needs reply</span>
+              ) : replier ? (
+                <span data-testid="header-replied"> · Replied by {staffLabel(replier)}</span>
+              ) : null}
+              {viewers.length > 0 ? <span> · Viewed by {viewers.map(staffLabel).join(", ")}</span> : null}
               {activity.text ? <span className="text-primary font-semibold"> · {activity.text}</span> : null}
             </p>
           </div>

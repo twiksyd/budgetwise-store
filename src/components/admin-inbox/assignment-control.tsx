@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useInbox } from "@/components/admin-inbox/inbox-provider";
 import { fetchJson, jsonInit, RequestError } from "@/lib/chat/client/fetch-json";
 import { cn } from "@/lib/utils";
+import { staffName } from "@/components/admin-inbox/staff-avatar";
 
 const UNASSIGNED = "__unassigned__";
 
@@ -64,7 +65,7 @@ export function AssignmentControl({
         <option value={UNASSIGNED}>Unassigned</option>
         {directoryList.map((admin) => (
           <option key={admin.userId} value={admin.userId}>
-            {admin.userId === me ? `${admin.displayName} (me)` : admin.displayName}
+            {admin.userId === me ? `${staffName(admin)} (me)` : staffName(admin)}
           </option>
         ))}
       </select>

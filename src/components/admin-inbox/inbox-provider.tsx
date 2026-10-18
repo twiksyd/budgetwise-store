@@ -42,6 +42,7 @@ import { isValidOrderNumber } from "@/lib/order-chat.mjs";
 export interface DirectoryEntry {
   userId: string;
   displayName: string;
+  publicUsername?: string | null;
   email: string | null;
 }
 

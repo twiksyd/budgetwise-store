@@ -1,5 +1,5 @@
 // Database tests without psql (e.g. Windows + a portable PostgreSQL such as
-// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026/0027.
+// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026/0027/0028.
 // Runs ONLY against a throwaway LOCAL server — never production:
 //
 //   PGHOST=127.0.0.1 PGPORT=54329 PGUSER=postgres node scripts/test-db.mjs
@@ -325,6 +325,9 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0027_store_payment_received.sql")); // second run
   await later(() => check(MAIN, "29_payment_received_test.sql"));
   await later(() => concurrentConfirmations(MAIN));
+  await later(() => apply(MAIN, "../migrations/0028_store_inbox_reply_state.sql"));
+  await later(() => apply(MAIN, "../migrations/0028_store_inbox_reply_state.sql")); // second run
+  await later(() => check(MAIN, "31_inbox_reply_state_test.sql"));
   // The repository's own sequence also covers a database where 0023 ran
   // (throwaway local database only; production never runs 0023 here).
   await apply(MAIN, "../migrations/0023_store_chat_legacy_cleanup.sql");
@@ -334,6 +337,7 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0025_store_admin_public_usernames.sql"));
   await later(() => apply(MAIN, "../migrations/0026_store_general_inquiries.sql"));
   await later(() => apply(MAIN, "../migrations/0027_store_payment_received.sql"));
+  await later(() => apply(MAIN, "../migrations/0028_store_inbox_reply_state.sql"));
 
   // ---- Database 2: rollbacks.
   await freshBase(ROLL);
@@ -368,6 +372,11 @@ async function run() {
   await later(() => apply(ROLL, "../rollback/0027_down.sql"));
   await later(() => check(ROLL, "48_rollback_0027_test.sql"));
   await later(() => apply(ROLL, "../migrations/0027_store_payment_received.sql")); // re-apply after rollback
+  // 0028 round trip.
+  await later(() => apply(ROLL, "../migrations/0028_store_inbox_reply_state.sql"));
+  await later(() => apply(ROLL, "../rollback/0028_down.sql"));
+  await later(() => check(ROLL, "49_rollback_0028_test.sql"));
+  await later(() => apply(ROLL, "../migrations/0028_store_inbox_reply_state.sql")); // re-apply after rollback
 
   // ---- Database 3: order-chat regression. 0026 is in place BEFORE the
   // existing order-chat suites run, so every order behaviour they check
@@ -381,6 +390,7 @@ async function run() {
       "../migrations/0025_store_admin_public_usernames.sql",
       "../migrations/0026_store_general_inquiries.sql",
       "../migrations/0027_store_payment_received.sql",
+      "../migrations/0028_store_inbox_reply_state.sql",
     ]) await apply(REGR, name);
     await check(REGR, "25_fulfillment_test.sql");
     await check(REGR, "26_workflow_albums_test.sql");

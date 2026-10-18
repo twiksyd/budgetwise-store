@@ -504,6 +504,13 @@ export type StoreAdminInboxRpcRow = {
   payment_received_message_id?: string | null;
   payment_received_at?: string | null;
   payment_received_by?: string | null;
+  // Migration 0028 (absent before it is applied).
+  last_customer_message_at?: string | null;
+  last_customer_message_id?: string | null;
+  last_admin_reply_at?: string | null;
+  last_admin_reply_id?: string | null;
+  last_admin_reply_by?: string | null;
+  viewed_by?: string[] | null;
 };
 
 // Migration 0027: one row per confirmed payment card.

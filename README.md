@@ -94,6 +94,10 @@ Inquiry threads), then `supabase/migrations/0027_store_payment_received.sql`
 deploying the code that shows the confirm button.
 `supabase/rollback/0027_down.sql` undoes it (refused once any payment was
 confirmed).
+`supabase/migrations/0028_store_inbox_reply_state.sql` (after 0027) — inbox
+"Needs reply" / "Replied by" / "Viewed by" (derived from messages and the
+existing per-admin read cursors). Apply before deploying the code;
+`supabase/rollback/0028_down.sql` undoes it (nothing is lost).
 
 `supabase/rollback/0021_down.sql` undoes 0021 (only before 0023).
 `supabase/rollback/0024_down.sql` undoes 0024 (refused once any album exists).
