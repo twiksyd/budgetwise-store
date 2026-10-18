@@ -3,7 +3,7 @@ export const MAX_ATTACHMENT_BYTES: number;
 export const MESSAGE_RATE_LIMIT: { count: number; windowSeconds: number };
 export const ALLOWED_ATTACHMENT_TYPES: Record<string, string>;
 
-export type ChatMessageKind = "slip" | "text" | "image" | "payment";
+export type ChatMessageKind = "slip" | "text" | "image" | "payment" | "album" | "product";
 
 export function isValidOrderNumber(value: unknown): value is string;
 /** A General Inquiry thread key (GI-XXXXXXXX), never an order number. */

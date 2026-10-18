@@ -373,3 +373,52 @@
     opacity: 0.7;
   }
 }
+
+/* In-chat order slips and product cards (0033): one soft rise on arrival,
+   a gentle lift on hover. Reduced motion: they simply appear. */
+@keyframes bw-card-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+.bw-card-in {
+  animation: bw-card-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.bw-card-lift {
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease;
+}
+
+@media (hover: hover) {
+  .bw-card-lift:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 34px -22px color-mix(in oklab, var(--primary) 55%, transparent);
+  }
+}
+
+.bw-card-lift:active {
+  transform: scale(0.985);
+}
+
+/* Opening a chat at one order (My Orders, checkout): its slip glows once. */
+@keyframes bw-focus-ring {
+  0%, 40% { box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 35%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.bw-focus-ring {
+  animation: bw-focus-ring 2s ease-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bw-card-in,
+  .bw-focus-ring {
+    animation: none;
+  }
+  .bw-card-lift,
+  .bw-card-lift:hover,
+  .bw-card-lift:active {
+    transform: none;
+    transition: none;
+  }
+}

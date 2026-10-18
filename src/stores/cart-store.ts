@@ -28,6 +28,10 @@ interface CartState {
   removeOrderedItems: (
     orderedItems: { gamepassId: string; quantity: number }[],
   ) => void;
+  /** Current catalog values (name, price, Robux) for items already in the cart. */
+  syncCatalog: (
+    updates: { gamepassId: string; name: string; price: number; robuxAmount: number }[],
+  ) => void;
   clear: () => void;
 }
 
@@ -116,6 +120,23 @@ export const useCartStore = create<CartState>()(
             return acc;
           }, []),
         })),
+      syncCatalog: (updates) =>
+        set((state) => {
+          const byId = new Map(updates.map((update) => [update.gamepassId, update]));
+          let changed = false;
+          const items = state.items.map((item) => {
+            const update = byId.get(item.gamepassId);
+            if (
+              !update ||
+              (update.price === item.price && update.name === item.name && update.robuxAmount === item.robuxAmount)
+            ) {
+              return item;
+            }
+            changed = true;
+            return { ...item, name: update.name, price: update.price, robuxAmount: update.robuxAmount };
+          });
+          return changed ? { items } : state;
+        }),
       clear: () => set({ items: [] }),
     }),
     { name: "budgetwise-cart" },

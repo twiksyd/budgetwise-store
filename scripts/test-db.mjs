@@ -1,5 +1,5 @@
 // Database tests without psql (e.g. Windows + a portable PostgreSQL such as
-// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026/0027/0028/0029/0030/0031/0032.
+// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026/0027/0028/0029/0030/0031/0032/0033.
 // Runs ONLY against a throwaway LOCAL server — never production:
 //
 //   PGHOST=127.0.0.1 PGPORT=54329 PGUSER=postgres node scripts/test-db.mjs
@@ -420,6 +420,39 @@ async function concurrentReactions(db) {
   }
 }
 
+/**
+ * 0033: a customer with no conversation yet places two orders at the same
+ * moment (two connections), and one checkout is replayed concurrently:
+ * one conversation, one slip per order, both orders in it.
+ */
+async function concurrentAttach(db) {
+  const customer = "00000000-0000-0000-0000-0000000000e9";
+  const label = "simultaneous checkouts: one conversation, one slip per order";
+  try {
+    await withDb(db, (setup) => withDb(db, (first) => withDb(db, async (second) => {
+      await setup.query("insert into auth.users (id, email) values ($1, 'race33@gmail.test')", [customer]);
+      for (const key of ["BW-RACE33A", "BW-RACE33B"]) {
+        await setup.query(`insert into store_order_snapshots (order_number, idempotency_key, request_fingerprint, view_token_hash,
+            buyer_name, buyer_roblox_username, total_amount)
+          values ($1, 'idem-' || lower($1) || '-race-0033', repeat('6', 64), repeat('6', 64), 'Race', 'raceRBX', 60)`, [key]);
+      }
+      const attach = "select store_attach_order_to_customer($1, $2, 'SLIP', 'Race', null) ->> 'chat_key' as key";
+      const [a, b] = await Promise.all([first.query(attach, ["BW-RACE33A", customer]), second.query(attach, ["BW-RACE33B", customer])]);
+      const [c, d] = await Promise.all([first.query(attach, ["BW-RACE33A", customer]), second.query(attach, ["BW-RACE33A", customer])]);
+      const facts = (await setup.query(`select
+          (select count(*)::int from store_chat_threads where kind = 'inquiry' and owner_user_id = $1) as conversations,
+          (select count(*)::int from store_order_messages where kind = 'slip' and order_ref in ('BW-RACE33A', 'BW-RACE33B')) as slips`,
+        [customer])).rows[0];
+      const keys = new Set([a.rows[0].key, b.rows[0].key, c.rows[0].key, d.rows[0].key]);
+      if (facts.conversations !== 1 || facts.slips !== 2 || keys.size !== 1) throw new Error(JSON.stringify({ ...facts, keys: [...keys] }));
+    })));
+    console.log(`ok - ${label}`);
+  } catch (error) {
+    failures += 1;
+    console.log(`FAIL: ${label}: ${error.message}`);
+  }
+}
+
 async function freshBase(db) {
   await admin(`create database ${db}`);
   for (const name of [
@@ -472,6 +505,10 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0032_store_message_reactions_and_replies.sql")); // second run
   await later(() => check(MAIN, "35_reactions_replies_test.sql"));
   await later(() => concurrentReactions(MAIN));
+  await later(() => apply(MAIN, "../migrations/0033_store_unified_customer_thread.sql"));
+  await later(() => apply(MAIN, "../migrations/0033_store_unified_customer_thread.sql")); // second run
+  await later(() => check(MAIN, "36_unified_thread_test.sql"));
+  await later(() => concurrentAttach(MAIN));
   // The repository's own sequence also covers a database where 0023 ran
   // (throwaway local database only; production never runs 0023 here).
   await apply(MAIN, "../migrations/0023_store_chat_legacy_cleanup.sql");
@@ -486,6 +523,7 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0030_store_inbox_attention_filters.sql"));
   await later(() => apply(MAIN, "../migrations/0031_store_inquiry_payment_details.sql"));
   await later(() => apply(MAIN, "../migrations/0032_store_message_reactions_and_replies.sql"));
+  await later(() => apply(MAIN, "../migrations/0033_store_unified_customer_thread.sql"));
 
   // ---- Database 2: rollbacks.
   await freshBase(ROLL);
@@ -545,6 +583,15 @@ async function run() {
   await later(() => apply(ROLL, "../rollback/0032_down.sql"));
   await later(() => check(ROLL, "53_rollback_0032_test.sql"));
   await later(() => apply(ROLL, "../migrations/0032_store_message_reactions_and_replies.sql")); // re-apply after rollback
+  // 0033 round trip: clean while nothing is unified, refused afterwards.
+  await later(() => apply(ROLL, "../migrations/0033_store_unified_customer_thread.sql"));
+  await later(() => apply(ROLL, "../rollback/0033_down.sql"));
+  await later(() => check(ROLL, "54_rollback_0033_test.sql"));
+  await later(() => apply(ROLL, "../migrations/0033_store_unified_customer_thread.sql")); // re-apply after rollback
+  await later(() => withDb(ROLL, (c) => c.query(`insert into store_order_snapshots (order_number, idempotency_key, request_fingerprint, view_token_hash,
+      buyer_name, buyer_roblox_username, total_amount) values ('BW-ROLL33', 'idem-roll33-0033-xxxxxxx', repeat('5', 64), repeat('5', 64), 'R', 'r', 10);
+    select store_attach_order_to_customer('BW-ROLL33', '00000000-0000-0000-0000-0000000000c2', 'SLIP', 'R', null)`)));
+  await later(() => expectFailure(ROLL, "../rollback/0033_down.sql", "0033 rollback refuses once an order joined a customer conversation"));
 
   // ---- Database 3: order-chat regression. 0026 is in place BEFORE the
   // existing order-chat suites run, so every order behaviour they check
@@ -563,6 +610,7 @@ async function run() {
       "../migrations/0030_store_inbox_attention_filters.sql",
       "../migrations/0031_store_inquiry_payment_details.sql",
       "../migrations/0032_store_message_reactions_and_replies.sql",
+      "../migrations/0033_store_unified_customer_thread.sql",
     ]) await apply(REGR, name);
     await check(REGR, "25_fulfillment_test.sql");
     await check(REGR, "26_workflow_albums_test.sql");

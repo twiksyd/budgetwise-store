@@ -123,6 +123,11 @@ export const createOrderSchema = z.object({
   idempotencyKey: checkoutCredentialSchema,
   // Becomes the order slip viewing credential; only its hash is stored.
   viewToken: checkoutCredentialSchema,
+  // 0033: the in-chat product card this checkout started from. A hint
+  // only: the server links it to the order solely when the card is in this
+  // customer's own conversation AND the order contains what it recommended.
+  // Not part of the idempotency fingerprint.
+  recommendationId: z.string().uuid().optional(),
 })
   .strict()
   .superRefine((value, context) => {
@@ -178,6 +183,7 @@ export const createOrderSchema = z.object({
       viaPlus: value.viaPlus,
       idempotencyKey: value.idempotencyKey,
       viewToken: value.viewToken,
+      recommendationId: value.recommendationId,
       items: [...quantityByGamepassId.entries()].map(
         ([gamepassId, quantity]) => ({
           gamepassId,

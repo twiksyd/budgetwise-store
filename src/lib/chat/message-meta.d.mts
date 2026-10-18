@@ -21,5 +21,5 @@ export function reactionsFromEvent(
   options: { viewer: "admin" | "customer"; me?: string | null },
 ): MessageReactions | null;
 export function applyMyReaction(current: MessageReactions | null | undefined, next: ReactionKey | null): MessageReactions | null;
-export function quotePreview(row: { kind: string; body?: string | null; payload?: unknown } | null | undefined, options?: { albumCount?: number }): string;
-export function quotePreviewFromDto(message: { kind: string; body?: string | null; album?: { label?: string | null; items?: unknown[] } | null } | null | undefined): string;
+export function quotePreview(row: { kind: string; body?: string | null; payload?: unknown; order_ref?: string | null } | null | undefined, options?: { albumCount?: number }): string;
+export function quotePreviewFromDto(message: { kind: string; body?: string | null; album?: { label?: string | null; items?: unknown[] } | null; orderRef?: string | null; product?: { type: string; gameName: string; productName: string | null } | null } | null | undefined): string;

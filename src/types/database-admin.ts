@@ -315,7 +315,8 @@ type StoreOrderSnapshotRow = {
   created_at: string;
 };
 
-type StoreOrderMessageKind = "slip" | "text" | "image" | "payment" | "album";
+// "product" (0033): a catalog card an admin sends (game pricelist or one product).
+type StoreOrderMessageKind = "slip" | "text" | "image" | "payment" | "album" | "product";
 
 type StoreOrderMessageRow = {
   id: string;
@@ -333,6 +334,9 @@ type StoreOrderMessageRow = {
   payload: Record<string, unknown> | null;
   // Migration 0032 (absent before it is applied).
   reply_to_message_id?: string | null;
+  // Migration 0033: the order a slip / payment card in a customer
+  // conversation is about (null = the conversation itself, e.g. a quote).
+  order_ref?: string | null;
 };
 
 type StoreOrderMessageInsert = {
@@ -472,6 +476,8 @@ export type StoreChatThreadRow = {
   owner_user_id: string | null;
   customer_name: string | null;
   created_at: string;
+  // Migration 0033: an order thread that joined its customer's conversation.
+  home_key?: string | null;
 };
 
 export type StoreAdminInboxRpcRow = {
@@ -520,6 +526,9 @@ export type StoreAdminInboxRpcRow = {
   customer_photo_url?: string | null;
   game_ids?: string[] | null;
   game_names?: string[] | null;
+  // Migration 0033: orders in a customer conversation (1 for an order chat).
+  order_count?: number | null;
+  latest_order_number?: string | null;
 };
 
 // Migration 0029: per-admin inbox preferences.
@@ -540,6 +549,8 @@ export type StorePaymentConfirmationRow = {
   provider: string;
   account_number: string;
   confirmed_at: string;
+  // Migration 0033: the order this card was for (null = a quote).
+  order_ref?: string | null;
 };
 
 export type StoreCustomerConversationRpcRow = {
@@ -799,6 +810,13 @@ export type AdminDatabase = {
         Update: never;
         Relationships: [];
       };
+      // 0033: which product card an order came from (attach function only).
+      store_order_recommendations: {
+        Row: { order_number: string; message_id: string; created_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       store_order_line_snapshots: {
         Row: StoreOrderLineSnapshotRow;
         Insert: never;
@@ -1008,6 +1026,27 @@ export type AdminDatabase = {
           p_actor: string;
           p_method_id: string;
           p_amount: number;
+          p_client_message_id: string;
+        };
+        Returns: string;
+      };
+      // 0033: a new order joins its customer's conversation.
+      store_attach_order_to_customer: {
+        Args: {
+          p_order_number: string;
+          p_user: string;
+          p_slip_text: string;
+          p_customer_name?: string | null;
+          p_recommendation_id?: string | null;
+        };
+        Returns: { attached: boolean; chat_key?: string; unified?: boolean; recommendation_id?: string | null };
+      };
+      // 0033: a game pricelist / product card (admins only).
+      store_send_recommendation: {
+        Args: {
+          p_key: string;
+          p_actor: string;
+          p_payload: Record<string, unknown>;
           p_client_message_id: string;
         };
         Returns: string;

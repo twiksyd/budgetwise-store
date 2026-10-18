@@ -1,5 +1,7 @@
-import { notFound } from "next/navigation";
-import { isValidOrderNumber } from "@/lib/order-chat.mjs";
+import { notFound, redirect } from "next/navigation";
+import { isInquiryKey, isValidOrderNumber } from "@/lib/order-chat.mjs";
+import { requireAdmin } from "@/lib/auth/admin";
+import { getOrderHomeKey } from "@/lib/queries/customer-thread";
 
 // Reloads and shared links land here. The inbox shell (layout) reads the
 // order number from the URL and opens it client-side; switching between
@@ -12,5 +14,12 @@ export default async function AdminConversationPage({
 }) {
   const { orderNumber } = await params;
   if (!isValidOrderNumber(orderNumber)) notFound();
+  // 0033: an order whose chat is its customer's conversation opens there
+  // (old links, bookmarks). Admins only, like the layout.
+  if (!isInquiryKey(orderNumber)) {
+    await requireAdmin();
+    const homeKey = await getOrderHomeKey(orderNumber);
+    if (homeKey) redirect(`/admin/orders/${encodeURIComponent(homeKey)}`);
+  }
   return null;
 }

@@ -185,6 +185,9 @@ export function inboxReducer(state, action) {
         ...(isNewer && event.message.kind === "payment" ? { paymentRequestMessageId: event.message.id } : {}),
         unreadCount: countsAsUnread ? row.unreadCount + 1 : row.unreadCount,
       }, event.message);
+      // 0033: a new order joined this customer conversation — re-read the
+      // row for its order count, latest order, total and games.
+      if (event.message.kind === "slip") return markStale(withRow(state, next, action.activeOrderNumber), orderNumber);
       return withRow(state, next, action.activeOrderNumber);
     }
 

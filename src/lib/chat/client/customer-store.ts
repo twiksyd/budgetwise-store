@@ -44,6 +44,23 @@ export interface CustomerChatDetails {
   orderCount?: number;
   /** Who is assisting (public username only); null = waiting for an assistant. */
   assistant?: CustomerAssistant | null;
+  /** 0033: this order lives in the customer's conversation (its key). */
+  movedTo?: string;
+  /** 0033 (the conversation): its orders, newest first. */
+  orders?: ConversationOrder[];
+  orderTotal?: number;
+}
+
+/** 0033: one order inside the customer's conversation. */
+export interface ConversationOrder {
+  orderNumber: string;
+  createdAt: string;
+  total: number;
+  status: string;
+  itemCount: number;
+  summary: string;
+  payment: "awaiting" | "sent" | "received";
+  slots: CustomerSlot[];
 }
 
 export interface MyOrderCard {
@@ -61,6 +78,8 @@ export interface MyOrderCard {
   paymentSent: boolean;
   summary: string;
   thumbnails: string[];
+  /** 0033: the chat this order lives in (absent from older servers = its own). */
+  chatKey?: string;
 }
 export type OrdersCursor = { at: string; orderNumber: string } | null;
 export type OrdersSection = { rows: MyOrderCard[]; nextCursor: OrdersCursor };

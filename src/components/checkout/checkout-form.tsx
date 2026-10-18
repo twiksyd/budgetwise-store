@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { clearRecommendation, recommendationForCart } from "@/lib/recommendation-session";
 import { useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -190,6 +191,9 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
         }),
       );
 
+      // 0033: the in-chat product card this cart came from, if any (the
+      // server only links it after verifying it).
+      const recommendationId = recommendationForCart(items) ?? undefined;
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -199,6 +203,7 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
           viaPlus: viaPlusDetails,
           idempotencyKey: attempt.idempotencyKey,
           viewToken: attempt.viewToken,
+          recommendationId,
         }),
       });
 
@@ -223,10 +228,11 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
         return;
       }
 
-      const { orderNumber } = await response.json();
+      const { orderNumber, chatKey } = (await response.json()) as { orderNumber: string; chatKey?: string };
       // This attempt is done: a later checkout of the same items is a new
       // order, not a replay of this one.
       clearCheckoutAttempt();
+      clearRecommendation();
       // Record exactly which items/quantities this order covers so the
       // success page clears only those, once — see clear-cart-on-success.
       writePendingOrderClear(orderNumber, submittedItems);
@@ -234,8 +240,15 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
       // while still on /checkout would race against navigation away.
       // The order is owned by the signed-in account, so its chat page needs
       // no secret in the URL.
-      // ?placed=1: the order page shows first-time guidance (first order only).
-      router.push(`/orders/${encodeURIComponent(orderNumber)}?placed=1`);
+      // 0033: the order lives in the customer's one ongoing conversation;
+      // ?placed=<order> opens it at the new slip. (Before 0033 the order has
+      // its own chat; ?placed=1 there shows first-time guidance.)
+      const chat = chatKey && chatKey !== orderNumber ? chatKey : orderNumber;
+      router.push(
+        chat === orderNumber
+          ? `/orders/${encodeURIComponent(orderNumber)}?placed=1`
+          : `/orders/${encodeURIComponent(chat)}?placed=${encodeURIComponent(orderNumber)}`,
+      );
       // isSubmitting intentionally stays true here: the order already
       // exists server-side, so the button must stay locked until the
       // navigation above actually lands, not reset while it's in flight.

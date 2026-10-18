@@ -90,9 +90,15 @@ export function quotePreview(row, { albumCount } = {}) {
       return proof ? `Proof of delivery · ${photos}` : photos;
     }
     case "payment":
-      return "Payment details";
+      // 0033: cards in a customer conversation name their order.
+      return row.order_ref ? `Payment details · ${row.order_ref}` : "Payment details";
     case "slip":
-      return "Order placed";
+      return row.order_ref ? `Order ${row.order_ref}` : "Order placed";
+    case "product": {
+      const payload = row.payload && typeof row.payload === "object" ? row.payload : {};
+      const name = String((payload.type === "game" ? payload.game_name : payload.product_name) ?? "").trim();
+      return payload.type === "game" ? `Pricelist · ${name || "Game"}` : name || "Product";
+    }
     default:
       return "Message";
   }
@@ -101,8 +107,13 @@ export function quotePreview(row, { albumCount } = {}) {
 /** The same safe summary, from a message the browser already has. */
 export function quotePreviewFromDto(message) {
   if (!message) return "Message";
+  const payload = message.product
+    ? { type: message.product.type, game_name: message.product.gameName, product_name: message.product.productName }
+    : message.album?.label
+      ? { label: message.album.label }
+      : null;
   return quotePreview(
-    { kind: message.kind, body: message.body, payload: message.album?.label ? { label: message.album.label } : null },
+    { kind: message.kind, body: message.body, payload, order_ref: message.orderRef ?? null },
     { albumCount: message.album?.items?.length },
   );
 }

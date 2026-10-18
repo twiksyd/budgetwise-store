@@ -13,7 +13,7 @@ export interface InboxRow {
   assignedAt: string | null;
   lastMessageId: string;
   lastMessageAt: string;
-  lastMessageKind: "slip" | "text" | "image" | "payment" | "album";
+  lastMessageKind: "slip" | "text" | "image" | "payment" | "album" | "product";
   lastMessagePreview: string;
   lastSenderRole: "customer" | "admin";
   customerReadAt: string | null;
@@ -45,6 +45,10 @@ export interface InboxRow {
   /** 0029: the order's games (empty for General Inquiry). */
   gameIds: string[];
   gameNames: string[];
+  /** 0033: orders in this conversation (a customer conversation can have many; an order chat is 1). */
+  orderCount?: number;
+  /** 0033: its newest order (null = General Inquiry with no order yet). */
+  latestOrderNumber?: string | null;
 }
 export interface InboxView {
   filter: InboxFilter;

@@ -21,6 +21,7 @@ import {
 import { getProductCardAccentSettingsForGameSafe } from "@/lib/queries/product-card-accent-settings";
 import { getProductCardBackgroundUrlMapSafe } from "@/lib/queries/product-card-backgrounds";
 import { GamepassList } from "@/components/catalog/gamepass-list";
+import { ChatPricelistBanner } from "@/components/catalog/chat-pricelist-banner";
 import { BloxFruitsProductList } from "@/components/catalog/blox-fruits-product-list";
 import { GrowAGarden2ProductList } from "@/components/catalog/grow-a-garden-2-product-list";
 import { ConfiguredProductList } from "@/components/catalog/configured-product-list";
@@ -125,6 +126,7 @@ export default async function GameDetailPage({ params }: Props) {
     <div className="mx-auto max-w-5xl px-6 py-6 sm:py-14">
       {isRobuxPlus && <RobuxPlusPageGate />}
       <OrderingProgress currentStep={2} />
+      <ChatPricelistBanner gameId={game.id} />
 
       <nav className="text-muted-foreground mt-5 flex items-center gap-1.5 text-xs sm:text-sm">
         <Link href="/games" className="hover:text-foreground transition-colors">

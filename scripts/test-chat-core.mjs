@@ -194,7 +194,7 @@ describe("customer-facing message shape", () => {
     const message = toChatMessage(paymentRow, { viewer: "customer", viewerUserId: CUST_A });
     assert.deepEqual(message.payment, {
       provider: "gcash", label: "GCash", accountName: "A L M", accountNumber: "09171234567",
-      amount: 279, currency: "PHP", hasQr: true,
+      amount: 279, currency: "PHP", hasQr: true, orderNumber: null,
     });
     const json = JSON.stringify(message);
     for (const forbidden of ["qr_path", "qr/", "method_id", "m1", "sender_user_id", ROBERT, "attachment_path", "read_at"]) {

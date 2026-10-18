@@ -1,4 +1,5 @@
 import { quotePreview } from "./message-meta.mjs";
+import { toProductCard } from "./recommendation.mjs";
 
 // The only shapes chat data leaves the server in. Whitelists, never spreads:
 // a new database column can never leak by accident.
@@ -24,6 +25,35 @@ export function toPaymentCard(payload) {
     amount,
     currency: "PHP",
     hasQr: payload.has_qr === true,
+    // 0033: the order this card is for, in a customer conversation (null =
+    // a General Inquiry quote, or an order's own older chat).
+    orderNumber: typeof payload.order_number === "string" ? payload.order_number : null,
+  };
+}
+
+const SLIP_PAYMENT_STATES = new Set(["awaiting", "sent", "received"]);
+
+/**
+ * 0033: a structured order slip from the order's own records (snapshot +
+ * frozen lines + its payment cards), never parsed from chat text.
+ */
+export function toOrderSlip(order) {
+  if (!order || typeof order.orderNumber !== "string") return null;
+  return {
+    orderNumber: order.orderNumber,
+    createdAt: String(order.createdAt ?? ""),
+    total: Number(order.total) || 0,
+    status: String(order.status ?? "pending"),
+    itemCount: Number(order.itemCount) || 0,
+    items: (order.items ?? []).slice(0, 20).map((item) => ({
+      productName: String(item.productName ?? ""),
+      gameName: String(item.gameName ?? ""),
+      quantity: Number(item.quantity) || 0,
+      lineTotal: Number(item.lineTotal) || 0,
+      imageUrl: typeof item.imageUrl === "string" ? item.imageUrl : null,
+    })),
+    payment: SLIP_PAYMENT_STATES.has(order.payment) ? order.payment : "awaiting",
+    fromRecommendation: order.fromRecommendation === true,
   };
 }
 
@@ -85,7 +115,19 @@ export function toReplyQuote(target, { viewer, publicNames, albumCounts } = {}) 
 
 export function toChatMessage(
   row,
-  { viewer, viewerUserId, attachments, publicNames, paymentConfirmations, reactions, replyTargets, albumCounts } = {},
+  {
+    viewer,
+    viewerUserId,
+    attachments,
+    publicNames,
+    paymentConfirmations,
+    reactions,
+    replyTargets,
+    albumCounts,
+    slipOrders,
+    productLive,
+    productLinks,
+  } = {},
 ) {
   const base = {
     // 0032: only present when there is something to show.
@@ -104,6 +146,11 @@ export function toChatMessage(
     payment: row.kind === "payment" ? toPaymentCard(row.payload) : null,
     paymentReceived: row.kind === "payment" ? toPaymentReceived(paymentConfirmations?.get(row.id), viewer) : null,
     album: row.kind === "album" ? toAlbum(row.payload, attachments?.get(row.id)) : null,
+    // 0033: which order a slip / payment card belongs to (customer conversation).
+    orderRef: row.order_ref ?? null,
+    order: row.kind === "slip" && row.order_ref ? toOrderSlip(slipOrders?.get(row.order_ref)) : null,
+    product:
+      row.kind === "product" ? toProductCard(row.payload, productLive?.get(row.id) ?? {}, productLinks?.get(row.id) ?? null) : null,
   };
 
   if (viewer === "admin") {

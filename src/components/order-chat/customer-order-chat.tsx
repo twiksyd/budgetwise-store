@@ -19,12 +19,14 @@ import {
   customerChatLoader,
   readReceipts,
   useOrderMissing,
+  type ConversationOrder,
   type CustomerChatDetails,
 } from "@/lib/chat/client/customer-store";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
 import { assistantLine, currentAssistant } from "@/lib/chat/assistant.mjs";
 import { reactionsFromEvent } from "@/lib/chat/message-meta.mjs";
 import { useMessageFeatures } from "@/lib/chat/client/use-message-features";
+import { useOrderPaymentSync } from "@/lib/chat/client/use-order-payment-sync";
 import { useTypingIndicator, useTypingSender } from "@/lib/chat/client/use-typing";
 import { jsonInit } from "@/lib/chat/client/fetch-json";
 import { MessageActionsContext } from "@/components/chat/message-actions";
@@ -74,6 +76,13 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
   const adminRead = details?.adminRead ?? NO_CURSOR;
   const slots = details?.slots ?? [];
   const missing = useOrderMissing(orderNumber);
+  // 0033: this order lives in the customer's conversation — open it there,
+  // at this order (replace: Back skips the hop).
+  const movedTo = details?.movedTo ?? null;
+  useEffect(() => {
+    if (movedTo) router.replace(`/orders/${encodeURIComponent(movedTo)}?focus=${encodeURIComponent(orderNumber)}`);
+  }, [movedTo, orderNumber, router]);
+  const conversationOrders: ConversationOrder[] = details?.orders ?? [];
 
   // Thread + summary requested at the same time; cached data stays on screen.
   useEffect(() => {
@@ -165,6 +174,12 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
   }, [staleCardId, refreshMessage]);
 
   const paymentReceived = useMemo(() => latestPaymentReceived(thread.state.messages), [thread.state.messages]);
+  // 0033: each order's own payment state (summary reloads on every payment event).
+  const orderPaymentStates = useMemo(
+    () => (details?.orders ? new Map(details.orders.map((order) => [order.orderNumber, order.payment] as const)) : null),
+    [details?.orders],
+  );
+  useOrderPaymentSync(thread.state.messages, orderPaymentStates, thread.patchMessage, refreshMessage);
   const paymentSent = useMemo(
     () => Boolean(summary?.paymentSent) || thread.state.messages.some((message) => message.kind === "payment"),
     [summary?.paymentSent, thread.state.messages],
@@ -191,6 +206,7 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
     [],
   );
   const features = useMessageFeatures({ thread, senderLabelOf: replySenderLabel, quoteLabel });
+  useFocusOrderSlip(thread.state.loaded ? thread.state.messages : null, features.actions.jumpTo);
   const { stop: stopTyping } = typingSender;
   const sendText = useCallback(
     (text: string) => {
@@ -246,6 +262,17 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
   // A General Inquiry (no order): no payment notice, order summary or slip.
   const isInquiry = isInquiryKey(orderNumber);
   const welcome = useWelcome(orderNumber, messages?.signedIn ? messages.conversations.length : null);
+  const placedOrder = usePlacedOrder();
+  const orderTotal = details?.orderTotal ?? conversationOrders.length;
+  const patchOrderSlots = useCallback(
+    (orderRef: string, next: CustomerSlot[]) =>
+      patchDetails({
+        orders: (cache.get(orderNumber)?.details?.orders ?? []).map((order) =>
+          order.orderNumber === orderRef ? { ...order, slots: next } : order,
+        ),
+      }),
+    [cache, orderNumber, patchDetails],
+  );
 
   const completed = summary?.state === "done";
   const statusText = completed ? "Completed" : summary && !isInquiry ? formatOrderStatus(summary.status) : "";
@@ -273,7 +300,13 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
           </p>
           <p className="text-muted-foreground mt-0.5 truncate text-[11px] leading-tight" data-testid="chat-subject">
             {isInquiry ? (
-              "General Inquiry"
+              orderTotal > 0 ? (
+                <span data-testid="conversation-subject">
+                  Your chat · {orderTotal} order{orderTotal === 1 ? "" : "s"}
+                </span>
+              ) : (
+                "General Inquiry"
+              )
             ) : (
               <>
                 Order <span className="[font-variant-numeric:tabular-nums]">{orderNumber}</span>
@@ -293,7 +326,11 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
         </div>
       </header>
 
-      {missing && !summary ? (
+      {movedTo ? (
+        <div className="flex flex-1 items-center justify-center" aria-busy="true">
+          <span className="text-muted-foreground text-sm">Opening your chat…</span>
+        </div>
+      ) : missing && !summary ? (
         <OrderUnavailable isInquiry={isInquiry} />
       ) : (
         <>
@@ -309,7 +346,23 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
             <GamepassSection orderNumber={orderNumber} slots={slots} onSlotsChange={(next) => patchDetails({ slots: next })} />
           )}
 
+          {/* 0033: each order in the conversation with links still to add. */}
+          {conversationOrders
+            .filter((order) => order.slots.length > 0)
+            .map((order) => (
+              <GamepassSection
+                key={order.orderNumber}
+                orderNumber={order.orderNumber}
+                slots={order.slots}
+                labelPrefix={conversationOrders.length > 1 ? order.orderNumber : undefined}
+                onSlotsChange={(next) => patchOrderSlots(order.orderNumber, next)}
+              />
+            ))}
+
           {welcome.show && !isInquiry && <WelcomeCard onDismiss={welcome.dismiss} />}
+          {isInquiry && placedOrder.orderNumber && (
+            <PlacedBanner orderNumber={placedOrder.orderNumber} onDismiss={placedOrder.dismiss} />
+          )}
 
           <MessageActionsContext.Provider value={features.actions}>
           <ChatThread
@@ -421,17 +474,21 @@ function GamepassSection({
   orderNumber,
   slots,
   onSlotsChange,
+  labelPrefix,
 }: {
   orderNumber: string;
   slots: CustomerSlot[];
   onSlotsChange: (slots: CustomerSlot[]) => void;
+  /** 0033: which order, when the conversation has several. */
+  labelPrefix?: string;
 }) {
   const waiting = slots.filter((slot) => slot.status === "waiting").length;
   const [open, setOpen] = useState(waiting > 0);
   const label =
-    waiting > 0
+    (labelPrefix ? `${labelPrefix} · ` : "") +
+    (waiting > 0
       ? `Gamepass link${slots.length > 1 ? "s" : ""} needed (${slots.length - waiting} of ${slots.length} added)`
-      : `Gamepass link${slots.length > 1 ? "s" : ""} submitted ✓`;
+      : `Gamepass link${slots.length > 1 ? "s" : ""} submitted ✓`);
   return (
     <section className="border-border/60 border-b" aria-label="Gamepass links">
       <button
@@ -501,6 +558,82 @@ function WelcomeCard({ onDismiss }: { onDismiss: () => void }) {
         type="button"
         onClick={onDismiss}
         className="bg-primary text-primary-foreground mt-2.5 inline-flex min-h-10 items-center rounded-full px-4 text-sm font-semibold"
+      >
+        Got it
+      </button>
+    </div>
+  );
+}
+
+/**
+ * ?focus=BW-XXXX (My Orders, an old order link) or ?placed=BW-XXXX (just
+ * checked out): bring that order's slip into view once, with a soft glow.
+ */
+function useFocusOrderSlip(messages: ChatMessageDto[] | null, jumpTo: (messageId: string) => void) {
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current || !messages) return;
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get("focus") ?? params.get("placed");
+    if (!target || !/^BW-/.test(target)) {
+      done.current = true;
+      return;
+    }
+    const slip = messages.find((message) => message.kind === "slip" && message.orderRef === target);
+    if (!slip) return; // not loaded yet — the next page of messages may have it
+    done.current = true;
+    jumpTo(slip.id);
+    requestAnimationFrame(() => {
+      const node = document.querySelector<HTMLElement>(`[data-order-slip="${CSS.escape(target)}"]`);
+      node?.classList.add("bw-focus-ring");
+      window.setTimeout(() => node?.classList.remove("bw-focus-ring"), 2200);
+    });
+    if (params.has("focus")) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("focus");
+      window.history.replaceState(window.history.state, "", url);
+    }
+  }, [messages, jumpTo]);
+}
+
+/** ?placed=BW-XXXX after checkout (0033: the order is in this conversation). */
+function usePlacedOrder() {
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  useEffect(() => {
+    const placed = new URLSearchParams(window.location.search).get("placed");
+    if (placed && /^BW-[A-Z0-9]+$/.test(placed)) setOrderNumber(placed);
+  }, []);
+  const dismiss = useCallback(() => {
+    setOrderNumber(null);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("placed")) {
+      url.searchParams.delete("placed");
+      window.history.replaceState(window.history.state, "", url);
+    }
+  }, []);
+  return { orderNumber, dismiss };
+}
+
+function PlacedBanner({ orderNumber, onDismiss }: { orderNumber: string; onDismiss: () => void }) {
+  return (
+    <div
+      className="bw-card-in border-primary/15 bg-primary/5 mx-3 mt-3 flex items-start gap-3 rounded-2xl border p-3.5 sm:mx-4"
+      role="status"
+      data-testid="placed-banner"
+    >
+      <CheckCircle2 className="text-primary mt-0.5 size-5 shrink-0" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="font-heading text-sm font-semibold">
+          Order <span className="[font-variant-numeric:tabular-nums]">{orderNumber}</span> placed!
+        </p>
+        <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+          It&apos;s in this chat. BudgetWise will review it and send this order&apos;s payment details right here.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="text-primary hover:bg-primary/10 -m-1 inline-flex min-h-9 items-center rounded-full px-3 text-xs font-semibold"
       >
         Got it
       </button>
