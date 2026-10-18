@@ -369,3 +369,23 @@ describe("support identity customers see (public usernames only)", () => {
     assert.deepEqual(firsts, ["Twicks:true", "Twicks:false", "Zuno:true", "Zuno:false", "Twicks:true"]);
   });
 });
+
+// =================================================== General Inquiry (0026)
+import { isInquiryKey, isValidOrderNumber, sanitizeNextPath } from "../src/lib/order-chat.mjs";
+
+describe("General Inquiry keys", () => {
+  test("only GI-XXXXXXXX (8 hex, upper case) is an inquiry", () => {
+    for (const key of ["GI-7KQ2M9XA".replace(/[KQMX]/g, "A"), "GI-00000000", "GI-ABCDEF12"]) assert.equal(isInquiryKey(key), true, key);
+    for (const key of ["BW-AAAAAA", "GI-abcdef12", "GI-ABCDEF1", "GI-ABCDEF123", "gi-ABCDEF12", "GI-GHIJKLMN", "", null, 42]) {
+      assert.equal(isInquiryKey(key), false, String(key));
+    }
+  });
+  test("inquiry keys pass the existing chat-path validation, order numbers are never inquiries", () => {
+    assert.equal(isValidOrderNumber("GI-ABCDEF12"), true);
+    assert.equal(isInquiryKey("BW-12345678"), false);
+  });
+  test("Message Us Now can return to /messages after sign-in", () => {
+    assert.equal(sanitizeNextPath("/messages"), "/messages");
+    assert.equal(sanitizeNextPath("//evil.example/messages"), "/account/orders");
+  });
+});

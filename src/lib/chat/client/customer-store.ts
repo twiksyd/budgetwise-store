@@ -17,6 +17,8 @@ import { fetchJson, RequestError } from "@/lib/chat/client/fetch-json";
 type Cursor = { at: string | null; messageId: string | null };
 
 export interface CustomerOrderSummaryData {
+  /** "inquiry": the customer's General Inquiry (no items, total or payment). */
+  kind?: "order" | "inquiry";
   orderNumber: string;
   conversationId: string | null;
   totalAmount: number;
@@ -91,9 +93,9 @@ function createSignal() {
 const missingSignal = createSignal();
 const missing = new Set<string>();
 
-async function customerFetch<T>(url: string): Promise<T> {
+async function customerFetch<T>(url: string, init?: RequestInit): Promise<T> {
   try {
-    return await fetchJson<T>(url);
+    return await fetchJson<T>(url, init);
   } catch (error) {
     if (error instanceof RequestError && error.status === 401) window.location.assign(loginPath());
     if (error instanceof RequestError && error.status === 404) {
@@ -131,6 +133,29 @@ export const customerChatLoader = createConversationLoader<CustomerChatDetails>(
  * first one is still in flight.
  */
 export const readReceipts = new Map<string, string>();
+
+// ---- General Inquiry: one per customer, created on first use (POST)
+let inquiryKey: string | null = null;
+let inquiryRequest: Promise<string> | null = null;
+
+/** The signed-in customer's General Inquiry key (cached for the tab). */
+export function openInquiry(): Promise<string> {
+  if (inquiryKey) return Promise.resolve(inquiryKey);
+  inquiryRequest ??= customerFetch<{ key: string }>("/api/account/inquiry", { method: "POST" })
+    .then((body) => {
+      inquiryKey = body.key;
+      return body.key;
+    })
+    .finally(() => {
+      inquiryRequest = null;
+    });
+  return inquiryRequest;
+}
+
+/** Already known (from the conversation list) — opening it needs no request. */
+export function rememberInquiry(key: string | null) {
+  if (key) inquiryKey = key;
+}
 
 /** Touch / hover on a chat link: start loading before the tap completes. */
 export function warmChat(orderNumber: string) {
@@ -211,14 +236,31 @@ export async function loadOlderCompleted() {
 }
 
 // ---- in-app history: Back can return to the previous screen instantly
+const MESSAGES_ENTRY = "/messages";
 let previousPathname: string | null = null;
 let currentPathname: string | null = null;
+// /messages replaces itself with the chat it picks: remember what was before it.
+let messagesOrigin: string | null = null;
 export function recordPathname(pathname: string) {
   if (pathname === currentPathname) return;
+  if (pathname === MESSAGES_ENTRY) messagesOrigin = currentPathname;
   previousPathname = currentPathname;
   currentPathname = pathname;
 }
 export function cameFrom() {
   return previousPathname;
+}
+
+// Pages Back must not return to from a chat (a finished checkout, sign-in,
+// another chat, the /messages hop).
+const NOT_A_BACK_TARGET = /^\/(orders\/|checkout|login|auth|messages)/;
+
+/**
+ * Back from a chat: true = history.back() to the in-app screen it was opened
+ * from (instant, from memory); false = there is none, go to My Orders.
+ */
+export function chatBackReturns(): boolean {
+  const from = previousPathname === MESSAGES_ENTRY ? messagesOrigin : previousPathname;
+  return Boolean(from) && !NOT_A_BACK_TARGET.test(from as string);
 }
 

@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { isUuid, isValidOrderNumber, MESSAGE_RATE_LIMIT } from "@/lib/order-chat.mjs";
+import { isInquiryKey, isUuid, isValidOrderNumber, MESSAGE_RATE_LIMIT } from "@/lib/order-chat.mjs";
 import { buildOrderDetails } from "@/lib/chat/order-details.mjs";
 import type { OrderDetails } from "@/lib/chat/order-details.mjs";
 import { buildFulfillmentView } from "@/lib/chat/fulfillment-fields.mjs";
@@ -132,14 +132,67 @@ export async function getChatOrder(orderNumber: string): Promise<ChatOrder | nul
   };
 }
 
+export interface ChatInquiry {
+  key: string;
+  ownerUserId: string;
+  customerName: string | null;
+  createdAt: string;
+}
+
+/** A customer's General Inquiry thread (migration 0026), by its GI- key. */
+export async function getChatInquiry(key: string): Promise<ChatInquiry | null> {
+  if (!isInquiryKey(key)) return null;
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("store_chat_threads")
+    .select("key, owner_user_id, customer_name, created_at")
+    .eq("key", key)
+    .eq("kind", "inquiry")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data?.owner_user_id) return null;
+  return { key: data.key, ownerUserId: data.owner_user_id, customerName: data.customer_name, createdAt: data.created_at };
+}
+
+/**
+ * Any chat thread as the gates below see it: an order, or a General Inquiry
+ * presented with the same shape (no Roblox username, no total). `kind` says
+ * which; order-only features check it.
+ */
+export async function getChatThread(key: string): Promise<(ChatOrder & { kind: "order" | "inquiry" }) | null> {
+  if (isInquiryKey(key)) {
+    const inquiry = await getChatInquiry(key);
+    if (!inquiry) return null;
+    return {
+      kind: "inquiry",
+      orderNumber: inquiry.key,
+      ownerUserId: inquiry.ownerUserId,
+      buyerName: inquiry.customerName ?? "Customer",
+      buyerRobloxUsername: "",
+      totalAmount: 0,
+      createdAt: inquiry.createdAt,
+    };
+  }
+  const order = await getChatOrder(key);
+  return order ? { ...order, kind: "order" } : null;
+}
+
+/** The signed-in customer's one General Inquiry: returned, or created on first use. */
+export async function openCustomerInquiry(userId: string, name: string | null): Promise<string> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("store_open_inquiry", { p_user: userId, p_name: name });
+  if (error) throw toChatDataError(error);
+  return data as string;
+}
+
 export type ChatActorResult =
-  | { ok: true; role: ChatRole; userId: string; order: ChatOrder }
+  | { ok: true; role: ChatRole; userId: string; order: ChatOrder & { kind: "order" | "inquiry" } }
   | { ok: false; status: 401 | 403 | 404; error: string };
 
 /**
  * The gate for every chat endpoint. `as` is which side the caller wants to
- * act as — a request, never a grant. Unknown orders and other customers'
- * orders answer the same 404.
+ * act as — a request, never a grant. Unknown chats and other customers'
+ * chats (orders or General Inquiries) answer the same 404.
  */
 export async function resolveChatActor(
   orderNumber: string,
@@ -149,10 +202,10 @@ export async function resolveChatActor(
   if (!userId) return { ok: false, status: 401, error: "Please sign in first." };
 
   // Both lookups depend only on the verified user id: run them together.
-  // Nothing about the order is returned unless the checks below pass.
+  // Nothing about the chat is returned unless the checks below pass.
   const [isAdmin, order] = await Promise.all([
     as === "admin" ? isAdminUser(userId) : Promise.resolve(false),
-    getChatOrder(orderNumber),
+    getChatThread(orderNumber),
   ]);
   if (as === "admin" && !isAdmin) {
     return { ok: false, status: 403, error: "Not allowed." };
@@ -164,13 +217,13 @@ export async function resolveChatActor(
   return { ok: true, role: as, userId, order };
 }
 
-/** Order owner OR any admin (file routes). */
+/** Chat owner (order or General Inquiry) OR any admin (file routes). */
 export async function resolveOrderViewer(
   orderNumber: string,
 ): Promise<{ ok: true; role: ChatRole; userId: string } | { ok: false; status: number }> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, status: 401 };
-  const order = await getChatOrder(orderNumber);
+  const order = await getChatThread(orderNumber);
   if (!order) return { ok: false, status: 404 };
   if (order.ownerUserId === userId) return { ok: true, role: "customer", userId };
   if (await isAdminUser(userId)) return { ok: true, role: "admin", userId };
@@ -599,9 +652,10 @@ export function toInboxRow(row: StoreAdminInboxRpcRow): InboxRow {
   return {
     conversationId: row.conversation_id,
     orderNumber: row.order_number,
-    buyerName: row.buyer_name,
-    buyerRobloxUsername: row.buyer_roblox_username,
-    totalAmount: Number(row.total_amount),
+    // General Inquiry rows (0026) have no order fields.
+    buyerName: row.buyer_name ?? "Customer",
+    buyerRobloxUsername: row.buyer_roblox_username ?? "",
+    totalAmount: row.total_amount === null ? 0 : Number(row.total_amount),
     orderCreatedAt: row.order_created_at,
     orderStatus: row.order_status,
     assignedAdminId: row.assigned_admin_id,
@@ -811,8 +865,43 @@ export async function loadLineArtwork(lines: Array<{ gamepass_id?: string | null
   return getProductArtworkUrlMap(await getProductArtworkMapSafe(ids, { identity: null }));
 }
 
+/**
+ * Admin details panel for a General Inquiry: the customer (name, email) and
+ * the conversation's workflow state, in the order-details shape with no items,
+ * total or payment — so assignment and Done/Reopen work unchanged.
+ */
+async function loadInquiryDetails(key: string): Promise<OrderDetails | null> {
+  const inquiry = await getChatInquiry(key);
+  if (!inquiry) return null;
+  const supabase = createAdminClient();
+  const [conversation, owner] = await Promise.all([
+    getConversation(key),
+    supabase.auth.admin.getUserById(inquiry.ownerUserId),
+  ]);
+  const email = owner?.data?.user?.email ?? null;
+  return {
+    kind: "inquiry",
+    order: {
+      orderNumber: key,
+      createdAt: inquiry.createdAt,
+      status: "inquiry",
+      total: 0,
+      conversationId: conversation?.id ?? null,
+      assignedAdminId: conversation?.assigned_admin_id ?? null,
+      paymentDetailsSentAt: null,
+      state: conversation?.state ?? "active",
+      doneAt: conversation?.done_at ?? null,
+    },
+    customer: { name: inquiry.customerName ?? email ?? "Customer", robloxUsername: "", email },
+    viaPlus: null,
+    groups: [],
+    fulfillmentPending: 0,
+  };
+}
+
 /** Admin Order Details panel. Built from order records only — never chat. */
 export async function loadOrderDetails(orderNumber: string): Promise<OrderDetails | null> {
+  if (isInquiryKey(orderNumber)) return loadInquiryDetails(orderNumber);
   if (!isValidOrderNumber(orderNumber)) return null;
   const supabase = createAdminClient();
   const { data: snapshot, error } = await supabase
@@ -1235,6 +1324,8 @@ export async function loadCustomerOrderSection(
 
 /** Structured summary pinned above the customer's conversation. */
 export interface CustomerOrderSummary {
+  /** "inquiry": the customer's General Inquiry (no items, total or payment). */
+  kind: "order" | "inquiry";
   orderNumber: string;
   conversationId: string | null;
   totalAmount: number;
@@ -1250,6 +1341,25 @@ export interface CustomerOrderSummary {
 }
 
 export async function loadCustomerOrderSummary(orderNumber: string): Promise<CustomerOrderSummary | null> {
+  if (isInquiryKey(orderNumber)) {
+    const [inquiry, conversation] = await Promise.all([getChatInquiry(orderNumber), getConversation(orderNumber)]);
+    if (!inquiry) return null;
+    return {
+      kind: "inquiry",
+      orderNumber,
+      conversationId: conversation?.id ?? null,
+      totalAmount: 0,
+      createdAt: inquiry.createdAt,
+      buyerName: inquiry.customerName ?? "",
+      robloxUsername: "",
+      status: "",
+      state: conversation?.state ?? "active",
+      paymentSent: false,
+      itemCount: 0,
+      summary: "General Inquiry",
+      lines: [],
+    };
+  }
   const [order, lines, conversation, status] = await Promise.all([
     getChatOrder(orderNumber),
     loadOrderLines(orderNumber),
@@ -1259,6 +1369,7 @@ export async function loadCustomerOrderSummary(orderNumber: string): Promise<Cus
   if (!order) return null;
   const summarized = summarizeLines(lines, await loadLineArtwork(lines));
   return {
+    kind: "order",
     orderNumber: order.orderNumber,
     conversationId: conversation?.id ?? null,
     totalAmount: order.totalAmount,

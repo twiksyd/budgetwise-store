@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, ChevronRight, Loader2, MessageCircle, RotateCw, ShoppingBag } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatOrderStatus } from "@/components/order-chat/order-status-badge";
-import { useCustomerMessages } from "@/components/customer-messages/customer-messages-provider";
+import { useCustomerMessages, type CustomerConversation } from "@/components/customer-messages/customer-messages-provider";
+import { BrandAvatar } from "@/components/brand/brand-avatar";
 import {
   customerChatLoader,
   hasSessionCookie,
@@ -87,9 +88,11 @@ export function MyOrdersView() {
   };
 
   const completedRows = completed?.rows ?? [];
+  const inquiryCard = <InquiryCard inquiry={messages?.inquiry ?? null} />;
   if (open && completed && activeRows.length === 0 && completedRows.length === 0) {
     return (
-      <div className="mt-8">
+      <div className="mt-6 space-y-6">
+        {inquiryCard}
         <EmptyState
           icon={ShoppingBag}
           title="No orders yet"
@@ -102,6 +105,7 @@ export function MyOrdersView() {
 
   return (
     <div className="mt-6 space-y-8">
+      {inquiryCard}
       <section aria-labelledby="active-orders" aria-busy={!open}>
         <h2 id="active-orders" className="text-muted-foreground mb-2.5 text-xs font-bold tracking-wider uppercase">
           Active orders {open && <span className="font-semibold">({activeRows.length})</span>}
@@ -262,5 +266,49 @@ function OrderCard({ order }: { order: MyOrderCard }) {
         </div>
       </Link>
     </li>
+  );
+}
+
+/**
+ * The customer's General Inquiry, pinned above their orders: questions that
+ * are not about one order. Opens their one inquiry chat (created on first use).
+ */
+function InquiryCard({ inquiry }: { inquiry: CustomerConversation | null }) {
+  const badge = badgeText(inquiry?.unreadCount ?? 0);
+  const href = inquiry ? `/orders/${encodeURIComponent(inquiry.orderNumber)}` : "/messages?to=inquiry";
+  const warm = () => inquiry && warmChat(inquiry.orderNumber);
+  return (
+    <Link
+      href={href}
+      onPointerDown={warm}
+      onMouseEnter={warm}
+      onFocus={warm}
+      data-testid="inquiry-card"
+      className={cn(
+        "flex items-center gap-3 rounded-2xl border p-3.5 transition-[background-color,transform] duration-100 active:scale-[0.985] motion-reduce:active:scale-100",
+        badge
+          ? "border-primary/30 bg-primary/[0.04] hover:bg-primary/[0.08] active:bg-primary/[0.12]"
+          : "surface-premium border-border/60 hover:bg-muted/40 active:bg-muted/70",
+      )}
+    >
+      <BrandAvatar className="size-11" />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="font-heading text-sm font-semibold">General Inquiry</p>
+          {badge && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">
+              <MessageCircle className="size-3" /> New reply{(inquiry?.unreadCount ?? 0) > 1 ? ` · ${badge}` : ""}
+            </span>
+          )}
+        </div>
+        <p className="text-muted-foreground truncate text-sm">
+          {inquiry?.lastMessagePreview || "Questions about games, Robux or a future order"}
+        </p>
+      </div>
+      <span className="text-primary inline-flex shrink-0 items-center text-xs font-semibold">
+        {badge ? "Read" : "Message us"}
+        <ChevronRight className="size-3.5" />
+      </span>
+    </Link>
   );
 }

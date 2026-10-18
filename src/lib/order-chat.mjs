@@ -24,6 +24,15 @@ export function isValidOrderNumber(value) {
   return typeof value === "string" && ORDER_NUMBER_RE.test(value);
 }
 
+// A chat thread key is an order number, or a General Inquiry key
+// ('GI-' + 8 hex, migration 0026). Order numbers never look like this.
+const INQUIRY_KEY_RE = /^GI-[0-9A-F]{8}$/;
+
+/** A customer's General Inquiry thread (not an order). */
+export function isInquiryKey(value) {
+  return typeof value === "string" && INQUIRY_KEY_RE.test(value);
+}
+
 export function isUuid(value) {
   return typeof value === "string" && UUID_RE.test(value);
 }

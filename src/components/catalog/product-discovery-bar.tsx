@@ -170,7 +170,7 @@ export function BackToCategoriesButton({
     <button
       type="button"
       onClick={() => scrollToId(targetId)}
-      className="border-border/70 bg-background/95 text-foreground focus-visible:ring-ring/50 fixed bottom-20 right-4 z-40 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-medium shadow-lg backdrop-blur-md outline-none transition-colors focus-visible:ring-3 sm:bottom-8 sm:right-8"
+      className="border-border/70 bg-background/95 text-foreground focus-visible:ring-ring/50 fixed bottom-20 right-4 z-40 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-medium shadow-lg backdrop-blur-md outline-none transition-colors focus-visible:ring-3 sm:bottom-24 sm:right-8"
     >
       <ArrowUp className="size-3.5" />
       Categories

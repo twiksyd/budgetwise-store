@@ -1,4 +1,4 @@
-import { isUuid, isValidOrderNumber } from "@/lib/order-chat.mjs";
+import { isInquiryKey, isUuid, isValidOrderNumber } from "@/lib/order-chat.mjs";
 import { toChatMessage } from "@/lib/chat/dto.mjs";
 import { sendPaymentDetails } from "@/lib/queries/order-chat";
 import { chatError, chatJson, readSmallJson, requireAdminApi, routeErrorResponse } from "@/lib/order-chat-http";
@@ -13,6 +13,8 @@ export async function POST(request: Request, { params }: Context) {
   if (!gate.ok) return gate.response;
   const { orderNumber } = await params;
   if (!isValidOrderNumber(orderNumber)) return chatError("Not found.", 404);
+  // A General Inquiry has no order total to pay (the database refuses too).
+  if (isInquiryKey(orderNumber)) return chatError("Payment details are for orders only.", 409);
   const body = (await readSmallJson(request)) as { methodId?: unknown; clientMessageId?: unknown } | null;
   if (!isUuid(body?.methodId) || !isUuid(body?.clientMessageId)) return chatError("Invalid request.", 400);
   try {
