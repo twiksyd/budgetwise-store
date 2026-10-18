@@ -231,7 +231,8 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   // admin's confirmation arrives as an inbox row update and the card is
   // re-read from the server (also after a missed event).
   const { refreshMessage, addConfirmed, fetchNewer } = thread;
-  const confirmableId = isInquiry ? null : confirmablePaymentId(thread.state.messages, row?.paymentRequestMessageId);
+  // Order chats and (0031) General Inquiry quotes alike.
+  const confirmableId = confirmablePaymentId(thread.state.messages, row?.paymentRequestMessageId);
   const staleCardId = paymentMessageToRefresh(thread.state.messages, row?.paymentReceivedMessageId);
   useEffect(() => {
     if (staleCardId) void refreshMessage(staleCardId);
@@ -325,7 +326,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
             <p className="truncate text-sm font-bold">{customerName}</p>
             <p className="text-muted-foreground truncate text-xs">
               {isInquiry ? "General Inquiry" : `${orderNumber} · ${formatPrice(total)}`}
-              {paid && !isInquiry ? <span className="font-semibold text-emerald-700 dark:text-emerald-300"> · Paid ✓</span> : null}
+              {paid ? <span className="font-semibold text-emerald-700 dark:text-emerald-300"> · Paid ✓</span> : null}
               {attention === "unopened" ? (
                 <span className="font-semibold text-rose-700 dark:text-rose-300" data-testid="header-unopened"> · Unopened</span>
               ) : attention === "seen" ? (
@@ -420,18 +421,18 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           onTyping={onTyping}
           onStopTyping={onStopTyping}
           actions={
-            // Payment details are for orders only (a General Inquiry has no total).
-            isInquiry ? undefined : (
-              <PaymentDetailsDialog
-                orderNumber={orderNumber}
-                total={total}
-                alreadySent={Boolean(row?.paymentDetailsSentAt ?? details?.order.paymentDetailsSentAt)}
-                onSent={(message) => {
-                  thread.addConfirmed(message);
-                  void loadDetails();
-                }}
-              />
-            )
+            // Orders use the order total; a General Inquiry (0031) has no
+            // order, so the admin enters the quoted amount.
+            <PaymentDetailsDialog
+              orderNumber={orderNumber}
+              total={total}
+              mode={isInquiry ? "inquiry" : "order"}
+              alreadySent={Boolean(row?.paymentDetailsSentAt ?? details?.order.paymentDetailsSentAt)}
+              onSent={(message) => {
+                thread.addConfirmed(message);
+                void loadDetails();
+              }}
+            />
           }
         />
       </section>

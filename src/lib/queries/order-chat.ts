@@ -1324,6 +1324,33 @@ export async function sendPaymentDetails(input: {
 }
 
 /**
+ * Payment details in a General Inquiry (0031): the amount is the admin's
+ * explicit quote (no order exists to take a total from). The database
+ * checks the admin, the inquiry, the amount and idempotency, and assigns an
+ * Unassigned inquiry to the sender.
+ */
+export async function sendInquiryPaymentDetails(input: {
+  key: string;
+  actorId: string;
+  methodId: string;
+  amount: number;
+  clientMessageId: string;
+}): Promise<MessageRow> {
+  const supabase = createAdminClient();
+  const { data: messageId, error } = await supabase.rpc("store_send_inquiry_payment_details", {
+    p_key: input.key,
+    p_actor: input.actorId,
+    p_method_id: input.methodId,
+    p_amount: input.amount,
+    p_client_message_id: input.clientMessageId,
+  });
+  if (error) throw toChatDataError(error);
+  const message = await getMessageInOrder(input.key, messageId as string);
+  if (!message) throw new ChatDataError("Not found.", 404);
+  return message;
+}
+
+/**
  * "Payment Received" for one payment card (0027). The database checks the
  * admin, that the card belongs to this order and is its latest one, and
  * serializes concurrent confirmations; a repeat returns the first one.
@@ -1521,8 +1548,9 @@ export async function loadCustomerOrderSummary(orderNumber: string): Promise<Cus
       robloxUsername: "",
       status: "",
       state: conversation?.state ?? "active",
-      paymentSent: false,
-      paymentReceivedMessageId: null,
+      // 0031: an inquiry can carry a quoted payment card too.
+      paymentSent: Boolean(conversation?.payment_details_sent_at),
+      paymentReceivedMessageId: conversation?.payment_received_message_id ?? null,
       itemCount: 0,
       summary: "General Inquiry",
       lines: [],

@@ -1,5 +1,5 @@
 // Database tests without psql (e.g. Windows + a portable PostgreSQL such as
-// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026/0027/0028/0029/0030.
+// embedded-postgres). Same sequence as scripts/test-db.sh, plus 0025/0026/0027/0028/0029/0030/0031.
 // Runs ONLY against a throwaway LOCAL server — never production:
 //
 //   PGHOST=127.0.0.1 PGPORT=54329 PGUSER=postgres node scripts/test-db.mjs
@@ -348,6 +348,50 @@ async function concurrentAutoAssign(db) {
   }
 }
 
+/**
+ * 0031: two admins send quotes to the same Unassigned General Inquiry at the
+ * same moment (one owner, one audit entry), then two admins confirm the
+ * latest quote at once (one confirmation).
+ */
+async function concurrentInquiryPayments(db) {
+  const robert = "00000000-0000-0000-0000-0000000000a1";
+  const andre = "00000000-0000-0000-0000-0000000000a2";
+  const customer = "00000000-0000-0000-0000-0000000000d7";
+  const label = "two admins quoting / confirming an inquiry at once: one owner, one audit entry, one confirmation";
+  try {
+    await withDb(db, (setup) => withDb(db, (first) => withDb(db, async (second) => {
+      await setup.query("insert into auth.users (id, email) values ($1, 'race31@x.test') on conflict do nothing", [customer]);
+      const key = (await setup.query("select store_open_inquiry($1, 'Race') as key", [customer])).rows[0].key;
+      await setup.query("select store_post_message($1, 'customer', $2, 'text', 'price?', null, null, gen_random_uuid())", [key, customer]);
+      const method = (await setup.query("select id from store_payment_methods where is_active limit 1")).rows[0].id;
+      const send = "select store_send_inquiry_payment_details($1, $2, $3, 150, gen_random_uuid()) as id";
+      await first.query("begin");
+      await first.query(send, [key, robert, method]);
+      const pending = second.query(send, [key, andre, method]);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await first.query("commit");
+      const latest = (await pending).rows[0].id;
+      const confirm = "select store_confirm_payment($1, $2, $3) as r";
+      await first.query("begin");
+      const a = (await first.query(confirm, [key, latest, robert])).rows[0].r;
+      const pendingConfirm = second.query(confirm, [key, latest, andre]);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await first.query("commit");
+      const b = (await pendingConfirm).rows[0].r;
+      const facts = (await setup.query(`select
+          (select assigned_admin_id from store_order_conversations where order_number = $1) as owner,
+          (select count(*)::int from store_chat_audit_log where order_number = $1 and action = 'conversation.assigned') as audits,
+          (select count(*)::int from store_payment_confirmations where order_number = $1) as confirmations`, [key])).rows[0];
+      const ok = facts.owner === robert && facts.audits === 1 && facts.confirmations === 1 && a.created === true && b.created === false;
+      if (!ok) throw new Error(JSON.stringify({ facts, a, b }));
+    })));
+    console.log(`ok - ${label}`);
+  } catch (error) {
+    failures += 1;
+    console.log(`FAIL: ${label}: ${error.message}`);
+  }
+}
+
 async function freshBase(db) {
   await admin(`create database ${db}`);
   for (const name of [
@@ -392,6 +436,10 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0030_store_inbox_attention_filters.sql"));
   await later(() => apply(MAIN, "../migrations/0030_store_inbox_attention_filters.sql")); // second run
   await later(() => check(MAIN, "33_attention_filters_test.sql"));
+  await later(() => apply(MAIN, "../migrations/0031_store_inquiry_payment_details.sql"));
+  await later(() => apply(MAIN, "../migrations/0031_store_inquiry_payment_details.sql")); // second run
+  await later(() => check(MAIN, "34_inquiry_payment_test.sql"));
+  await later(() => concurrentInquiryPayments(MAIN));
   // The repository's own sequence also covers a database where 0023 ran
   // (throwaway local database only; production never runs 0023 here).
   await apply(MAIN, "../migrations/0023_store_chat_legacy_cleanup.sql");
@@ -404,6 +452,7 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0028_store_inbox_reply_state.sql"));
   await later(() => apply(MAIN, "../migrations/0029_store_inbox_assign_games_avatars.sql"));
   await later(() => apply(MAIN, "../migrations/0030_store_inbox_attention_filters.sql"));
+  await later(() => apply(MAIN, "../migrations/0031_store_inquiry_payment_details.sql"));
 
   // ---- Database 2: rollbacks.
   await freshBase(ROLL);
@@ -453,6 +502,11 @@ async function run() {
   await later(() => apply(ROLL, "../rollback/0030_down.sql"));
   await later(() => check(ROLL, "51_rollback_0030_test.sql"));
   await later(() => apply(ROLL, "../migrations/0030_store_inbox_attention_filters.sql")); // re-apply after rollback
+  // 0031 round trip.
+  await later(() => apply(ROLL, "../migrations/0031_store_inquiry_payment_details.sql"));
+  await later(() => apply(ROLL, "../rollback/0031_down.sql"));
+  await later(() => check(ROLL, "52_rollback_0031_test.sql"));
+  await later(() => apply(ROLL, "../migrations/0031_store_inquiry_payment_details.sql")); // re-apply after rollback
 
   // ---- Database 3: order-chat regression. 0026 is in place BEFORE the
   // existing order-chat suites run, so every order behaviour they check
@@ -469,6 +523,7 @@ async function run() {
       "../migrations/0028_store_inbox_reply_state.sql",
       "../migrations/0029_store_inbox_assign_games_avatars.sql",
       "../migrations/0030_store_inbox_attention_filters.sql",
+      "../migrations/0031_store_inquiry_payment_details.sql",
     ]) await apply(REGR, name);
     await check(REGR, "25_fulfillment_test.sql");
     await check(REGR, "26_workflow_albums_test.sql");

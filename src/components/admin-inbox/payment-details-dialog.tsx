@@ -10,29 +10,45 @@ import { PaymentCard } from "@/components/chat/payment-card";
 import { useInbox } from "@/components/admin-inbox/inbox-provider";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
 import { fetchJson, jsonInit, newClientId, RequestError } from "@/lib/chat/client/fetch-json";
+import { parseQuoteAmount } from "@/lib/chat/payment-quote.mjs";
+import { formatPaymentAmount } from "@/lib/pricing";
 
 /**
  * Preview then send the official payment details. The preview shows what
- * the database will send: the stored account and the order total (the
- * server, not this dialog, decides the amount). One client id per opening,
- * so double-clicking Send creates one message.
+ * the database will send: the stored account and the amount.
+ *   order    the amount is the order total (the server decides it).
+ *   inquiry  (0031) no order exists, so the admin types the price they
+ *            quoted; the customer sees exactly that amount.
+ * One client id per request (opening + amount + account), so double-clicking
+ * Send or retrying after a dropped connection creates one message.
  */
 export function PaymentDetailsDialog({
   orderNumber,
   total,
   alreadySent,
   onSent,
+  mode = "order",
 }: {
   orderNumber: string;
   total: number;
   alreadySent: boolean;
   onSent: (message: ChatMessageDto) => void;
+  mode?: "order" | "inquiry";
 }) {
   const { paymentMethods } = useInbox();
   const [open, setOpen] = useState(false);
   const [methodId, setMethodId] = useState(paymentMethods[0]?.id ?? "");
   const [sending, setSending] = useState(false);
-  const clientMessageId = useMemo(() => (open ? newClientId() : ""), [open]);
+  const [amountText, setAmountText] = useState("");
+  const isQuote = mode === "inquiry";
+  const quoted = isQuote ? parseQuoteAmount(amountText) : null;
+  const amount = isQuote ? quoted : total;
+  // A different amount or account is a different request: new client id.
+  const clientMessageId = useMemo(
+    () => (open ? newClientId() : ""),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [open, isQuote ? quoted : null, isQuote ? methodId : null],
+  );
   const method = paymentMethods.find((item) => item.id === methodId) ?? null;
 
   useEffect(() => {
@@ -40,15 +56,16 @@ export function PaymentDetailsDialog({
   }, [methodId, paymentMethods]);
 
   async function send() {
-    if (!method || sending) return;
+    if (!method || sending || amount === null) return;
     setSending(true);
     try {
       const body = await fetchJson<{ message: ChatMessageDto }>(
         `/api/admin/orders/${encodeURIComponent(orderNumber)}/payment-details`,
-        jsonInit("POST", { methodId: method.id, clientMessageId }),
+        jsonInit("POST", isQuote ? { methodId: method.id, clientMessageId, amount } : { methodId: method.id, clientMessageId }),
       );
       onSent(body.message);
       setOpen(false);
+      setAmountText("");
     } catch (error) {
       toast.error(error instanceof RequestError ? error.message : "Could not send payment details.");
     } finally {
@@ -70,7 +87,9 @@ export function PaymentDetailsDialog({
             <div>
               <DialogPrimitive.Title className="font-heading text-lg font-semibold">Send payment details</DialogPrimitive.Title>
               <DialogPrimitive.Description className="text-muted-foreground mt-1 text-sm">
-                The customer will see this card. The amount is the order total.
+                {isQuote
+                  ? "Enter the price you quoted. The customer sees exactly this amount on the card."
+                  : "The customer will see this card. The amount is the order total."}
               </DialogPrimitive.Description>
             </div>
             <DialogPrimitive.Close className="hover:bg-muted rounded-full p-1.5" aria-label="Close">
@@ -101,7 +120,26 @@ export function PaymentDetailsDialog({
                   ))}
                 </select>
               )}
-              {method && (
+              {isQuote && (
+                <label className="mt-4 block">
+                  <span className="text-sm font-semibold">Amount to pay (PHP)</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={amountText}
+                    onChange={(event) => setAmountText(event.target.value)}
+                    placeholder="e.g. 499.50"
+                    aria-invalid={amountText.trim() !== "" && quoted === null}
+                    className="border-input focus-visible:ring-ring/40 mt-1 h-11 w-full rounded-lg border px-3 text-base font-semibold outline-none focus-visible:ring-3 [font-variant-numeric:tabular-nums]"
+                    data-testid="quote-amount"
+                  />
+                  {amountText.trim() !== "" && quoted === null && (
+                    <span className="text-destructive mt-1 block text-xs">Enter an amount from ₱0.01 to ₱1,000,000 (up to 2 decimals).</span>
+                  )}
+                </label>
+              )}
+              {method && amount !== null && (
                 <div className="mt-4 flex justify-center">
                   <PaymentCard
                     card={{
@@ -109,7 +147,7 @@ export function PaymentDetailsDialog({
                       label: method.label,
                       accountName: method.accountName,
                       accountNumber: method.accountNumber,
-                      amount: total,
+                      amount,
                       currency: "PHP",
                       hasQr: false,
                     }}
@@ -121,11 +159,11 @@ export function PaymentDetailsDialog({
               {method?.hasQr && <p className="text-muted-foreground mt-2 text-center text-xs">The customer will also get a “View QR” button.</p>}
               {alreadySent && (
                 <p className="mt-3 rounded-lg bg-amber-500/10 p-2.5 text-xs font-medium text-amber-900 dark:text-amber-200">
-                  Payment details were already sent for this order. Sending again posts another card.
+                  Payment details were already sent in this chat. Sending again posts another card; only the newest can be confirmed.
                 </p>
               )}
-              <Button type="button" className="mt-4 h-11 w-full" disabled={!method || sending} onClick={() => void send()}>
-                {sending ? "Sending…" : "Send to customer"}
+              <Button type="button" className="mt-4 h-11 w-full" disabled={!method || sending || amount === null} onClick={() => void send()}>
+                {sending ? "Sending…" : isQuote && amount !== null ? `Send ${formatPaymentAmount(amount)} to customer` : "Send to customer"}
               </Button>
             </>
           )}
