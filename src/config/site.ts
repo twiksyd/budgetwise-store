@@ -17,6 +17,8 @@ export const siteConfig = {
   // "BudgetWise DGM" page (facebook.com/messages/t/1472889109233950). The
   // previous page was 61589047545427 ("BudgetWise Discounted Game Market").
   messengerPageId: "1472889109233950",
+  // The same page's public Facebook profile ("Visit our page").
+  facebookPageUrl: "https://www.facebook.com/profile.php?id=61595426676262",
   // Where customers continue an order after checkout:
   //   channel "messenger"  the order-slip page opens Messenger (above) with
   //                        the order message ready to send;
