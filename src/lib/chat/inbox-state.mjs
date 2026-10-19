@@ -13,6 +13,7 @@ const ACTIVE_QUEUE_FILTERS = new Set(["active", "needs_reply", "unopened", "seen
 /** Done conversations never sit in the Active queue, even while open. */
 function excludedByState(row, filter) {
   const state = row.state ?? "active";
+  if (filter === "unread" && (row.historyUnreadCount ?? 0) > 0) return false;
   if (ACTIVE_QUEUE_FILTERS.has(filter)) return state !== "active";
   if (filter === "done") return state !== "done";
   return false;
@@ -238,7 +239,7 @@ export function inboxReducer(state, action) {
         ...applyReadToViewedBy(row, state.me, event.last_read_at, event.last_read_message_id),
         myReadAt: event.last_read_at,
         myReadMessageId: event.last_read_message_id,
-        unreadCount: coversLast ? 0 : row.unreadCount,
+        unreadCount: coversLast ? (row.historyUnreadCount ?? 0) : row.unreadCount,
       };
       const updated = withRow(state, next, undefined);
       return coversLast ? updated : markStale(updated, event.order_number);
@@ -255,7 +256,7 @@ export function inboxReducer(state, action) {
           ...state.rows,
           [action.orderNumber]: {
             ...applyReadToViewedBy(row, state.me, action.at, action.messageId),
-            unreadCount: 0,
+            unreadCount: row.historyUnreadCount ?? 0,
             myReadAt: action.at,
             myReadMessageId: action.messageId,
           },

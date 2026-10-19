@@ -1,4 +1,4 @@
-import { conversationSources, linkCompletedHistory } from "@/lib/queries/chat-history";
+import { conversationSources, linkCompletedHistory, historySourceStatus } from "@/lib/queries/chat-history";
 import "server-only";
 import { createHmac } from "node:crypto";
 import { cache } from "react";
@@ -909,7 +909,8 @@ export async function loadInboxPage(
     ...(games ? { p_games: games, p_include_inquiries: includeInquiries } : {}),
   });
   if (error) throw toChatDataError(error);
-  const all = (data ?? []).map(toInboxRow);
+  const history = await historySourceStatus((data ?? []).map((r) => r.order_number), adminId);
+  const all = (data ?? []).map((r) => ({ ...toInboxRow(r), historyUnreadCount: (history[r.order_number] ?? []).reduce((n, s) => n + s.unread, 0) }));
   const rows = all.slice(0, INBOX_PAGE_SIZE);
   const last = rows[rows.length - 1];
   return {
@@ -994,7 +995,9 @@ export async function loadInboxRow(adminId: string, orderNumber: string): Promis
   });
   if (error) throw toChatDataError(error);
   const row = data?.[0];
-  return row ? toInboxRow(row) : null;
+  if (!row) return null;
+  const history = await historySourceStatus([orderNumber], adminId);
+  return { ...toInboxRow(row), historyUnreadCount: (history[orderNumber] ?? []).reduce((n, s) => n + s.unread, 0) };
 }
 
 export async function assignConversation(

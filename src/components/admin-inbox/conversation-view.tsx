@@ -10,6 +10,7 @@ import { ProductPickerDialog } from "@/components/admin-inbox/product-picker-dia
 import { VouchRequestAction } from "@/components/admin-inbox/vouch-request-action";
 import { ProductCardViewerContext } from "@/components/chat/product-card";
 import { AssignmentControl } from "@/components/admin-inbox/assignment-control";
+import { HistoryUnread } from "@/components/chat/history-unread";
 import { ChatThread } from "@/components/chat/chat-thread";
 import { Composer } from "@/components/chat/composer";
 import { PaymentConfirmContext, type PaymentConfirmActions } from "@/components/chat/payment-card";
@@ -473,10 +474,17 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           </div>
         )}
 
+        <HistoryUnread sources={details?.historySources} onFocus={thread.ensureMessageLoaded} />
         <PaymentConfirmContext.Provider value={paymentActions}>
         <ProductCardViewerContext.Provider value="admin">
         <MessageActionsContext.Provider value={features.actions}>
         <ChatThread
+          historySources={details?.historySources}
+          onHistoryReadUpTo={async (messageId) => {
+            try { await fetchJson(`/api/order-chat/${encodeURIComponent(orderNumber)}/read?as=admin`, jsonInit("POST", { messageId }));
+              await Promise.all([loadDetails(), fetchJson<{ row: InboxRow }>(`/api/admin/inbox/${encodeURIComponent(orderNumber)}`).then(({ row: refreshed }) => dispatch({ type: "upsert_row", row: refreshed, activeOrderNumber: orderNumber }))]); }
+            catch { toast.error("Could not acknowledge this historical message."); }
+          }}
           state={thread.state}
           slip={slip}
           loadError={thread.loadError}

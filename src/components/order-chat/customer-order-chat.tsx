@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Link2, SearchX, ShieldCheck } from "lucide-react";
+import { HistoryUnread } from "@/components/chat/history-unread";
 import { ChatThread } from "@/components/chat/chat-thread";
 import { Composer } from "@/components/chat/composer";
 import { ConnectionBadge } from "@/components/chat/connection-badge";
@@ -49,7 +50,7 @@ const MY_ORDERS = "/account/orders";
 // "payment": an admin confirmed a payment (0027); the payload is empty too.
 // "typing" / "reaction" (0032): an admin is composing (public username only);
 // a message's reactions changed (counts + my own, no admin ids).
-const EVENTS = ["message", "seen", "fulfillment", "state", "assistant", "payment", "typing", "reaction", "history"] as const;
+const EVENTS = ["message", "seen", "fulfillment", "state", "assistant", "payment", "typing", "reaction", "history", "history_read"] as const;
 // Mobile networks drop and recover constantly; only a drop that lasts
 // this long is worth telling the customer about.
 const CONNECTION_GRACE_MS = 8000;
@@ -122,6 +123,7 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
         resetTyping();
       }
       if (event === "typing") onTypingEvent(payload);
+      if (event === "history_read") { reloadDetails(); return; }
       if (event === "history") { void thread.returnToLatest(); reloadDetails(); return; }
       if (event === "payment" && typeof payload.message_id === "string") void thread.refreshMessage(payload.message_id);
       if (event === "reaction" && typeof payload.message_id === "string") {
@@ -368,8 +370,14 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
             <PlacedBanner orderNumber={placedOrder.orderNumber} onDismiss={placedOrder.dismiss} />
           )}
 
+          <HistoryUnread sources={details?.historySources} onFocus={thread.ensureMessageLoaded} />
           <MessageActionsContext.Provider value={features.actions}>
           <ChatThread
+            historySources={details?.historySources}
+            onHistoryReadUpTo={async (messageId) => {
+              try { await fetchJson(`/api/order-chat/${encodeURIComponent(orderNumber)}/read?as=customer`, jsonInit("POST", { messageId })); reloadDetails(); }
+              catch { toast.error("Could not acknowledge this historical message."); }
+            }}
             state={thread.state}
             orderNumber={orderNumber}
             slip={slip}

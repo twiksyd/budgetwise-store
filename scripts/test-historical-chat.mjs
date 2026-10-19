@@ -76,3 +76,33 @@ test('an older page already in flight cannot append a gap after opening a histor
  assert.deepEqual(cache.getThread(home).messages.map(m=>m.id),['a']);
  assert.equal(cache.getThread(home).hasOlder,true);
 });
+
+// A primary read cursor must never acknowledge separate historical sources.
+const {createInboxState,inboxReducer,visibleRows,matchesView}=await import('../src/lib/chat/inbox-state.mjs');
+const historyInboxRow={orderNumber:home,conversationId:'conv',buyerName:'Customer',buyerRobloxUsername:'customer',lastMessageId:'primary',lastMessageAt:'2026-01-01T00:00:00Z',lastMessageKind:'text',lastSenderRole:'customer',gameIds:[],gameNames:[],viewedBy:[],unreadCount:7,historyUnreadCount:5,state:'active'};
+test('reading the primary conversation preserves five historical unread messages',()=>{
+ const state=createInboxState({me:'admin',rows:[historyInboxRow]});
+ const next=inboxReducer(state,{type:'mark_read',orderNumber:home,at:'2026-01-01T00:00:00Z',messageId:'primary'});
+ assert.equal(next.rows[home].unreadCount,5);
+ assert.equal(next.rows[home].historyUnreadCount,5);
+});
+test('another tab advancing the primary read cursor preserves historical unread',()=>{
+ const state=createInboxState({me:'admin',rows:[historyInboxRow]});
+ const next=inboxReducer(state,{type:'read_event',event:{order_number:home,admin_user_id:'admin',last_read_at:'2026-01-02T00:00:00Z',last_read_message_id:'primary'},activeOrderNumber:null});
+ assert.equal(next.rows[home].unreadCount,5);
+});
+test('Done homes with unread history remain discoverable through the Unread filter',()=>{
+ const done={...historyInboxRow,state:'done'};
+ const unread=createInboxState({me:'admin',rows:[done],view:{filter:'unread'}});
+ assert.equal(visibleRows(unread).length,1);
+ const active=createInboxState({me:'admin',rows:[done],view:{filter:'active'}});
+ assert.equal(matchesView(done, active.view, 'admin'),false,'Done status is not silently changed');
+ const ordinary=createInboxState({me:'admin',rows:[{...done,historyUnreadCount:0}],view:{filter:'unread'}});
+ assert.equal(matchesView(ordinary.rows[home], ordinary.view, 'admin'),false,'existing Done queue behavior is unchanged');
+});
+test('an authoritative historical read refresh changes totals without touching primary cursors',()=>{
+ const state=createInboxState({me:'admin',rows:[historyInboxRow]});
+ const next=inboxReducer(state,{type:'upsert_row',row:{...historyInboxRow,historyUnreadCount:3,unreadCount:5}});
+ assert.equal(next.rows[home].unreadCount,5);
+ assert.equal(next.rows[home].myReadAt,undefined);
+});

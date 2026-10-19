@@ -1,6 +1,7 @@
 import { isUuid } from "@/lib/order-chat.mjs";
 import {
   listMessages,
+  getMessageInOrder,
   markAdminRead,
   markCustomerRead,
   resolveChatActor,
@@ -35,15 +36,19 @@ export async function POST(request: Request, { params }: Context) {
     let messageId = body?.messageId;
     if (messageId === undefined || messageId === null) {
       const newest = await listMessages(orderNumber, { limit: 1 });
-      messageId = newest[newest.length - 1]?.id;
+      // Old clients must never acknowledge a historical source implicitly.
+      messageId = newest.filter((m) => m.order_number === orderNumber).at(-1)?.id;
       if (!messageId) return chatJson({ ok: true });
     }
     if (!isUuid(messageId)) return chatError("Invalid request.", 400);
 
+    const message = await getMessageInOrder(orderNumber, messageId);
+    if (!message) return chatError("Message not found.", 404);
+    const sourceKey = message.order_number;
     const cursor =
       actor.role === "admin"
-        ? await markAdminRead(orderNumber, actor.userId, messageId)
-        : await markCustomerRead(orderNumber, messageId);
+        ? await markAdminRead(sourceKey, actor.userId, messageId)
+        : await markCustomerRead(sourceKey, messageId);
     return chatJson({ ok: true, cursor });
   } catch (error) {
     return routeErrorResponse(error, "Mark chat read");

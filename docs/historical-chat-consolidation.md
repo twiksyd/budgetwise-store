@@ -1,7 +1,10 @@
 # Historical chat consolidation (0035)
 
-This change has **not** been applied to production. Do not apply 0023, change
-Realtime public access, or modify XOB schema/status. The migration defaults OFF.
+For the additive 0036 upgrade, use [the compatibility runbook](historical-chat-compatibility.md). Its scoped approvals and source-specific unread rules supersede the activation instructions below.
+
+0035 is deployed; these original implementation notes are retained for reference.
+Use the compatibility runbook above for 0036 activation. Do not apply 0023, change
+Realtime public access, or modify XOB schema/status. Consolidation remains OFF.
 
 ## Data model and safety
 

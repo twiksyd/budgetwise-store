@@ -1,4 +1,4 @@
-import { historicalHome } from "@/lib/queries/chat-history";
+import { historicalHome, historySourceStatus } from "@/lib/queries/chat-history";
 import { loadOrderDetails } from "@/lib/queries/order-chat";
 import { chatError, chatJson, requireAdminApi, routeErrorResponse } from "@/lib/order-chat-http";
 
@@ -11,7 +11,7 @@ export async function GET(request: Request, { params }: Context) {
   const { orderNumber } = await params;
   try {
     const details = await loadOrderDetails(orderNumber);
-    return details ? chatJson({ details: { ...details, readOnlyHome: await historicalHome(orderNumber) } }) : chatError("Not found.", 404);
+    return details ? chatJson({ details: { ...details, readOnlyHome: await historicalHome(orderNumber), historySources: (await historySourceStatus([orderNumber], gate.adminId))[orderNumber] ?? [] } }) : chatError("Not found.", 404);
   } catch (error) {
     return routeErrorResponse(error, "Load order details");
   }

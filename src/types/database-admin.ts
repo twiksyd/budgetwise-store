@@ -366,11 +366,11 @@ export type StoreOrderConversationRow = {
   assigned_admin_id: string | null;
   assigned_by: string | null;
   assigned_at: string | null;
-  last_message_id: string;
-  last_message_at: string;
-  last_message_kind: StoreOrderMessageKind;
+  last_message_id: string | null;
+  last_message_at: string | null;
+  last_message_kind: StoreOrderMessageKind | null;
   last_message_preview: string;
-  last_sender_role: "customer" | "admin";
+  last_sender_role: "customer" | "admin" | null;
   customer_read_at: string | null;
   customer_read_message_id: string | null;
   admin_read_at: string | null;
@@ -883,6 +883,9 @@ export type AdminDatabase = {
       };
     };
     Functions: {
+      store_history_sources: { Args: { p_homes: string[]; p_admin?: string }; Returns: { home_key: string; source_key: string; admin_unread: number; customer_unread: number; first_admin_unread: string | null; first_customer_unread: string | null }[] };
+      store_history_review: { Args: { p_after?: string; p_customer?: string; p_offset?: number }; Returns: unknown };
+
       store_admin_inbox: {
         Args: {
           p_admin: string;

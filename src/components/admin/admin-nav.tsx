@@ -11,6 +11,7 @@ import {
 
 const LINKS = [
   { href: "/admin/orders", label: "Order Chats", icon: MessageSquare },
+  { href: "/admin/history", label: "Historical Review", icon: null },
   { href: "/admin/quick-replies", label: "Quick Replies", icon: MessagesSquare },
   { href: "/admin/payment-settings", label: "Payment Settings", icon: Wallet },
   { href: "/admin/store-operations", label: "Operations", icon: null },

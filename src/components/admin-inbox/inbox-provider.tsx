@@ -117,7 +117,7 @@ export function useInbox() {
 // Hidden-urgent count (0029): re-read at most this often after activity.
 const OUTSIDE_RECOUNT_MS = 1500;
 
-const EVENTS = ["message", "conversation", "read", "signal", "quick_replies", "fulfillment", "reaction", "history", "history_payment"] as const;
+const EVENTS = ["message", "conversation", "read", "signal", "quick_replies", "fulfillment", "reaction", "history", "history_payment", "history_read"] as const;
 
 export interface InboxGameOption {
   id: string;
@@ -368,6 +368,10 @@ export function InboxProvider({
             if (cache.has(orderNumber)) void loader.ensureThread(orderNumber, { maxAgeMs: 0 });
           }
           break;
+        case "history_read":
+          if (orderNumber) {
+            void fetchJson<{ row: InboxRow }>(`/api/admin/inbox/${encodeURIComponent(orderNumber)}`).then(({ row }) => dispatch({ type: "upsert_row", row, activeOrderNumber: active.orderNumber })).catch(() => undefined);
+          }
         case "history_payment":
           if (orderNumber) { cache.markDetailsStale(orderNumber); void loader.ensureDetails(orderNumber, { force: true }); }
           break;

@@ -20,13 +20,14 @@ for (const viewport of [{width:390,height:844},{width:430,height:932},{width:144
    const page=await context.newPage();
    const errors=[];page.on('pageerror',e=>errors.push(e.message));
    const requests=[];
+   const reads=[]; let historicalUnread=1;
    await page.route('**/api/**',async route=>{
     const url=new URL(route.request().url());requests.push(url.pathname+url.search);
     let body={};
-    if(url.pathname.endsWith('/summary')) body=url.pathname.includes(source)?{movedTo:home}:{summary:{kind:'inquiry',orderNumber:home,conversationId:null,totalAmount:0,createdAt:'2026-01-01T00:00:00Z',buyerName:'Customer',robloxUsername:'',status:'',state:'active',paymentSent:false,itemCount:0,summary:'Conversation',lines:[]},adminRead:{at:null,messageId:null},ownRead:{at:null,messageId:null},slots:[],orders:[],orderTotal:0};
+    if(url.pathname.endsWith('/summary')) body=url.pathname.includes(source)?{movedTo:home}:{summary:{kind:'inquiry',orderNumber:home,conversationId:null,totalAmount:0,createdAt:'2026-01-01T00:00:00Z',buyerName:'Customer',robloxUsername:'',status:'',state:'active',paymentSent:false,itemCount:0,summary:'Conversation',lines:[]},adminRead:{at:null,messageId:null},ownRead:{at:null,messageId:null},historySources:[{sourceKey:source,unread:historicalUnread,firstUnreadId:historicalUnread?id:null}],slots:[],orders:[],orderTotal:0};
     else if(url.pathname.endsWith('/history-focus')) body={messageId:id,messages:[old],hasOlder:false};
     else if(url.pathname.endsWith('/messages')) body={messages:url.searchParams.has('after')?[]:[latest],hasOlder:true};
-    else if(url.pathname.endsWith('/read')) body={cursor:{}};
+    else if(url.pathname.endsWith('/read')) { const messageId=route.request().postDataJSON()?.messageId; reads.push(messageId); if(messageId===id) historicalUnread=0; body={cursor:{}}; }
     else if(url.pathname==='/api/account/conversations') body={userId:'35000000-0000-4000-8000-000000000099',conversations:[]};
     else if(url.pathname==='/api/account/orders') body={rows:[],nextCursor:null};
     else if(url.pathname.endsWith('/reactions')) body={messageId:id,reactions:{counts:{love:1},mine:'love'}};
@@ -40,6 +41,17 @@ for (const viewport of [{width:390,height:844},{width:430,height:932},{width:144
    assert.equal(await page.locator(`[data-message-id="${id}"]`).count(),1,'historical message is not duplicated');
    assert.ok(requests.filter(url=>url.includes('/history-focus')).length<=2,'deep link uses bounded requests rather than draining pages');
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,'no horizontal overflow');
+   assert.ok(!reads.includes(id),'opening historical history never acknowledges it automatically');
+   await page.getByRole('button',{name:`${source} · 1 unread`,exact:true}).waitFor();
+   await page.getByRole('button',{name:'Return to latest to reply'}).click();
+   await page.getByText('Your current BudgetWise conversation.',{exact:true}).waitFor();
+   await page.getByRole('button',{name:`${source} · 1 unread`,exact:true}).click();
+   await page.getByText('Your historical order is ready.',{exact:true}).waitFor();
+   assert.ok(!reads.includes(id),'jumping to unread history preserves its original unread state');
+   assert.ok(requests.filter(url=>url.includes('/history-focus')).length<=3,'unread jump uses one bounded history request');
+   await page.getByRole('button',{name:`Mark ${source} read through this message`,exact:true}).click();
+   await page.waitForFunction(() => ![...document.querySelectorAll('button')].some(b=>b.textContent?.includes(' · 1 unread')));
+   assert.ok(reads.includes(id),'explicit historical acknowledgment sends the displayed original message ID');
    await page.getByRole('button',{name:'Return to latest to reply'}).click();
    await page.getByText('Your current BudgetWise conversation.',{exact:true}).waitFor();
    await page.getByRole('textbox',{name:'Message',exact:true}).waitFor();

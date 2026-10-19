@@ -490,6 +490,52 @@ async function concurrentHistory(db) {
   console.log('ok - concurrent different-source links, duplicate retries, message-before-link and link-before-message');
 }
 
+async function concurrentCompatibility(db) {
+  const actor = "00000000-0000-0000-0000-0000000000a1";
+  const owner = "00000000-0000-0000-0000-000000003610";
+  const batch = "00000000-0000-0000-0000-000000003611";
+  await withDb(db, async c => {
+    await c.query("insert into auth.users(id,email) values($1,'compat-race@test.local')",[owner]);
+    for (const key of ['BW-CRACE1','BW-CRACE2']) {
+      await c.query(`insert into store_order_snapshots(order_number,idempotency_key,request_fingerprint,view_token_hash,buyer_name,buyer_roblox_username,total_amount,owner_user_id)
+      values($1,'compat-race-'||$1,repeat('5',64),repeat('5',64),'Customer','customer',150,$2)`,[key,owner]);
+      await c.query("insert into orders(order_number,buyer_name,buyer_roblox_username,status) values($1,'Customer','customer','delivered')",[key]);
+      await c.query("insert into store_order_line_snapshots(order_number,line_index,product_name,game_name,robux_amount,quantity,unit_price,line_total) values($1,0,'Test','Game',100,1,150,150)",[key]);
+      const {rows}=await c.query("select store_post_message($1,'customer',$2,'text','Unread historical work',null,null,gen_random_uuid()) as posted",[key,owner]);
+      await c.query("select store_set_conversation_state($1,$2,'done',$3)",[key,actor,rows[0].posted.message.id]);
+    }
+  });
+  await withDb(db, first => withDb(db, async second => {
+    const init="select store_initialize_customer_conversation($1,$2) as home";
+    const results=await Promise.all([first.query(init,[owner,actor]),second.query(init,[owner,actor])]);
+    if(results[0].rows[0].home!==results[1].rows[0].home) throw new Error('concurrent initialization duplicated customer identity');
+    const audit=await first.query("select count(*)::int n from store_history_operations where customer_id=$1 and operation='initialize'",[owner]);
+    if(audit.rows[0].n!==1) throw new Error('concurrent initialization was not idempotent');
+    const home=results[0].rows[0].home;
+    await first.query("delete from store_order_conversations where order_number=$1",[home]);
+    await Promise.all([
+      first.query(init,[owner,actor]),
+      second.query("select store_post_message($1,'customer',$2,'text','Concurrent real inquiry',null,null,gen_random_uuid())",[home,owner])
+    ]);
+    const activity=await first.query("select c.last_message_id=m.id correct from store_order_conversations c join lateral(select id from store_order_messages where order_number=c.order_number order by created_at desc,id desc limit 1) m on true where c.order_number=$1",[home]);
+    if(activity.rows[0]?.correct!==true) throw new Error('initializer/message race lost real activity');
+    await first.query("update store_chat_settings set historical_chat_enabled=true,historical_chat_compat_ready=true where id");
+    await first.query("select store_approve_history_batch($1,$2,$3,now()+interval '1 hour')",[['BW-CRACE1','BW-CRACE2'],actor,batch]);
+    const linked=await Promise.all([
+      first.query("select * from store_link_history_batch($1,$2,$3)",[['BW-CRACE1','BW-CRACE2'],actor,batch]),
+      second.query("select store_link_historical_chat($1,$2) as linked",['BW-CRACE2',actor])
+    ]);
+    if(!linked.every(r=>r.rows.every(row=>row.linked))) throw new Error('concurrent scoped batch/direct linking failed');
+    const reread=await first.query("select * from store_link_history_batch($1,$2,$3)",[['BW-CRACE2','BW-CRACE1'],actor,batch]);
+    if(!reread.rows.every(r=>r.linked)) throw new Error('bounded linking retry failed');
+    const count=await first.query("select count(*)::int n from store_chat_history_links where owner_user_id=$1",[owner]);
+    if(count.rows[0].n!==2) throw new Error('duplicate or missing scoped mapping');
+    const cursors=await first.query("select count(*)::int n from store_conversation_reads where order_number=any($1)",[['BW-CRACE1','BW-CRACE2']]);
+    if(cursors.rows[0].n!==0) throw new Error('concurrent linking fabricated read cursors');
+  }));
+  console.log('ok - concurrent empty initialization, scoped batch/direct linking, idempotent retries, missing-cursor preservation');
+}
+
 async function freshBase(db) {
   await admin(`create database ${db}`);
   for (const name of [
@@ -516,6 +562,11 @@ async function run() {
     ]) await apply(MAIN, `../migrations/${name}`);
     await check(MAIN, "38_historical_chat_test.sql");
     await concurrentHistory(MAIN);
+    await check(MAIN, "39_historical_performance_test.sql");
+    await apply(MAIN, "../migrations/0036_store_historical_chat_compatibility.sql");
+    await apply(MAIN, "../migrations/0036_store_historical_chat_compatibility.sql");
+    await check(MAIN, "40_historical_compatibility_test.sql");
+    await concurrentCompatibility(MAIN);
     await check(MAIN, "39_historical_performance_test.sql");
     return;
   }
@@ -569,6 +620,11 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0035_store_historical_chat_links.sql"));
   await later(() => check(MAIN, "38_historical_chat_test.sql"));
   await later(() => concurrentHistory(MAIN));
+  await later(() => check(MAIN, "39_historical_performance_test.sql"));
+  await later(() => apply(MAIN, "../migrations/0036_store_historical_chat_compatibility.sql"));
+  await later(() => apply(MAIN, "../migrations/0036_store_historical_chat_compatibility.sql"));
+  await later(() => check(MAIN, "40_historical_compatibility_test.sql"));
+  await later(() => concurrentCompatibility(MAIN));
   await later(() => check(MAIN, "39_historical_performance_test.sql"));
   if (!process.argv.includes("--without-legacy-cleanup")) {
   // The repository's own sequence also covers a database where 0023 ran
@@ -684,6 +740,7 @@ async function run() {
       "../migrations/0033_store_unified_customer_thread.sql",
       "../migrations/0034_store_vouch_requests.sql",
       "../migrations/0035_store_historical_chat_links.sql",
+      "../migrations/0036_store_historical_chat_compatibility.sql",
     ]) await apply(REGR, name);
     await check(REGR, "25_fulfillment_test.sql");
     await check(REGR, "26_workflow_albums_test.sql");
