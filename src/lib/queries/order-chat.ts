@@ -1845,6 +1845,39 @@ export async function getOrderStatus(orderNumber: string) {
 }
 
 /**
+ * Ties a freshly created order to the signed-in account only — no chat
+ * message (orders that continue on Messenger). Owner set only while empty;
+ * false when the order already belongs to a different account.
+ */
+export async function attachOrderOwner({ orderNumber, userId }: { orderNumber: string; userId: string }): Promise<boolean> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("store_order_snapshots")
+    .update({ owner_user_id: userId })
+    .eq("order_number", orderNumber)
+    .is("owner_user_id", null);
+  if (error) throw error;
+  const order = await getChatOrder(orderNumber);
+  return Boolean(order && order.ownerUserId === userId);
+}
+
+/**
+ * True when an order continues on Messenger: it belongs to an account but
+ * has no on-site chat (no message of its own and not part of a customer
+ * conversation).
+ */
+export async function isMessengerOrder(orderNumber: string): Promise<boolean> {
+  const supabase = createAdminClient();
+  const [messages, thread] = await Promise.all([
+    supabase.from("store_order_messages").select("id").eq("order_number", orderNumber).limit(1),
+    supabase.from("store_chat_threads").select("home_key").eq("key", orderNumber).maybeSingle(),
+  ]);
+  if (messages.error) throw messages.error;
+  if (thread.error && thread.error.code !== "42703") throw thread.error;
+  return (messages.data ?? []).length === 0 && !thread.data?.home_key;
+}
+
+/**
  * Ties a freshly created order to the signed-in account and posts the order
  * slip as the first message. Safe to run again for a replayed checkout: the
  * owner is only set while empty, and the slip is unique per order.

@@ -9,7 +9,9 @@ import {
   getOrderConfirmation,
   OrderCreationError,
 } from "@/lib/queries/orders";
-import { attachOrderOwnerAndSlip } from "@/lib/queries/order-chat";
+import { attachOrderOwner, attachOrderOwnerAndSlip } from "@/lib/queries/order-chat";
+import { chooseOrderChannel } from "@/lib/order-handoff.mjs";
+import { siteConfig } from "@/config/site";
 import { attachOrderToCustomer } from "@/lib/queries/customer-thread";
 import { buildChatSlipMessage } from "@/lib/messenger";
 import { getCustomerUser } from "@/lib/auth/customer";
@@ -264,6 +266,25 @@ export async function POST(request: Request) {
       throw new Error("Order was created but its slip could not be read");
     }
 
+    // Messenger (default): the order belongs to the account but gets no
+    // on-site chat; the browser continues on the order-slip page, which
+    // opens Messenger. The on-site conversation is kept for the sources in
+    // siteConfig.orderHandoff.siteChatSources.
+    if (chooseOrderChannel(parsed.data.source, siteConfig.orderHandoff) === "messenger") {
+      if (!(await attachOrderOwner({ orderNumber, userId: customer.id }))) {
+        return orderError(
+          "IDEMPOTENCY_CONFLICT",
+          "This order request was already used. Please refresh and try again.",
+          409,
+          requestId,
+        );
+      }
+      return NextResponse.json(
+        { orderNumber, handoff: "messenger", requestId },
+        { status: 201, headers: { "X-Request-Id": requestId } },
+      );
+    }
+
     const slipText = buildChatSlipMessage(confirmation);
     const unified = await attachOrderToCustomer({
       orderNumber,
@@ -288,7 +309,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { orderNumber, chatKey, requestId },
+      { orderNumber, chatKey, handoff: "site", requestId },
       { status: 201, headers: { "X-Request-Id": requestId } },
     );
   } catch (error) {

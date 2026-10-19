@@ -12,7 +12,7 @@
     "test:order-access": "node scripts/test-order-access.mjs",
     "test:order-idempotency": "node scripts/test-order-idempotency.mjs",
     "test:order-chat": "node --test scripts/test-order-chat.mjs",
-    "test:chat": "node --test scripts/test-order-chat.mjs scripts/test-chat-core.mjs scripts/test-conversation-cache.mjs scripts/test-customer-ux.mjs scripts/test-album-safety.mjs scripts/test-payment-received.mjs scripts/test-inbox-attention.mjs scripts/test-inbox-games-avatars.mjs scripts/test-inbox-attention-states.mjs scripts/test-inquiry-payment.mjs scripts/test-message-features.mjs scripts/test-unified-thread.mjs scripts/test-vouch-request.mjs scripts/test-historical-chat.mjs",
+    "test:chat": "node --test scripts/test-order-chat.mjs scripts/test-chat-core.mjs scripts/test-conversation-cache.mjs scripts/test-customer-ux.mjs scripts/test-album-safety.mjs scripts/test-payment-received.mjs scripts/test-inbox-attention.mjs scripts/test-inbox-games-avatars.mjs scripts/test-inbox-attention-states.mjs scripts/test-inquiry-payment.mjs scripts/test-message-features.mjs scripts/test-unified-thread.mjs scripts/test-order-handoff.mjs scripts/test-vouch-request.mjs scripts/test-historical-chat.mjs",
     "test:db": "bash scripts/test-db.sh",
     "test:e2e": "node --test --test-concurrency=1 --test-timeout=900000 scripts/e2e/shared-inbox.e2e.mjs scripts/e2e/inbox-switching.e2e.mjs scripts/e2e/customer-messenger.e2e.mjs scripts/e2e/album-integrity.e2e.mjs",
     "test:order-integrity": "node --test scripts/test-order-snapshot.mjs scripts/test-order-access.mjs scripts/test-order-idempotency.mjs",

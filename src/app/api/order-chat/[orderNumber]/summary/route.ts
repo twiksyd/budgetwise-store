@@ -4,9 +4,12 @@ import {
   loadConversationOrders,
   loadCustomerFulfillment,
   loadCustomerOrderSummary,
+  isMessengerOrder,
   loadPublicAdminNames,
   resolveChatActor,
 } from "@/lib/queries/order-chat";
+import { orderMessengerLink } from "@/lib/order-handoff.mjs";
+import { siteConfig } from "@/config/site";
 import { historicalHome, historySourceStatus } from "@/lib/queries/chat-history";
 import { getOrderHomeKey } from "@/lib/queries/customer-thread";
 import { isInquiryKey } from "@/lib/order-chat.mjs";
@@ -33,6 +36,18 @@ export async function GET(_request: Request, { params }: Context) {
     if (!inquiry) {
       const homeKey = await getOrderHomeKey(orderNumber);
       if (homeKey) return chatJson({ movedTo: homeKey });
+      // An order that continues on Messenger has no on-site chat.
+      if (await isMessengerOrder(orderNumber)) {
+        const summary = await loadCustomerOrderSummary(orderNumber);
+        if (!summary) return chatError("Order not found.", 404);
+        return chatJson({
+          summary,
+          messenger: orderMessengerLink(siteConfig.messengerPageId, orderNumber),
+          adminRead: { at: null, messageId: null },
+          ownRead: { at: null, messageId: null },
+          slots: [],
+        });
+      }
     }
     // All in parallel: the assistant lookup adds no round trip.
     const [summary, conversation, slots, publicNames, lastAdminId, conversationOrders] = await Promise.all([
