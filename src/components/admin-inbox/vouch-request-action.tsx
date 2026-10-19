@@ -40,8 +40,8 @@ export function VouchRequestAction({
     <Button
       type="button"
       variant="outline"
-      size="icon"
-      className="shrink-0 rounded-full"
+      size="sm"
+      className="min-h-10 shrink-0 gap-1.5 rounded-lg px-3 text-xs"
       onClick={() => void requestVouch()}
       disabled={sending || alreadyRequested}
       aria-label={alreadyRequested ? "Vouch already requested" : "Request Vouch"}
@@ -49,6 +49,7 @@ export function VouchRequestAction({
       data-testid="request-vouch-action"
     >
       {sending ? <Loader2 className="size-4 animate-spin" /> : alreadyRequested ? <Check className="size-4 text-emerald-600" /> : <HeartHandshake className="size-4" />}
+      <span>Vouch</span>
     </Button>
   );
 }

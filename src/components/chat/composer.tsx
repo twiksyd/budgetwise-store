@@ -47,6 +47,7 @@ export function Composer({
   onTyping,
   onStopTyping,
   actions,
+  separateActions = false,
   disabled = false,
   replyTo = null,
   onCancelReply,
@@ -65,6 +66,8 @@ export function Composer({
   onTyping?: () => void;
   onStopTyping?: () => void;
   actions?: React.ReactNode;
+  /** Admin workspace keeps order actions out of the writing area. */
+  separateActions?: boolean;
   disabled?: boolean;
 }) {
   const [text, setText] = useState("");
@@ -333,6 +336,7 @@ export function Composer({
         </p>
       )}
 
+      {separateActions && actions && <div className="mb-2 flex flex-wrap items-center gap-2" aria-label="Customer actions">{actions}</div>}
       <div className="flex items-end gap-2">
         <input
           ref={fileInput}
@@ -360,7 +364,7 @@ export function Composer({
         >
           <ImagePlus className="size-5" />
         </Button>
-        {actions}
+        {!separateActions && actions}
         <textarea
           ref={textarea}
           value={text}

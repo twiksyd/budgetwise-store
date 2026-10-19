@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { ArrowLeft, CheckCircle2, PanelRight, RotateCcw, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useInbox } from "@/components/admin-inbox/inbox-provider";
+import { ConversationTools } from "@/components/admin-inbox/conversation-tools";
 import { OrderDetailsPanel } from "@/components/admin-inbox/order-details-panel";
 import { PaymentDetailsDialog } from "@/components/admin-inbox/payment-details-dialog";
 import { ProductPickerDialog } from "@/components/admin-inbox/product-picker-dialog";
@@ -57,7 +58,15 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   const detailsLoading = !details && !entry?.detailsError;
   const setDetails = useCallback((next: OrderDetails) => cache.setDetailsLocal(orderNumber, next), [cache, orderNumber]);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsVisible, setDetailsVisible] = useState(true);
   const sectionRef = useRef<HTMLElement>(null);
+  const jumpHighlight = useRef<{ node: HTMLElement; timer: number } | null>(null);
+  useEffect(() => () => {
+    if (jumpHighlight.current) {
+      window.clearTimeout(jumpHighlight.current.timer);
+      jumpHighlight.current.node.classList.remove("bw-jump-highlight");
+    }
+  }, []);
 
   // Opened by click/Enter: put the cursor in the reply box (desktop only —
   // on phones that would pop the keyboard over the chat).
@@ -383,6 +392,32 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
     [orderNumber, row?.buyerRobloxUsername, details?.customer.robloxUsername, row?.totalAmount, details?.order.total],
   );
 
+  const focusReply = () => {
+    sectionRef.current?.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]')?.focus({ preventScroll: true });
+  };
+  const jumpToMessage = (id: string) => {
+    // Scope to this mounted conversation. No cursor or workflow writes.
+    const message = document.getElementById(`message-${id}`);
+    if (!message || !sectionRef.current?.contains(message)) return;
+    const scroller = message.closest('[role="log"]');
+    if (!(scroller instanceof HTMLElement)) return;
+    scroller.scrollTo({ top: scroller.scrollTop + message.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 32, behavior: "auto" });
+    if (jumpHighlight.current) {
+      window.clearTimeout(jumpHighlight.current.timer);
+      jumpHighlight.current.node.classList.remove("bw-jump-highlight");
+    }
+    // Restart the short highlight even when jumping to the same message.
+    void message.offsetWidth;
+    message.classList.add("bw-jump-highlight");
+    jumpHighlight.current = {
+      node: message,
+      timer: window.setTimeout(() => {
+        message.classList.remove("bw-jump-highlight");
+        jumpHighlight.current = null;
+      }, 1800),
+    };
+  };
+
   const panel = (
     <OrderDetailsPanel
       orderNumber={orderNumber}
@@ -394,9 +429,9 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   );
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="admin-conversation-enter flex min-h-0 flex-1">
       <section ref={sectionRef} className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={`Chat with ${customerName}`}>
-        <header className="border-border/60 flex items-center gap-2 border-b px-3 py-2.5 sm:px-4">
+        <header className="border-border/60 flex flex-wrap items-center gap-2 border-b px-3 py-3 sm:px-5">
           <button
             type="button"
             onClick={() => select(null)}
@@ -405,9 +440,9 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           >
             <ArrowLeft className="size-4" />
           </button>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold">{customerName}</p>
-            <p className="text-muted-foreground truncate text-xs">
+          <div className="min-w-[140px] flex-1">
+            <p className="truncate text-base font-semibold">{customerName}</p>
+            <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
               {hasOrders
                 ? `${orderCount} order${orderCount === 1 ? "" : "s"} · latest ${row?.latestOrderNumber ?? conversationOrders[0]?.order.orderNumber ?? ""}`
                 : isInquiry
@@ -425,7 +460,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
               {activity.text ? <span className="text-primary font-semibold"> · {activity.text}</span> : null}
             </p>
           </div>
-          <AssignmentControl orderNumber={orderNumber} assignedAdminId={assignedAdminId} className="hidden sm:flex xl:hidden" />
+          <AssignmentControl orderNumber={orderNumber} assignedAdminId={assignedAdminId} className={detailsVisible ? "hidden sm:flex xl:hidden" : "hidden sm:flex"} />
           {conversationState === "active" ? (
             <button
               type="button"
@@ -450,8 +485,12 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           )}
           <button
             type="button"
-            onClick={() => setDetailsOpen(true)}
-            className="border-border hover:bg-muted inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-semibold xl:hidden"
+            onClick={() => {
+              if (window.matchMedia("(min-width: 1280px)").matches) setDetailsVisible((visible) => !visible);
+              else setDetailsOpen(true);
+            }}
+            aria-label="Toggle customer and order details"
+            className="border-border hover:bg-muted inline-flex min-h-10 items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-semibold"
           >
             <PanelRight className="size-4" />
             <span className="hidden sm:inline">{hasOrders ? "Customer & orders" : isInquiry ? "Customer" : "Order details"}</span>
@@ -474,11 +513,18 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           </div>
         )}
 
+        <ConversationTools
+          messages={thread.state.messages}
+          onJump={jumpToMessage}
+          onReply={focusReply}
+          canReply={thread.state.loaded && !thread.state.historyWindow && !details?.readOnlyHome}
+        />
         <HistoryUnread sources={details?.historySources} onFocus={thread.ensureMessageLoaded} />
         <PaymentConfirmContext.Provider value={paymentActions}>
         <ProductCardViewerContext.Provider value="admin">
         <MessageActionsContext.Provider value={features.actions}>
         <ChatThread
+          className="admin-message-canvas"
           historySources={details?.historySources}
           onHistoryReadUpTo={async (messageId) => {
             try { await fetchJson(`/api/order-chat/${encodeURIComponent(orderNumber)}/read?as=admin`, jsonInit("POST", { messageId }));
@@ -518,7 +564,8 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
         {details?.readOnlyHome ? (
           <a href={`/admin/orders/${encodeURIComponent(details.readOnlyHome)}`} className="text-primary border-border border-t p-4 text-center text-sm font-semibold">Historical chat · Continue in current conversation</a>
         ) : !thread.state.historyWindow && <Composer
-          placeholder="Reply… (/ for saved replies)"
+          separateActions
+          placeholder="Write a reply… (/ for saved replies)"
           onSendText={sendText}
           replyTo={features.replyTo}
           onCancelReply={features.cancelReply}
@@ -560,7 +607,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
         />}
       </section>
 
-      <aside className="border-border/60 hidden min-h-0 w-[360px] shrink-0 overflow-y-auto border-l xl:block" aria-label={hasOrders ? "Customer and orders" : isInquiry ? "Customer" : "Order details"}>
+      <aside className={`border-border/60 hidden min-h-0 w-[320px] shrink-0 overflow-y-auto border-l 2xl:w-[360px] ${detailsVisible ? "xl:block" : ""}`} aria-label={hasOrders ? "Customer and orders" : isInquiry ? "Customer" : "Order details"}>
         {panel}
       </aside>
 

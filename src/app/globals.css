@@ -422,3 +422,24 @@
     transition: none;
   }
 }
+
+/* Scoped to staff workspace: quiet surfaces and stable message positions. */
+.admin-workspace {
+  font-family: var(--font-sans, ui-sans-serif), system-ui, sans-serif;
+}
+.admin-message-canvas { background: color-mix(in oklch, var(--muted) 28%, var(--background)); }
+.admin-message-canvas [role="log"] { padding-inline: clamp(12px, 2vw, 32px); }
+.admin-context-result { transition: background-color 140ms ease, border-color 140ms ease; }
+@keyframes admin-conversation-enter {
+  from { opacity: 0.65; }
+  to { opacity: 1; }
+}
+.admin-conversation-enter { animation: admin-conversation-enter 140ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .admin-conversation-enter { animation: none; }
+  .admin-context-result { transition: none; }
+}
+.admin-message-canvas [role="log"] > div { max-width: 880px; margin-inline: auto; }
+.admin-message-canvas [data-sender-label] { font-size: 12px; letter-spacing: 0.01em; }
+.admin-message-canvas [data-message-id] .whitespace-pre-wrap { line-height: 1.65; }
+.admin-workspace h1, .admin-workspace h2, .admin-workspace h3 { font-family: inherit; }
