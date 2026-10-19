@@ -47,6 +47,30 @@ export interface SlipInfo {
 
 export type OpenMedia = (items: ViewerItem[], index: number) => void;
 
+// Only links to Messenger (m.me) become clickable — every other URL in a
+// message stays plain text, so chat text can't smuggle arbitrary links.
+const MESSENGER_LINK = /(https:\/\/m\.me\/[A-Za-z0-9.]+(?:\?[A-Za-z0-9=&%._-]*)?)/g;
+
+function withMessengerLinks(text: string, isMine: boolean) {
+  const parts = text.split(MESSENGER_LINK);
+  if (parts.length === 1) return text;
+  return parts.map((part, index) =>
+    index % 2 === 1 ? (
+      <a
+        key={index}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn("font-semibold underline underline-offset-2 break-all", isMine ? "text-primary-foreground" : "text-primary")}
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    ),
+  );
+}
+
 const mediaSrc = (id: string, size: "thumb" | "full") => `/api/order-chat/media/${id}?size=${size}`;
 
 export function MessageBubble({
@@ -147,7 +171,7 @@ export function MessageBubble({
               onJump={() => actions.jumpTo(message.replyTo!.id)}
             />
           )}
-          <p className="break-words whitespace-pre-wrap">{message.body}</p>
+          <p className="break-words whitespace-pre-wrap">{withMessengerLinks(message.body, isMine)}</p>
         </div>
       )}
       {actions && <HoverActions onOpenPicker={() => setPickerOpen(true)} onReply={() => actions.reply(message)} />}

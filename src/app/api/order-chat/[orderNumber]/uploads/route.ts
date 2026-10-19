@@ -1,3 +1,4 @@
+import { siteConfig } from "@/config/site";
 import {
   inspectImage,
   isUuid,
@@ -45,6 +46,12 @@ export async function POST(request: Request, { params }: Context) {
   const { orderNumber } = await params;
   const actor = await resolveChatActor(orderNumber, parseActingAs(request));
   if (!actor.ok) return chatError(actor.error, actor.status);
+
+  // Customers' on-site chats are history only while orders continue on
+  // Messenger (siteConfig.orderHandoff.onSiteChatReadOnly). Admins can reply.
+  if (actor.role === "customer" && siteConfig.orderHandoff.onSiteChatReadOnly) {
+    return chatError("This chat is now read-only. Please message us on Messenger at BudgetWise DGM.", 403);
+  }
 
   if (!limiter.take(actor.userId).ok) return chatError("Uploading too fast. Please wait a moment.", 429);
 

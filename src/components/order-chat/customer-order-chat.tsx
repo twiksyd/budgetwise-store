@@ -40,6 +40,8 @@ import { isInquiryKey } from "@/lib/order-chat.mjs";
 import { BrandAvatar } from "@/components/brand/brand-avatar";
 import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
+import { orderMessengerLink } from "@/lib/order-handoff.mjs";
 
 export type { CustomerOrderSummaryData } from "@/lib/chat/client/customer-store";
 
@@ -423,6 +425,8 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
 
           {details?.readOnlyHome ? (
             <Link href={`/orders/${encodeURIComponent(details.readOnlyHome)}`} className="text-primary border-border border-t p-4 text-center text-sm font-semibold">Historical chat · Continue in your current conversation</Link>
+          ) : siteConfig.orderHandoff.onSiteChatReadOnly ? (
+            <ReadOnlyNotice link={orderMessengerLink(siteConfig.messengerPageId, null)} />
           ) : !thread.state.historyWindow && <Composer
             placeholder="Type a message…"
             onSendText={sendText}
@@ -433,6 +437,30 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
             onCancelReply={features.cancelReply}
           />}
         </>
+      )}
+    </div>
+  );
+}
+
+/** Customers read their on-site history here; new messages go to Messenger. */
+function ReadOnlyNotice({ link }: { link: string | null }) {
+  return (
+    <div
+      className="border-border/60 bg-background flex flex-col items-center gap-2 border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-center sm:flex-row sm:text-left"
+      data-testid="chat-read-only"
+    >
+      <p className="text-muted-foreground min-w-0 flex-1 text-xs leading-relaxed">
+        <span className="text-foreground font-semibold">We&apos;ve moved to Messenger.</span> Your chat history stays here; for new
+        orders and questions, message our new page BudgetWise DGM.
+      </p>
+      {link && (
+        <a
+          href={link}
+          className="bg-primary text-primary-foreground inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold"
+        >
+          <MessageCircle className="size-4" aria-hidden />
+          Open BudgetWise DGM
+        </a>
       )}
     </div>
   );
