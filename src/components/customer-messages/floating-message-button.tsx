@@ -7,6 +7,7 @@ import { useCustomerMessages } from "@/components/customer-messages/customer-mes
 import { hasSessionCookie, warmChat } from "@/lib/chat/client/customer-store";
 import { badgeText } from "@/lib/chat/order-summary.mjs";
 import { cn } from "@/lib/utils";
+import { useContactChannel } from "@/lib/chat/client/use-contact-channel";
 
 const COACHMARK_KEY = "bw:coachmark:messages:v1";
 const MY_ORDERS = "/account/orders";
@@ -25,6 +26,11 @@ const MESSAGES_ENTRY = "/messages";
  * The badge is the server's unread count; a new reply gives it ONE short
  * nudge, and opening the messenger stops it. Every destination is a real
  * page: Back returns here.
+ *
+ * While orders continue on Messenger (siteConfig.orderHandoff), the button
+ * opens the BudgetWise DGM Messenger page instead — except for a signed-in
+ * customer with an unread reply in an existing on-site chat, who still goes
+ * there so no answer is missed.
  */
 export function FloatingMessageButton() {
   const router = useRouter();
@@ -62,6 +68,8 @@ export function FloatingMessageButton() {
   };
 
   const unread = messages?.conversations.find((row) => row.unreadCount > 0) ?? null;
+  const contact = useContactChannel();
+  const toMessenger = contact.channel === "messenger" && Boolean(contact.messengerLink) && !unread;
   const target = signedIn === true ? (unread?.orderNumber ?? (messages?.hasOrders ? null : messages?.inquiry?.orderNumber ?? null)) : null;
   const href =
     signedIn === false
@@ -74,15 +82,15 @@ export function FloatingMessageButton() {
             ? MY_ORDERS
             : MESSAGES_ENTRY;
   useEffect(() => {
-    router.prefetch(href);
-  }, [href, router]);
+    if (!toMessenger) router.prefetch(href);
+  }, [href, router, toMessenger]);
 
   if (!messages) return null;
   const badge = badgeText(total);
 
   return (
     <div className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 sm:right-6 sm:bottom-6">
-      {coachmark && (
+      {coachmark && !toMessenger && (
         <div
           role="status"
           className="bg-foreground text-background absolute right-0 bottom-[calc(100%+0.6rem)] w-56 rounded-2xl px-3.5 py-2.5 text-sm shadow-xl"
@@ -102,10 +110,14 @@ export function FloatingMessageButton() {
       <button
         key={nudge}
         type="button"
-        onPointerDown={() => target && warmChat(target)}
+        onPointerDown={() => !toMessenger && target && warmChat(target)}
         onClick={() => {
           dismissCoachmark();
           setNudge(0);
+          if (toMessenger && contact.messengerLink) {
+            window.location.href = contact.messengerLink;
+            return;
+          }
           // A stale "signed in" (the session expired) goes to sign-in too.
           router.push(signedIn !== false && !hasSessionCookie() ? `/login?next=${encodeURIComponent(MESSAGES_ENTRY)}` : href);
         }}
