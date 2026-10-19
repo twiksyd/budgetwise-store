@@ -123,4 +123,4 @@ values(:'conflicthome','customer',:u,'text','Inconsistent imported identity',gen
 select pg_temp.raises(format('select store_initialize_customer_conversation(%L,%L)','00000000-0000-0000-0001-000000000110',:a),'42501','initializer refuses conflicting inquiry ownership');
 select pg_temp.ok(not has_function_privilege('authenticated','store_approve_history_batch(text[],uuid,uuid,timestamptz)','execute'),'approvals service only');
 select pg_temp.ok(not has_function_privilege('authenticated','store_link_history_batch(text[],uuid,uuid)','execute'),'bounded linking service only');
-\echo 'ALL COMPATIBILITY TESTS PASSED' 
+\echo 'ALL COMPATIBILITY TESTS PASSED'
