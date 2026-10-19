@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Gamepad2 } from "lucide-react";
+import { Search, Gamepad2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { GameGrid } from "@/components/catalog/game-grid";
@@ -103,7 +103,7 @@ export function GamesExplorer({
 
   return (
     <div>
-      <div className="sticky top-[72px] z-30 -mx-6 bg-background/85 px-6 py-3 backdrop-blur-md sm:static sm:mx-0 sm:mt-2 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+      <div className="sticky top-16 z-30 -mx-6 bg-background/85 px-6 py-3 backdrop-blur-md sm:static sm:mx-0 sm:mt-2 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="relative w-full sm:max-w-xs">
             <label htmlFor="games-search" className="sr-only">
@@ -112,11 +112,15 @@ export function GamesExplorer({
             <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
             <Input
               id="games-search"
+              type="search"
+              autoComplete="off"
+              aria-controls="game-results"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search Roblox games..."
-              className="h-11 rounded-full pl-10"
+              className="h-12 rounded-full pl-10 pr-12 [&::-webkit-search-cancel-button]:appearance-none"
             />
+            {query && <button type="button" aria-label="Clear game search" onClick={() => { setQuery(""); document.getElementById("games-search")?.focus(); }} className="absolute top-0 right-1 flex size-12 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"><X className="size-4" /></button>}
           </div>
 
           {categories.length > 1 && (
@@ -124,8 +128,9 @@ export function GamesExplorer({
               <Button
                 size="sm"
                 variant={category === null ? "default" : "outline"}
+                aria-pressed={category === null}
                 onClick={() => setCategory(null)}
-                className="shrink-0 rounded-full px-5 transition-all"
+                className="min-h-11 shrink-0 rounded-full px-5 transition-colors"
               >
                 All
               </Button>
@@ -134,8 +139,9 @@ export function GamesExplorer({
                   key={cat}
                   size="sm"
                   variant={category === cat ? "default" : "outline"}
+                  aria-pressed={category === cat}
                   onClick={() => setCategory(cat === category ? null : cat)}
-                  className="shrink-0 rounded-full px-5 transition-all"
+                  className="min-h-11 shrink-0 rounded-full px-5 transition-colors"
                 >
                   {cat}
                 </Button>
@@ -160,7 +166,7 @@ export function GamesExplorer({
         />
       )}
 
-      {featuredGames.length > 0 && (
+      {!query.trim() && !category && featuredGames.length > 0 && (
         <div className="mt-8 sm:mt-10">
           <FeaturedGames games={featuredGames} productCounts={productCounts} />
         </div>
@@ -170,6 +176,8 @@ export function GamesExplorer({
         Games
       </h2>
 
+      <p role="status" className="text-muted-foreground mt-2 text-sm">{filtered.length} {filtered.length === 1 ? "game" : "games"}{query.trim() ? ` matching “${query.trim()}”` : " to explore"}{category ? ` in ${category}` : ""}</p>
+      <div id="game-results">
       {filtered.length === 0 ? (
         <div className="mt-10">
           <EmptyState
@@ -177,10 +185,12 @@ export function GamesExplorer({
             title="No games match"
             description="Try a different search term or category."
           />
+          <div className="mt-5 text-center"><Button variant="outline" onClick={() => { setQuery(""); setCategory(null); document.getElementById("games-search")?.focus(); }}>Reset filters</Button></div>
         </div>
       ) : (
         <GameGrid games={filtered} productCounts={productCounts} />
       )}
+      </div>
     </div>
   );
 }

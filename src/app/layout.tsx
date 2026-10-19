@@ -11,7 +11,7 @@ import { resolveStoreStatusSafe } from "@/lib/store-status";
 import "./globals.css";
 
 const geistSans = Geist({
-  variable: "--font-sans",
+  variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
 });
@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 });
 
 const manrope = Manrope({
-  variable: "--font-heading",
+  variable: "--font-manrope",
   subsets: ["latin"],
   display: "swap",
 });

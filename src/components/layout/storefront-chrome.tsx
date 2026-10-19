@@ -48,6 +48,7 @@ export function StorefrontChrome({
 
   return (
     <CustomerMessagesProvider>
+      {!isMessengerPage && <a href="#main-content" className="bg-foreground text-background fixed top-3 left-4 z-[100] -translate-y-24 rounded-full px-5 py-3 text-sm font-medium focus:translate-y-0">Skip to content</a>}
       {status !== "open" && (
         <StoreStatusBanner status={status} noticeMessage={noticeMessage} />
       )}

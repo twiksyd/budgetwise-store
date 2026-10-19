@@ -20,24 +20,28 @@ const steps = [
 export function HomepageOrderingGuide() {
   return (
     <section className="mx-auto max-w-6xl px-6 pb-12 sm:pb-16">
-      <div className="grid gap-2.5 sm:grid-cols-4">
+      <div className="mb-7 max-w-xl">
+        <p className="text-primary text-sm font-medium">Simple from the start</p>
+        <h2 className="font-heading mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">A little guidance. Every step.</h2>
+      </div>
+      <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map((step, index) => (
-          <div
+          <li
             key={step.title}
-            className="surface-premium rounded-2xl p-3.5 sm:p-4"
+            className="bg-muted/40 rounded-2xl border border-border/60 p-6"
           >
-            <div className="text-primary font-heading text-lg font-bold tabular-nums">
-              {index + 1}
+            <div className="text-muted-foreground font-heading text-sm font-medium tabular-nums">
+              0{index + 1}
             </div>
-            <h2 className="font-heading mt-2 text-sm font-semibold">
+            <h3 className="font-heading mt-5 text-base font-semibold">
               {step.title}
-            </h2>
-            <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">
+            </h3>
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
               {step.description}
             </p>
-          </div>
+          </li>
         ))}
-      </div>
+      </ol>
     </section>
   );
 }

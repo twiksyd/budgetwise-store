@@ -90,7 +90,7 @@ export function RouteTransitionShell({
   }, [pathname]);
 
   return (
-    <main className="relative flex-1 overflow-x-clip bg-background">
+    <main id="main-content" tabIndex={-1} className="relative flex-1 overflow-x-clip bg-background">
       <AnimatePresence initial={false} mode="popLayout">
         <motion.div
           key={pathname}

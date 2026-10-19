@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion as useReducedMotionQuery } from "framer-motion";
 import useEmblaCarousel from "embla-carousel-react";
-import AutoScroll from "embla-carousel-auto-scroll";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReviewCard } from "@/components/marketing/review-card";
 import { siteConfig } from "@/config/site";
@@ -21,23 +20,7 @@ export function CustomerReviewsCarousel({
 }) {
   const [visibleReviews, setVisibleReviews] = useState(initialReviews);
   const reduceMotion = Boolean(useReducedMotionQuery());
-  const plugins = useMemo(
-    () =>
-      reduceMotion
-        ? []
-        : [
-            AutoScroll({
-              speed: 0.7,
-              stopOnMouseEnter: true,
-              stopOnInteraction: false,
-            }),
-          ],
-    [reduceMotion],
-  );
-  const [emblaRef, emblaApi] = useEmblaCarousel(
-    { loop: true, align: "start" },
-    plugins,
-  );
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "start" });
 
   useEffect(() => {
     let ignore = false;
@@ -72,7 +55,7 @@ export function CustomerReviewsCarousel({
   if (visibleReviews.length === 0) return null;
 
   return (
-    <section className="mx-auto min-w-0 max-w-6xl px-6 pb-16 sm:pb-28">
+    <section aria-label="Customer reviews" className="mx-auto min-w-0 max-w-6xl px-6 pb-16 sm:pb-28">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -112,6 +95,11 @@ export function CustomerReviewsCarousel({
         </div>
       </motion.div>
 
+      <div className="mt-5 flex items-center justify-center gap-3">
+        <Button variant="outline" className="size-11 rounded-full" aria-label="Previous reviews" onClick={() => emblaApi?.scrollPrev(reduceMotion)}><ArrowLeft className="size-4" /></Button>
+        <span className="text-muted-foreground text-xs">Explore customer stories</span>
+        <Button variant="outline" className="size-11 rounded-full" aria-label="Next reviews" onClick={() => emblaApi?.scrollNext(reduceMotion)}><ArrowRight className="size-4" /></Button>
+      </div>
       {siteConfig.facebookVouchUrl && (
         <div className="mt-10 flex justify-center">
           <Button size="lg" asChild className="h-11 px-6">

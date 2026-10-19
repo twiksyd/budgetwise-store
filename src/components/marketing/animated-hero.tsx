@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type Variants } from "framer-motion";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,7 @@ const badgeConfig = {
 } as const;
 
 export function AnimatedHero() {
+  const reduceMotion = useReducedMotion();
   const status = useStoreStatus();
   const badge = badgeConfig[status];
 
@@ -61,9 +62,9 @@ export function AnimatedHero() {
       <HeroBanner />
       <motion.div
         variants={container}
-        initial="hidden"
+        initial={reduceMotion ? false : "hidden"}
         animate="show"
-        className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 pt-8 pb-6 text-center sm:pt-32 sm:pb-20"
+        className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 pt-14 pb-16 text-center sm:pt-24 sm:pb-24"
       >
         <motion.div
           variants={item}
@@ -73,7 +74,7 @@ export function AnimatedHero() {
           )}
         >
           <motion.span
-            animate={badge.pulse ? { opacity: [1, 0.45, 1] } : undefined}
+            animate={badge.pulse && !reduceMotion ? { opacity: [1, 0.45, 1] } : undefined}
             transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
             className={cn("size-2 shrink-0 rounded-full", badge.dotClassName)}
           />
@@ -86,14 +87,15 @@ export function AnimatedHero() {
 
         <motion.h1
           variants={item}
-          className="font-heading max-w-3xl text-4xl font-semibold tracking-[-0.03em] text-balance sm:text-7xl"
+          className="font-heading max-w-3xl text-[clamp(2.5rem,6vw,4.75rem)] leading-[1.08] font-semibold tracking-[-0.045em] text-balance"
         >
-          Buy gamepasses. Skip overpriced stores.
+          Your next upgrade.
+          <span className="text-muted-foreground block">Worth every peso.</span>
         </motion.h1>
 
         <motion.p
           variants={item}
-          className="text-muted-foreground mt-3 max-w-lg text-base text-balance sm:mt-7 sm:text-xl"
+          className="text-muted-foreground mt-6 max-w-lg text-base leading-relaxed text-balance sm:text-lg"
         >
           Pumili ng game at items na gusto ninyo. Pagkatapos mag-checkout,
           makikipag-chat kayo sa amin sa Order Chat dito mismo sa website.
@@ -101,11 +103,11 @@ export function AnimatedHero() {
 
         <motion.div
           variants={item}
-          className="mt-5 flex flex-col gap-2 sm:mt-11 sm:flex-row sm:gap-3"
+          className="mt-8 flex w-full max-w-sm flex-col gap-3 sm:mt-9 sm:w-auto sm:max-w-none sm:flex-row"
         >
-          <Button size="lg" asChild className="h-11 px-7 text-[15px] sm:h-12">
+          <Button size="lg" asChild className="h-12 rounded-full px-8 text-[15px]">
             <Link href="/games">
-              {status === "open" ? "Umorder Na" : "Tingnan ang Games"}
+              {status === "open" ? "Explore games" : "Tingnan ang Games"}
               <ArrowRight className="size-4" />
             </Link>
           </Button>
@@ -113,7 +115,7 @@ export function AnimatedHero() {
             size="lg"
             variant="outline"
             asChild
-            className="h-11 px-7 text-[15px] sm:h-12"
+            className="h-12 rounded-full px-8 text-[15px]"
           >
             <Link href="/how-ordering-works">Paano Umorder</Link>
           </Button>

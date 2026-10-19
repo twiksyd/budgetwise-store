@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import Image from "next/image";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import bannerSrc from "../../../public/icons/budgetwise-logo.png";
 
 const BANNER_SRC = bannerSrc;
@@ -15,6 +15,7 @@ const BANNER_SRC = bannerSrc;
 // soft purple glow -> hero content. Fades into the section below via a
 // mask, and drifts a few px on scroll for a barely-there parallax.
 export function HeroBanner() {
+  const reduceMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -24,14 +25,15 @@ export function HeroBanner() {
 
   return (
     <div
+      aria-hidden="true"
       ref={containerRef}
       className="absolute inset-0 overflow-hidden [mask-image:linear-gradient(to_bottom,black_0%,black_70%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_0%,black_70%,transparent_100%)]"
     >
       <motion.div
-        initial={{ opacity: 0 }}
+        initial={reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1.4, ease: "easeOut" }}
-        style={{ y }}
+        style={{ y: reduceMotion ? 0 : y }}
         className="absolute inset-x-0 -top-12 -bottom-12"
       >
         <Image
@@ -41,7 +43,7 @@ export function HeroBanner() {
           priority
           quality={90}
           sizes="100vw"
-          className="object-contain opacity-80 blur-[13px]"
+          className="object-contain opacity-20 blur-[20px]"
         />
       </motion.div>
 

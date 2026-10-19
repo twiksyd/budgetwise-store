@@ -18,10 +18,10 @@ export default async function LandingPage() {
   return (
     <div>
       <AnimatedHero />
-      <HomepageOrderingGuide />
-      <CustomerReviews />
-      <TrustPoints />
       <PopularGames games={continuePlayingGames} />
+      <HomepageOrderingGuide />
+      <TrustPoints />
+      <CustomerReviews />
       <FaqPreview />
     </div>
   );
