@@ -42,6 +42,9 @@ function dropReconciled(pending, messages) {
  */
 export function threadReducer(state, action) {
   switch (action.type) {
+    case "history_window":
+      return { ...state, messages: mergeMessages([], action.messages), hasOlder: action.hasOlder,
+        loaded: true, loadingOlder: false, historyWindow: action.historyWindow };
     case "loaded": {
       const messages = mergeMessages(state.messages, action.messages);
       return {
@@ -145,7 +148,7 @@ export function countNewArrivals(prev, next, isMine) {
 /** Index of the first message from the other side after my read cursor, or -1. */
 export function findFirstUnreadIndex(messages, cursor, isMine) {
   return messages.findIndex(
-    (message) => !isMine(message) && !isAtOrBefore(message, cursor),
+    (message) => !message.historyOrderNumber && !isMine(message) && !isAtOrBefore(message, cursor),
   );
 }
 
@@ -195,6 +198,7 @@ export function buildDisplayItems(messages, { nowMs }) {
     }
     const sameSender =
       previous &&
+      previous.orderNumber === message.orderNumber &&
       previous.senderRole === message.senderRole &&
       (previous.senderUserId ?? null) === (message.senderUserId ?? null) &&
       // Customer view: admins are told apart by public username only.
@@ -208,6 +212,8 @@ export function buildDisplayItems(messages, { nowMs }) {
       type: "message",
       key: message.id,
       message,
+      fromHistory: Boolean(previous?.historyOrderNumber),
+      sourceChanged: !previous || previous.orderNumber !== message.orderNumber,
       firstInGroup: !sameSender,
       lastInGroup: true,
     });

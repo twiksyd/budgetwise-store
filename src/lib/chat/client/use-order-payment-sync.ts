@@ -30,7 +30,7 @@ export function useOrderPaymentSync(
         const state = states.get(message.order.orderNumber);
         if (state && state !== message.order.payment) patchMessage(message.id, { order: { ...message.order, payment: state } });
       }
-      if (message.kind === "payment" && message.orderRef) latestCard.set(message.orderRef, message);
+      if (message.kind === "payment" && (message.orderRef || message.historyOrderNumber)) latestCard.set((message.orderRef ?? message.historyOrderNumber) as string, message);
     }
     for (const [orderNumber, card] of latestCard) {
       if (states.get(orderNumber) !== "received" || card.paymentReceived || refreshed.current.has(card.id)) continue;

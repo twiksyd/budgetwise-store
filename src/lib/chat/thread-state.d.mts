@@ -24,6 +24,7 @@ export interface PendingMessage {
   failedFiles: PendingFileError[];
 }
 export interface ThreadState {
+  historyWindow?: boolean;
   messages: ChatMessageDto[];
   pending: PendingMessage[];
   hasOlder: boolean;
@@ -32,6 +33,7 @@ export interface ThreadState {
 }
 export const initialThread: Readonly<ThreadState>;
 export type ThreadAction =
+  | { type: "history_window"; messages: ChatMessageDto[]; hasOlder: boolean; historyWindow: boolean }
   | { type: "loaded"; messages: ChatMessageDto[]; hasOlder: boolean }
   | { type: "loading_older" }
   | { type: "older"; messages: ChatMessageDto[]; hasOlder: boolean }
@@ -65,5 +67,5 @@ export function dayKey(iso: string): string;
 export function dayLabel(iso: string, nowMs: number): string;
 export type DisplayItem =
   | { type: "date"; key: string; label: string }
-  | { type: "message"; key: string; message: ChatMessageDto; firstInGroup: boolean; lastInGroup: boolean };
+  | { type: "message"; key: string; message: ChatMessageDto; sourceChanged: boolean; fromHistory: boolean; firstInGroup: boolean; lastInGroup: boolean };
 export function buildDisplayItems(messages: ChatMessageDto[], options: { nowMs: number }): DisplayItem[];

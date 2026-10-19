@@ -41,9 +41,11 @@ export function createConversationLoader({
         do {
           job.dirty = false;
           const thread = cache.getThread(orderNumber);
+          if (thread.historyWindow) return;
           const newest = newestMessageId(thread);
           if (!thread.loaded || !newest) {
             const body = await fetchJson(threadUrl(orderNumber));
+            if (cache.getThread(orderNumber).historyWindow) return;
             cache.dispatch(
               orderNumber,
               { type: "loaded", messages: body.messages ?? [], hasOlder: Boolean(body.hasOlder) },
@@ -51,6 +53,7 @@ export function createConversationLoader({
             );
           } else {
             const body = await fetchJson(`${threadUrl(orderNumber)}&after=${newest}`);
+            if (cache.getThread(orderNumber).historyWindow) return;
             cache.dispatch(orderNumber, { type: "received", messages: body.messages ?? [] }, { create: false });
           }
         } while (job.dirty && cache.has(orderNumber));
@@ -79,6 +82,8 @@ export function createConversationLoader({
     cache.dispatch(orderNumber, { type: "loading_older" }, { create: false });
     try {
       const body = await fetchJson(`${threadUrl(orderNumber)}&before=${oldest}`);
+      const current = cache.getThread(orderNumber);
+      if (current.historyWindow !== thread.historyWindow || oldestMessageId(current) !== oldest) return;
       cache.dispatch(
         orderNumber,
         { type: "older", messages: body.messages ?? [], hasOlder: Boolean(body.hasOlder) },

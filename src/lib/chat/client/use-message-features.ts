@@ -22,10 +22,12 @@ interface ThreadLike {
  */
 export function useMessageFeatures({
   thread,
+  conversationKey,
   senderLabelOf,
   quoteLabel,
 }: {
   thread: ThreadLike;
+  conversationKey: string;
   /** Who wrote a message, as this viewer says it in "Replying to …". */
   senderLabelOf: (message: ChatMessageDto) => string;
   quoteLabel: (quote: ReplyQuote) => string;
@@ -61,17 +63,22 @@ export function useMessageFeatures({
   const actions = useMemo<MessageActions>(
     () => ({
       react: (messageId, reaction) => void react(messageId, reaction),
-      reply: (message) =>
+      reply: (message) => {
+        if (message.orderNumber !== conversationKey) {
+          toast.info(`This message belongs to order ${message.orderNumber}. Send a new message here and mention that order; historical replies stay in their original chat.`);
+          return;
+        }
         setReplyTo({
           id: message.id,
           key: `${message.id}:${Date.now()}`,
           senderLabel: senderLabelOf(message),
           preview: quotePreviewFromDto(message),
-        }),
+        });
+      },
       jumpTo: (messageId) => void jumpTo(messageId),
       quoteLabel,
     }),
-    [react, jumpTo, senderLabelOf, quoteLabel],
+    [react, jumpTo, senderLabelOf, quoteLabel, conversationKey],
   );
 
   const sendText = useCallback(

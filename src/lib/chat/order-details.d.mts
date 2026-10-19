@@ -15,6 +15,7 @@ export interface OrderDetailsLine {
   fulfillment: FulfillmentSlotView[];
 }
 export interface OrderDetails {
+  readOnlyHome?: string | null;
   /** "inquiry": a General Inquiry (0026) — the customer only, no items, total or payment. */
   kind?: "order" | "inquiry";
   order: {

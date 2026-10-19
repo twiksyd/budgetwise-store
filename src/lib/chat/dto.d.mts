@@ -74,6 +74,8 @@ export interface AlbumDto {
 export interface ChatMessageDto {
   id: string;
   orderNumber: string;
+  /** Original historical source, only when displayed in another conversation. */
+  historyOrderNumber?: string | null;
   senderRole: "customer" | "admin";
   kind: ChatMessageKind;
   body: string;
@@ -133,6 +135,7 @@ export function toChatMessage(
   options?: {
     viewer?: "admin" | "customer";
     viewerUserId?: string | null;
+    conversationKey?: string;
     /** Attachment rows of album messages, keyed by message id. */
     attachments?: Map<string, AttachmentRowLike[]>;
     /** Admin user id -> public username, for the customer view. */

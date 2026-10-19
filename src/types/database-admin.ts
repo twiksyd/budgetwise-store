@@ -746,6 +746,18 @@ export type AdminDatabase = {
         Relationships: [];
       };
       // 0026: written only by store_open_inquiry() and the order trigger.
+      store_chat_linked_orders: { Row: { key: string; home_key: string }; Insert: never; Update: never; Relationships: [] };
+      store_chat_thread_presentation: {
+        Row: StoreChatThreadRow; Insert: never; Update: never; Relationships: [];
+      };
+      store_chat_active_history: {
+        Row: { source_key: string; home_key: string; owner_user_id: string; linked_at: string; linked_by: string };
+        Insert: never; Update: never; Relationships: [];
+      };
+      store_chat_history_links: {
+        Row: { source_key: string; home_key: string; owner_user_id: string; linked_at: string; linked_by: string };
+        Insert: never; Update: never; Relationships: [];
+      };
       store_chat_threads: {
         Row: StoreChatThreadRow;
         Insert: never;
@@ -934,6 +946,11 @@ export type AdminDatabase = {
         Args: { p_older_than_hours?: number; p_limit?: number };
         Returns: { name: string; created_at: string }[];
       };
+      store_order_payment_states: {
+        Args: { p_home: string; p_orders: string[] };
+        Returns: { order_number: string; state: "awaiting" | "sent" | "received"; sent_at: string | null }[];
+      };
+      store_link_historical_chat: { Args: { p_source: string; p_actor: string }; Returns: boolean };
       store_chat_messages_page: {
         Args: {
           p_order_number: string;

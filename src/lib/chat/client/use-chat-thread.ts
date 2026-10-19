@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ThreadAction } from "@/lib/chat/thread-state.mjs";
 import type { ChatMessageDto } from "@/lib/chat/dto.mjs";
@@ -15,8 +16,6 @@ import { createConversationLoader, type ConversationLoader } from "@/lib/chat/co
 import { fetchJson, jsonInit, newClientId, RequestError } from "@/lib/chat/client/fetch-json";
 import { applyMyReaction, type MessageReactions, type ReactionKey } from "@/lib/chat/message-meta.mjs";
 
-/** 0032: how far back "jump to the quoted message" may page (50 messages each). */
-const MAX_JUMP_PAGES = 25;
 
 type Viewer = "admin" | "customer";
 
@@ -424,25 +423,30 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
   );
 
   /**
-   * 0032: make sure a quoted message is loaded (older pages are fetched in
-   * order, so the history never gets a gap). Resolves true once it is.
+   * Open a bounded window around an unloaded quoted message. The explicit
+   * history mode pauses deltas until the reader returns to the latest page.
    */
   const ensureMessageLoaded = useCallback(
     async (messageId: string) => {
-      for (let page = 0; page <= MAX_JUMP_PAGES; page += 1) {
-        const thread = getThread();
-        if (thread.messages.some((message) => message.id === messageId)) return true;
-        if (!thread.hasOlder) return false;
-        if (thread.loadingOlder) {
-          await new Promise((resolve) => setTimeout(resolve, 150));
-          continue;
-        }
-        await loader.loadOlder(orderNumber);
-      }
-      return getThread().messages.some((message) => message.id === messageId);
+      if (getThread().messages.some((message) => message.id === messageId)) return true;
+      try {
+        const body = await fetchJson<{ messages: ChatMessageDto[]; hasOlder: boolean }>(
+          `${base}/history-focus?${actingAs}&message=${encodeURIComponent(messageId)}`);
+        dispatch({ type: "history_window", messages: body.messages, hasOlder: body.hasOlder, historyWindow: true });
+        return body.messages.some((message) => message.id === messageId);
+      } catch { return false; }
     },
-    [getThread, loader, orderNumber],
+    [getThread, base, actingAs, dispatch],
   );
+
+  const returnToLatest = useCallback(async () => {
+    try {
+      const body = await fetchJson<{ messages: ChatMessageDto[]; hasOlder: boolean }>(`${base}/messages?${actingAs}`);
+      dispatch({ type: "history_window", messages: body.messages, hasOlder: body.hasOlder, historyWindow: false });
+    } catch {
+      toast.error("Couldn't load the latest messages. Please try again.");
+    }
+  }, [base, actingAs, dispatch]);
 
   /** Adds a message the server already created (e.g. payment details). */
   const addConfirmed = useCallback((message: ChatMessageDto) => {
@@ -493,6 +497,6 @@ export function useChatThread({ orderNumber, viewer, initialMessages, initialHas
 
   return {
     state, loadError, reload, loadOlder, fetchNewer, sendText, sendImage, sendAlbum, retry, discard, addConfirmed,
-    refreshMessage, markRead, react, patchMessage, ensureMessageLoaded,
+    refreshMessage, markRead, react, patchMessage, ensureMessageLoaded, returnToLatest,
   };
 }

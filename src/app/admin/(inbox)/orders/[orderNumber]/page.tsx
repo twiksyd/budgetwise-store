@@ -19,7 +19,7 @@ export default async function AdminConversationPage({
   if (!isInquiryKey(orderNumber)) {
     await requireAdmin();
     const homeKey = await getOrderHomeKey(orderNumber);
-    if (homeKey) redirect(`/admin/orders/${encodeURIComponent(homeKey)}`);
+    if (homeKey) redirect(`/admin/orders/${encodeURIComponent(homeKey)}?focus=${encodeURIComponent(orderNumber)}`);
   }
   return null;
 }

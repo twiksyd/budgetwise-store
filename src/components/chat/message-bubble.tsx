@@ -114,7 +114,7 @@ export function MessageBubble({
       {message.kind === "payment" && message.payment ? (
         <PaymentCard
           card={message.payment}
-          orderNumber={orderNumber}
+          orderNumber={message.orderNumber}
           messageId={message.id}
           received={message.paymentReceived ?? null}
         />

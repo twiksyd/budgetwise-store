@@ -39,7 +39,7 @@ function isMissingSchema(error: { code?: string; message?: string } | null) {
         error.code === "PGRST202" ||
         error.code === "PGRST204" ||
         error.code === "PGRST205" ||
-        /order_ref|home_key|store_order_recommendations/.test(error.message ?? "")),
+        /order_ref|home_key|store_order_recommendations|store_chat_thread_presentation/.test(error.message ?? "")),
   );
 }
 
@@ -80,11 +80,14 @@ export async function attachOrderToCustomer(input: {
 /** The customer conversation an order lives in, or null (own chat / pre-0033). */
 export async function getOrderHomeKey(orderNumber: string): Promise<string | null> {
   const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("store_chat_threads")
+  let { data, error } = await supabase
+    .from("store_chat_thread_presentation")
     .select("home_key")
     .eq("key", orderNumber)
     .maybeSingle();
+  if (error && isMissingSchema(error)) {
+    ({ data, error } = await supabase.from("store_chat_threads").select("home_key").eq("key", orderNumber).maybeSingle());
+  }
   if (error) {
     if (isMissingSchema(error)) return null;
     throw error;
@@ -97,11 +100,14 @@ export async function getHomeKeys(orderNumbers: string[]): Promise<Map<string, s
   const map = new Map<string, string>();
   if (orderNumbers.length === 0) return map;
   const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("store_chat_threads")
+  let { data, error } = await supabase
+    .from("store_chat_thread_presentation")
     .select("key, home_key")
     .in("key", orderNumbers)
     .not("home_key", "is", null);
+  if (error && isMissingSchema(error)) {
+    ({ data, error } = await supabase.from("store_chat_threads").select("key, home_key").in("key", orderNumbers).not("home_key", "is", null));
+  }
   if (error) {
     if (isMissingSchema(error)) return map;
     throw error;
@@ -119,10 +125,13 @@ export interface LinkedOrder {
 /** Orders in a customer conversation, newest first. */
 export async function listLinkedOrders(homeKey: string, limit = 50): Promise<LinkedOrder[]> {
   const supabase = createAdminClient();
-  const { data: threads, error } = await supabase
-    .from("store_chat_threads")
+  let { data: threads, error } = await supabase
+    .from("store_chat_linked_orders")
     .select("key")
     .eq("home_key", homeKey);
+  if (error && isMissingSchema(error)) {
+    ({ data: threads, error } = await supabase.from("store_chat_threads").select("key").eq("home_key", homeKey));
+  }
   if (error) {
     if (isMissingSchema(error)) return [];
     throw error;
@@ -156,6 +165,13 @@ export async function loadOrderPaymentStates(
   const result = new Map<string, { state: OrderPaymentState; sentAt: string | null }>();
   for (const order of orderNumbers) result.set(order, { state: "awaiting", sentAt: null });
   if (orderNumbers.length === 0) return result;
+  const latest = await supabase.rpc("store_order_payment_states", { p_home: homeKey, p_orders: orderNumbers });
+  if (!latest.error) {
+    for (const row of latest.data ?? []) result.set(row.order_number, { state: row.state, sentAt: row.sent_at });
+    return result;
+  }
+  if (!isMissingSchema(latest.error)) throw latest.error;
+  // 0033/0034 compatibility while migration-first deployment is in flight.
   const { data: cards, error } = await supabase
     .from("store_order_messages")
     .select("id, order_ref, created_at")
@@ -166,7 +182,10 @@ export async function loadOrderPaymentStates(
     if (isMissingSchema(error)) return result;
     throw error;
   }
-  const rows = (cards ?? []) as Array<{ id: string; order_ref: string | null; created_at: string }>;
+  const { data: legacy, error: legacyError } = await supabase.from("store_order_messages")
+    .select("id, order_number, created_at").in("order_number", orderNumbers).eq("kind", "payment").is("order_ref", null);
+  if (legacyError) throw legacyError;
+  const rows = [ ...(cards ?? []), ...(legacy ?? []).map((card) => ({ ...card, order_ref: card.order_number })) ] as Array<{ id: string; order_ref: string | null; created_at: string }>;
   if (rows.length === 0) return result;
   const { data: confirmations, error: confirmationError } = await supabase
     .from("store_payment_confirmations")
