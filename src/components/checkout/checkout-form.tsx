@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { clearRecommendation, recommendationForCart } from "@/lib/recommendation-session";
+import { readTrafficSource } from "@/components/shared/traffic-source-capture";
 import { useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -204,6 +205,7 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
           idempotencyKey: attempt.idempotencyKey,
           viewToken: attempt.viewToken,
           recommendationId,
+          source: readTrafficSource() === "tiktok" ? "tiktok" : undefined,
         }),
       });
 
@@ -228,7 +230,11 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
         return;
       }
 
-      const { orderNumber, chatKey } = (await response.json()) as { orderNumber: string; chatKey?: string };
+      const { orderNumber, chatKey, handoff } = (await response.json()) as {
+        orderNumber: string;
+        chatKey?: string;
+        handoff?: "messenger" | "site";
+      };
       // This attempt is done: a later checkout of the same items is a new
       // order, not a replay of this one.
       clearCheckoutAttempt();
@@ -240,6 +246,12 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
       // while still on /checkout would race against navigation away.
       // The order is owned by the signed-in account, so its chat page needs
       // no secret in the URL.
+      // Messenger hand-off: the order-slip page (its viewing token is this
+      // attempt's), which opens BudgetWise on Messenger.
+      if (handoff === "messenger") {
+        router.push(`/checkout/success/${encodeURIComponent(orderNumber)}?t=${encodeURIComponent(attempt.viewToken)}`);
+        return;
+      }
       // 0033: the order lives in the customer's one ongoing conversation;
       // ?placed=<order> opens it at the new slip. (Before 0033 the order has
       // its own chat; ?placed=1 there shows first-time guidance.)

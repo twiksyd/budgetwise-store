@@ -5,7 +5,7 @@ import { fetchJson } from "@/lib/chat/client/fetch-json";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Link2, SearchX, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Link2, MessageCircle, SearchX, ShieldCheck } from "lucide-react";
 import { HistoryUnread } from "@/components/chat/history-unread";
 import { ChatThread } from "@/components/chat/chat-thread";
 import { Composer } from "@/components/chat/composer";
@@ -82,6 +82,8 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
   // 0033: this order lives in the customer's conversation — open it there,
   // at this order (replace: Back skips the hop).
   const movedTo = details?.movedTo ?? null;
+  // An order that continues on Messenger: no on-site chat to show.
+  const messengerLink = details && "messenger" in details ? (details.messenger ?? null) : undefined;
   useEffect(() => {
     if (movedTo) router.replace(`/orders/${encodeURIComponent(movedTo)}?focus=${encodeURIComponent(orderNumber)}`);
   }, [movedTo, orderNumber, router]);
@@ -338,6 +340,13 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
         </div>
       ) : missing && !summary ? (
         <OrderUnavailable isInquiry={isInquiry} />
+      ) : messengerLink !== undefined ? (
+        <>
+          {summary && summary.lines.length > 0 && (
+            <OrderSummaryStrip lines={summary.lines} itemCount={summary.itemCount} total={summary.totalAmount} />
+          )}
+          <MessengerContinue orderNumber={orderNumber} link={messengerLink} />
+        </>
       ) : (
         <>
           {summary && !isInquiry && (
@@ -424,6 +433,32 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
             onCancelReply={features.cancelReply}
           />}
         </>
+      )}
+    </div>
+  );
+}
+
+/** This order is handled in the BudgetWise DGM Messenger page. */
+function MessengerContinue({ orderNumber, link }: { orderNumber: string; link: string | null }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center" data-testid="messenger-continue">
+      <span className="bg-primary/10 text-primary flex size-14 items-center justify-center rounded-2xl">
+        <MessageCircle className="size-7" aria-hidden />
+      </span>
+      <p className="font-heading text-base font-semibold">This order continues on Messenger</p>
+      <p className="text-muted-foreground max-w-xs text-sm">
+        Message BudgetWise DGM with your order number{" "}
+        <span className="text-foreground font-semibold [font-variant-numeric:tabular-nums]">{orderNumber}</span> for payment
+        details and updates.
+      </p>
+      {link && (
+        <a
+          href={link}
+          className="bg-primary text-primary-foreground mt-1 inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold"
+        >
+          <MessageCircle className="size-4" aria-hidden />
+          Continue on Messenger
+        </a>
       )}
     </div>
   );

@@ -13,9 +13,22 @@ export const siteConfig = {
   // search snippets instead.
   ogDescription: "All about delivering value.",
   url: "https://budgetwiseshop.com",
-  // m.me accepts a numeric Facebook Page ID directly, which is what this Page
-  // uses since it hasn't claimed a custom username (its URL is profile.php?id=...).
-  messengerPageId: "61589047545427",
+  // m.me accepts a numeric Facebook Page ID directly. Orders continue on the
+  // "BudgetWise DGM" page (facebook.com/messages/t/1472889109233950). The
+  // previous page was 61589047545427 ("BudgetWise Discounted Game Market").
+  messengerPageId: "1472889109233950",
+  // Where customers continue an order after checkout:
+  //   channel "messenger"  the order-slip page opens Messenger (above) with
+  //                        the order message ready to send;
+  //   channel "site"       the on-site customer conversation.
+  // siteChatSources keeps the on-site conversation for customers from these
+  // sources even while channel is "messenger" — e.g. ["tiktok"] (TikTok bio
+  // links tagged ?utm_source=tiktok, TikTok's in-app browser, tiktok.com).
+  // Empty = everyone goes to Messenger. The on-site chat stays fully built.
+  orderHandoff: {
+    channel: "messenger" as "messenger" | "site",
+    siteChatSources: [] as string[],
+  },
   // TikTok profile used ONLY as a fallback for general questions and support.
   // Orders, order numbers, payment and receipts all stay in the on-site Order
   // Chat. Every "message us on TikTok" link is hidden until this is set,

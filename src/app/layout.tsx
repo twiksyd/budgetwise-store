@@ -6,6 +6,7 @@ import { StorefrontChrome } from "@/components/layout/storefront-chrome";
 import { ChunkLoadRecovery } from "@/components/shared/chunk-load-recovery";
 import { StoreStatusProvider } from "@/components/shared/store-status-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { TrafficSourceCapture } from "@/components/shared/traffic-source-capture";
 import { siteConfig } from "@/config/site";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
 import "./globals.css";
@@ -73,6 +74,7 @@ export default async function RootLayout({
           <MotionProvider>
             <StoreStatusProvider status={status}>
               <StorefrontChrome status={status} noticeMessage={noticeMessage}>
+                <TrafficSourceCapture />
                 {children}
               </StorefrontChrome>
             </StoreStatusProvider>

@@ -48,6 +48,8 @@ export interface CustomerChatDetails {
   assistant?: CustomerAssistant | null;
   /** 0033: this order lives in the customer's conversation (its key). */
   movedTo?: string;
+  /** This order continues on Messenger (m.me link with the order number). */
+  messenger?: string | null;
   /** 0033 (the conversation): its orders, newest first. */
   orders?: ConversationOrder[];
   orderTotal?: number;

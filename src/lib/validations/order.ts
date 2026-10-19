@@ -128,6 +128,9 @@ export const createOrderSchema = z.object({
   // customer's own conversation AND the order contains what it recommended.
   // Not part of the idempotency fingerprint.
   recommendationId: z.string().uuid().optional(),
+  // Where the customer came from (only "tiktok" is known). A hint for which
+  // channel the order continues on; the server decides from site config.
+  source: z.enum(["tiktok"]).optional(),
 })
   .strict()
   .superRefine((value, context) => {
@@ -184,6 +187,7 @@ export const createOrderSchema = z.object({
       idempotencyKey: value.idempotencyKey,
       viewToken: value.viewToken,
       recommendationId: value.recommendationId,
+      source: value.source,
       items: [...quantityByGamepassId.entries()].map(
         ([gamepassId, quantity]) => ({
           gamepassId,
