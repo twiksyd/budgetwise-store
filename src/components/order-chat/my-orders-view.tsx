@@ -21,6 +21,7 @@ import {
 import { badgeText, orderOpenSection } from "@/lib/chat/order-summary.mjs";
 import { formatPrice } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
+import { useContactChannel } from "@/lib/chat/client/use-contact-channel";
 
 export type { MyOrderCard };
 
@@ -282,8 +283,15 @@ function OrderCard({ order }: { order: MyOrderCard }) {
  */
 function InquiryCard({ inquiry }: { inquiry: CustomerConversation | null }) {
   const badge = badgeText(inquiry?.unreadCount ?? 0);
-  const href = inquiry ? `/orders/${encodeURIComponent(inquiry.orderNumber)}` : "/messages?to=inquiry";
-  const warm = () => inquiry && warmChat(inquiry.orderNumber);
+  // Orders continue on Messenger: so does this card, unless a reply is waiting here.
+  const contact = useContactChannel();
+  const toMessenger = contact.channel === "messenger" && Boolean(contact.messengerLink) && !badge;
+  const href = toMessenger
+    ? contact.messengerLink!
+    : inquiry
+      ? `/orders/${encodeURIComponent(inquiry.orderNumber)}`
+      : "/messages?to=inquiry";
+  const warm = () => !toMessenger && inquiry && warmChat(inquiry.orderNumber);
   return (
     <Link
       href={href}
@@ -309,7 +317,7 @@ function InquiryCard({ inquiry }: { inquiry: CustomerConversation | null }) {
           )}
         </div>
         <p className="text-muted-foreground truncate text-sm">
-          {inquiry?.lastMessagePreview || "Questions and your orders, all in one conversation"}
+          {toMessenger ? "Message BudgetWise DGM on Messenger" : inquiry?.lastMessagePreview || "Questions and your orders, all in one conversation"}
         </p>
       </div>
       <span className="text-primary inline-flex shrink-0 items-center text-xs font-semibold">
