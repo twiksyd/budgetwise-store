@@ -283,9 +283,11 @@ function OrderCard({ order }: { order: MyOrderCard }) {
  */
 function InquiryCard({ inquiry }: { inquiry: CustomerConversation | null }) {
   const badge = badgeText(inquiry?.unreadCount ?? 0);
-  // Orders continue on Messenger: so does this card, unless a reply is waiting here.
+  // New customers continue on Messenger; anyone who already has an on-site
+  // chat (e.g. paid on the website) keeps it.
   const contact = useContactChannel();
-  const toMessenger = contact.channel === "messenger" && Boolean(contact.messengerLink) && !badge;
+  const hasOnSiteChat = (useCustomerMessages()?.conversations.length ?? 0) > 0;
+  const toMessenger = contact.channel === "messenger" && Boolean(contact.messengerLink) && !hasOnSiteChat;
   const href = toMessenger
     ? contact.messengerLink!
     : inquiry

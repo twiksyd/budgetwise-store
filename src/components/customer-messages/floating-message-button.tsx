@@ -28,9 +28,9 @@ const MESSAGES_ENTRY = "/messages";
  * page: Back returns here.
  *
  * While orders continue on Messenger (siteConfig.orderHandoff), the button
- * opens the BudgetWise DGM Messenger page instead — except for a signed-in
- * customer with an unread reply in an existing on-site chat, who still goes
- * there so no answer is missed.
+ * opens the BudgetWise DGM Messenger page for new customers. A signed-in
+ * customer who already has an on-site chat (e.g. paid on the website) keeps
+ * going there, so their messages and payment history stay in one place.
  */
 export function FloatingMessageButton() {
   const router = useRouter();
@@ -69,7 +69,8 @@ export function FloatingMessageButton() {
 
   const unread = messages?.conversations.find((row) => row.unreadCount > 0) ?? null;
   const contact = useContactChannel();
-  const toMessenger = contact.channel === "messenger" && Boolean(contact.messengerLink) && !unread;
+  const hasOnSiteChat = signedIn === true && (messages?.conversations.length ?? 0) > 0;
+  const toMessenger = contact.channel === "messenger" && Boolean(contact.messengerLink) && !hasOnSiteChat;
   const target = signedIn === true ? (unread?.orderNumber ?? (messages?.hasOrders ? null : messages?.inquiry?.orderNumber ?? null)) : null;
   const href =
     signedIn === false
