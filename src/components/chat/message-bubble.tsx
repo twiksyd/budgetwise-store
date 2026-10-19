@@ -47,9 +47,11 @@ export interface SlipInfo {
 
 export type OpenMedia = (items: ViewerItem[], index: number) => void;
 
-// Only links to Messenger (m.me) become clickable — every other URL in a
-// message stays plain text, so chat text can't smuggle arbitrary links.
-const MESSENGER_LINK = /(https:\/\/m\.me\/[A-Za-z0-9.]+(?:\?[A-Za-z0-9=&%._-]*)?)/g;
+// Only Messenger links (m.me) and Facebook page profile links
+// (facebook.com/profile.php?id=<number>) become clickable — every other URL
+// in a message stays plain text, so chat text can't smuggle arbitrary links.
+const MESSENGER_LINK =
+  /(https:\/\/m\.me\/[A-Za-z0-9.]+(?:\?[A-Za-z0-9=&%._-]*)?|https:\/\/www\.facebook\.com\/profile\.php\?id=[0-9]+)/g;
 
 function withMessengerLinks(text: string, isMine: boolean) {
   const parts = text.split(MESSENGER_LINK);

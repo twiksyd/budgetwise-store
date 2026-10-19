@@ -5,6 +5,7 @@
 //     node --env-file=.env.local scripts/announce-messenger.mjs
 //   SEND (posts the message, as that admin, once per customer):
 //     node --env-file=.env.local scripts/announce-messenger.mjs --send --admin=<admin user id>
+//   Another campaign: add --campaign=<id> (see CAMPAIGNS).
 //
 // One message per customer: into their customer conversation (General
 // Inquiry thread) if they have one, else their most recently active order
@@ -23,7 +24,18 @@ export const ANNOUNCEMENT = [
   "Your chat history here stays available to view. Thank you for ordering with us!",
 ].join("\n");
 
-const CAMPAIGN = "messenger-move-2026-10";
+export const PAGE_LINK_MESSAGE = [
+  "You can also visit and follow our new Facebook page, BudgetWise DGM:",
+  "https://www.facebook.com/profile.php?id=61595426676262",
+].join("\n");
+
+const CAMPAIGNS = {
+  "messenger-move-2026-10": ANNOUNCEMENT,
+  "facebook-page-2026-10": PAGE_LINK_MESSAGE,
+};
+const CAMPAIGN = process.argv.find((arg) => arg.startsWith("--campaign="))?.slice("--campaign=".length) ?? "messenger-move-2026-10";
+if (!(CAMPAIGN in CAMPAIGNS)) throw new Error(`Unknown campaign: ${CAMPAIGN}`);
+const MESSAGE = CAMPAIGNS[CAMPAIGN];
 
 /** Deterministic uuid for (campaign, conversation): re-runs are no-ops. */
 export function announcementClientId(key) {
@@ -85,7 +97,7 @@ async function main() {
 
   console.log(`Conversations: ${conversations.length} · customers to message: ${targets.length}`);
   console.log(`  into customer conversations: ${targets.filter((t) => t.isInquiry).length} · into order chats: ${targets.filter((t) => !t.isInquiry).length}`);
-  console.log("\nMessage:\n-----\n" + ANNOUNCEMENT + "\n-----");
+  console.log(`\nCampaign: ${CAMPAIGN}\nMessage:\n-----\n${MESSAGE}\n-----`);
   console.log("\nAdmins (customers see the public username):");
   for (const admin of admins.data ?? []) console.log(`  ${admin.user_id}  public: ${admin.public_username ?? "BudgetWise"}  (${admin.display_name ?? "-"})`);
 
@@ -106,7 +118,7 @@ async function main() {
       p_sender_role: "admin",
       p_sender: adminArg,
       p_kind: "text",
-      p_body: ANNOUNCEMENT,
+      p_body: MESSAGE,
       p_attachment_path: null,
       p_attachment_mime: null,
       p_client_message_id: announcementClientId(target.key),

@@ -453,15 +453,25 @@ function ReadOnlyNotice({ link }: { link: string | null }) {
         <span className="text-foreground font-semibold">We&apos;ve moved to Messenger.</span> Your chat history stays here; for new
         orders and questions, message our new page BudgetWise DGM.
       </p>
-      {link && (
+      <div className="flex shrink-0 flex-wrap items-center justify-center gap-2">
+        {link && (
+          <a
+            href={link}
+            className="bg-primary text-primary-foreground inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-sm font-semibold"
+          >
+            <MessageCircle className="size-4" aria-hidden />
+            Open BudgetWise DGM
+          </a>
+        )}
         <a
-          href={link}
-          className="bg-primary text-primary-foreground inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold"
+          href={siteConfig.facebookPageUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="border-border hover:bg-muted inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-semibold"
         >
-          <MessageCircle className="size-4" aria-hidden />
-          Open BudgetWise DGM
+          Visit our page
         </a>
-      )}
+      </div>
     </div>
   );
 }
