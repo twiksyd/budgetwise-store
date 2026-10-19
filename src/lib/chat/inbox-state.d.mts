@@ -22,6 +22,7 @@ export interface InboxRow {
   myReadAt: string | null;
   myReadMessageId: string | null;
   unreadCount: number;
+  historyUnreadCount?: number;
   /** BudgetWise's own workflow state (never XOB's orders.status). */
   state: ConversationState;
   doneAt: string | null;

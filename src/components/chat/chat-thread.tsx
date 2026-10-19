@@ -43,6 +43,8 @@ export function ChatThread({
   onRetry,
   onDiscard,
   onReadUpTo,
+  onHistoryReadUpTo,
+  historySources,
   emptyState,
   footer,
   className,
@@ -72,6 +74,8 @@ export function ChatThread({
   onDiscard: (clientMessageId: string) => void;
   /** Called with the newest message id while it is actually on screen. */
   onReadUpTo: (messageId: string) => void;
+  onHistoryReadUpTo?: (messageId: string) => void;
+  historySources?: { sourceKey: string; unread: number; firstUnreadId: string | null }[];
   emptyState?: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
@@ -267,7 +271,7 @@ export function ChatThread({
               <span className="bg-border h-px flex-1" />
             </div>
           ) : (
-            <div key={item.key}>
+            <div key={item.key} id={`message-${item.message.id}`}>
               {item.message.id === firstUnreadId && (
                 <div className="my-3 flex items-center gap-3" aria-label="Unread messages start here">
                   <span className="bg-primary/40 h-px flex-1" />
@@ -279,6 +283,9 @@ export function ChatThread({
                 <div className="border-border/60 bg-muted/40 text-muted-foreground mx-auto my-4 w-fit max-w-full rounded-full border px-4 py-1.5 text-center text-[11px] font-medium" aria-label={item.message.historyOrderNumber ? `Historical order ${item.message.historyOrderNumber}` : "Current conversation"}>
                   {item.message.historyOrderNumber ? `Order ${item.message.historyOrderNumber} conversation` : "Current conversation"}
                 </div>
+              )}
+              {historySources?.some((s) => s.firstUnreadId === item.message.id) && (
+                <p className="text-primary my-3 text-center text-xs font-semibold">Unread · {item.message.historyOrderNumber}</p>
               )}
               <MessageBubble
                 message={item.message}
@@ -299,6 +306,11 @@ export function ChatThread({
                 onOpenMedia={openMedia}
                 onMediaLoad={onMediaLoad}
               />
+              {item.message.historyOrderNumber && item.lastInGroup && !isOwnSide(item.message) && historySources?.some((s) => s.sourceKey === item.message.historyOrderNumber && s.unread > 0) && onHistoryReadUpTo && (
+                <button type="button" className="text-muted-foreground hover:text-foreground mx-auto my-1 block rounded px-3 py-2 text-[11px] focus-visible:outline-2" onClick={() => onHistoryReadUpTo(item.message.id)}>
+                  Mark {item.message.historyOrderNumber} read through this message
+                </button>
+              )}
             </div>
           ),
         )}

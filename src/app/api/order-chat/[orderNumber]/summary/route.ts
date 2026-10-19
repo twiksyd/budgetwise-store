@@ -7,7 +7,7 @@ import {
   loadPublicAdminNames,
   resolveChatActor,
 } from "@/lib/queries/order-chat";
-import { historicalHome } from "@/lib/queries/chat-history";
+import { historicalHome, historySourceStatus } from "@/lib/queries/chat-history";
 import { getOrderHomeKey } from "@/lib/queries/customer-thread";
 import { isInquiryKey } from "@/lib/order-chat.mjs";
 import { pickAssistant } from "@/lib/chat/assistant.mjs";
@@ -46,6 +46,7 @@ export async function GET(_request: Request, { params }: Context) {
     if (!summary) return chatError("Order not found.", 404);
     return chatJson({
       summary,
+      historySources: (await historySourceStatus([orderNumber]))[orderNumber] ?? [],
       readOnlyHome: inquiry ? null : await historicalHome(orderNumber),
       adminRead: { at: conversation?.admin_read_at ?? null, messageId: conversation?.admin_read_message_id ?? null },
       ownRead: { at: conversation?.customer_read_at ?? null, messageId: conversation?.customer_read_message_id ?? null },

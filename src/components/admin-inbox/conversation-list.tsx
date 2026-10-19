@@ -316,6 +316,7 @@ function ConversationRow({ row }: { row: InboxRow }) {
               {row.lastMessagePreview}
             </p>
           )}
+          {(row.historyUnreadCount ?? 0) > 0 && <p className="text-primary mt-1 text-[11px] font-medium">{row.historyUnreadCount} unread in historical orders</p>}
           <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1" data-testid="row-status">
             {state === "unopened" ? (
               <span
