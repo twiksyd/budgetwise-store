@@ -25,9 +25,14 @@ export const siteConfig = {
   // sources even while channel is "messenger" — e.g. ["tiktok"] (TikTok bio
   // links tagged ?utm_source=tiktok, TikTok's in-app browser, tiktok.com).
   // Empty = everyone goes to Messenger. The on-site chat stays fully built.
+  // onSiteChatReadOnly: customers can read their existing on-site chats
+  // (history, payment cards, receipts) but not write in them; a notice
+  // points them to Messenger. Admins can still reply. Set false when the
+  // on-site chat comes back (e.g. for TikTok customers).
   orderHandoff: {
     channel: "messenger" as "messenger" | "site",
     siteChatSources: [] as string[],
+    onSiteChatReadOnly: true as boolean,
   },
   // TikTok profile used ONLY as a fallback for general questions and support.
   // Orders, order numbers, payment and receipts all stay in the on-site Order
