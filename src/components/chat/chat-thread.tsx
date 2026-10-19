@@ -39,6 +39,7 @@ export function ChatThread({
   otherSideReadCursor,
   initialReadCursor,
   onLoadOlder,
+  onReturnLatest,
   onRetry,
   onDiscard,
   onReadUpTo,
@@ -66,6 +67,7 @@ export function ChatThread({
   otherSideReadCursor: Cursor;
   initialReadCursor: Cursor;
   onLoadOlder: () => void;
+  onReturnLatest?: () => void;
   onRetry: (clientMessageId: string) => void;
   onDiscard: (clientMessageId: string) => void;
   /** Called with the newest message id while it is actually on screen. */
@@ -103,17 +105,18 @@ export function ChatThread({
     // Jumping to the latest cancels a pending "keep my place" from an older
     // page still loading — it must not yank the reader back up afterwards.
     restore.current = null;
-    node.scrollTo({ top: node.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+    node.scrollTo({ top: node.scrollHeight, behavior: smooth && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" });
     atBottom.current = true;
     setNewCount(0);
   }, []);
 
   const reportRead = useCallback(() => {
-    if (!atBottom.current || document.visibilityState !== "visible") return;
-    const newest = [...state.messages].reverse().find((message) => !isOwnSide(message));
+    if (state.historyWindow || !atBottom.current || document.visibilityState !== "visible") return;
+    const newest = [...state.messages].reverse().find((message) => !message.historyOrderNumber && !isOwnSide(message));
     if (newest) onReadUpTo(newest.id);
-  }, [state.messages, isOwnSide, onReadUpTo]);
+  }, [state.messages, state.historyWindow, isOwnSide, onReadUpTo]);
 
+  useLayoutEffect(() => { initialized.current = false; }, [state.historyWindow]);
   // Initial position.
   useLayoutEffect(() => {
     if (initialized.current || !state.loaded) return;
@@ -217,6 +220,12 @@ export function ChatThread({
 
   return (
     <div className={cn("relative flex min-h-0 flex-1 flex-col", className)}>
+      {state.historyWindow && (
+        <div className="border-border bg-muted/50 flex items-center justify-between gap-3 border-b px-4 py-2 text-xs">
+          <span>Viewing earlier messages</span>
+          <button type="button" onClick={onReturnLatest} className="text-primary min-h-10 font-semibold">Return to latest to reply</button>
+        </div>
+      )}
       <div
         ref={scroller}
         onScroll={handleScroll}
@@ -266,6 +275,11 @@ export function ChatThread({
                   <span className="bg-primary/40 h-px flex-1" />
                 </div>
               )}
+              {item.sourceChanged && (item.message.historyOrderNumber || item.fromHistory) && (
+                <div className="border-border/60 bg-muted/40 text-muted-foreground mx-auto my-4 w-fit max-w-full rounded-full border px-4 py-1.5 text-center text-[11px] font-medium" aria-label={item.message.historyOrderNumber ? `Historical order ${item.message.historyOrderNumber}` : "Current conversation"}>
+                  {item.message.historyOrderNumber ? `Order ${item.message.historyOrderNumber} conversation` : "Current conversation"}
+                </div>
+              )}
               <MessageBubble
                 message={item.message}
                 isMine={isOwnSide(item.message)}
@@ -274,7 +288,7 @@ export function ChatThread({
                 senderLabel={senderLabelFor(item.message)}
                 senderIcon={item.firstInGroup ? senderIconFor?.(item.message) : undefined}
                 statusLabel={
-                  lastOwn && item.message.id === lastOwn.id
+                  lastOwn && !item.message.historyOrderNumber && item.message.id === lastOwn.id
                     ? isSeen(item.message, otherSideReadCursor)
                       ? "Seen"
                       : "Sent"

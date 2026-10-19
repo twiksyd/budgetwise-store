@@ -52,7 +52,7 @@ export async function GET(request: Request, { params }: Context) {
   const before = url.searchParams.get("before");
   const after = url.searchParams.get("after");
   const single = url.searchParams.get("message");
-  const viewer = { viewer: actor.role, viewerUserId: actor.userId } as const;
+  const viewer = { viewer: actor.role, viewerUserId: actor.userId, conversationKey: orderNumber } as const;
 
   try {
     if (single !== null) {
@@ -153,7 +153,7 @@ export async function POST(request: Request, { params }: Context) {
       return chatError("Sending too fast. Please wait a moment.", 429);
     }
 
-    const viewer = { viewer: actor.role, viewerUserId: actor.userId } as const;
+    const viewer = { viewer: actor.role, viewerUserId: actor.userId, conversationKey: orderNumber } as const;
 
     if (!file) {
       const result = await postMessage({

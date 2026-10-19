@@ -119,6 +119,7 @@ export function toChatMessage(
   {
     viewer,
     viewerUserId,
+    conversationKey,
     attachments,
     publicNames,
     paymentConfirmations,
@@ -133,11 +134,12 @@ export function toChatMessage(
   const base = {
     // 0032: only present when there is something to show.
     reactions: reactions?.get(row.id) ?? null,
-    replyTo: row.reply_to_message_id
+    replyTo: row.reply_to_message_id && replyTargets?.get(row.reply_to_message_id)?.order_number === row.order_number
       ? toReplyQuote(replyTargets?.get(row.reply_to_message_id), { viewer, publicNames, albumCounts })
       : null,
     id: row.id,
     orderNumber: row.order_number,
+    historyOrderNumber: conversationKey && conversationKey !== row.order_number ? row.order_number : null,
     senderRole: row.sender_role,
     kind: row.kind,
     body: row.body ?? "",
@@ -149,12 +151,13 @@ export function toChatMessage(
     album: row.kind === "album" ? toAlbum(row.payload, attachments?.get(row.id)) : null,
     // 0033: which order a slip / payment card belongs to (customer conversation).
     orderRef: row.order_ref ?? null,
-    order: row.kind === "slip" && row.order_ref ? toOrderSlip(slipOrders?.get(row.order_ref)) : null,
+    order: row.kind === "slip" ? toOrderSlip(slipOrders?.get(row.order_ref ?? row.order_number)) : null,
     product:
       row.kind === "product" ? toProductCard(row.payload, productLive?.get(row.id) ?? {}, productLinks?.get(row.id) ?? null) : null,
     vouch: row.kind === "vouch" ? toVouchRequest() : null,
   };
 
+  if (base.historyOrderNumber && base.payment) base.payment.orderNumber = base.historyOrderNumber;
   if (viewer === "admin") {
     return {
       ...base,

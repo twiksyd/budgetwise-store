@@ -1,4 +1,6 @@
 "use client";
+import { toast } from "sonner";
+import { fetchJson } from "@/lib/chat/client/fetch-json";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -47,7 +49,7 @@ const MY_ORDERS = "/account/orders";
 // "payment": an admin confirmed a payment (0027); the payload is empty too.
 // "typing" / "reaction" (0032): an admin is composing (public username only);
 // a message's reactions changed (counts + my own, no admin ids).
-const EVENTS = ["message", "seen", "fulfillment", "state", "assistant", "payment", "typing", "reaction"] as const;
+const EVENTS = ["message", "seen", "fulfillment", "state", "assistant", "payment", "typing", "reaction", "history"] as const;
 // Mobile networks drop and recover constantly; only a drop that lasts
 // this long is worth telling the customer about.
 const CONNECTION_GRACE_MS = 8000;
@@ -120,6 +122,8 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
         resetTyping();
       }
       if (event === "typing") onTypingEvent(payload);
+      if (event === "history") { void thread.returnToLatest(); reloadDetails(); return; }
+      if (event === "payment" && typeof payload.message_id === "string") void thread.refreshMessage(payload.message_id);
       if (event === "reaction" && typeof payload.message_id === "string") {
         patchMessage(payload.message_id, { reactions: reactionsFromEvent(payload, { viewer: "customer" }) });
       }
@@ -205,8 +209,8 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
     (message: ChatMessageDto) => (message.senderRole === "customer" ? "yourself" : (message.senderName ?? "BudgetWise")),
     [],
   );
-  const features = useMessageFeatures({ thread, senderLabelOf: replySenderLabel, quoteLabel });
-  useFocusOrderSlip(thread.state.loaded ? thread.state.messages : null, features.actions.jumpTo);
+  const features = useMessageFeatures({ thread, conversationKey: orderNumber, senderLabelOf: replySenderLabel, quoteLabel });
+  useFocusOrderSlip(orderNumber, thread.state.loaded ? thread.state.messages : null, features.actions.jumpTo);
   const { stop: stopTyping } = typingSender;
   const sendText = useCallback(
     (text: string) => {
@@ -380,7 +384,8 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
             senderIconFor={senderIconFor}
             otherSideReadCursor={adminRead}
             initialReadCursor={ownRead.current ?? NO_CURSOR}
-            onLoadOlder={() => void thread.loadOlder()}
+            onReturnLatest={() => void thread.returnToLatest()}
+          onLoadOlder={() => void thread.loadOlder()}
             loadError={thread.loadError}
             onReload={() => void thread.reload()}
             onRetry={thread.retry}
@@ -399,7 +404,9 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
           />
           </MessageActionsContext.Provider>
 
-          <Composer
+          {details?.readOnlyHome ? (
+            <Link href={`/orders/${encodeURIComponent(details.readOnlyHome)}`} className="text-primary border-border border-t p-4 text-center text-sm font-semibold">Historical chat · Continue in your current conversation</Link>
+          ) : !thread.state.historyWindow && <Composer
             placeholder="Type a message…"
             onSendText={sendText}
             onSendImages={thread.sendAlbum}
@@ -407,7 +414,7 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
             onStopTyping={typingSender.stop}
             replyTo={features.replyTo}
             onCancelReply={features.cancelReply}
-          />
+          />}
         </>
       )}
     </div>
@@ -569,7 +576,7 @@ function WelcomeCard({ onDismiss }: { onDismiss: () => void }) {
  * ?focus=BW-XXXX (My Orders, an old order link) or ?placed=BW-XXXX (just
  * checked out): bring that order's slip into view once, with a soft glow.
  */
-function useFocusOrderSlip(messages: ChatMessageDto[] | null, jumpTo: (messageId: string) => void) {
+function useFocusOrderSlip(conversationKey: string, messages: ChatMessageDto[] | null, jumpTo: (messageId: string) => void) {
   const done = useRef(false);
   useEffect(() => {
     if (done.current || !messages) return;
@@ -579,8 +586,14 @@ function useFocusOrderSlip(messages: ChatMessageDto[] | null, jumpTo: (messageId
       done.current = true;
       return;
     }
-    const slip = messages.find((message) => message.kind === "slip" && message.orderRef === target);
-    if (!slip) return; // not loaded yet — the next page of messages may have it
+    const slip = messages.find((message) => message.kind === "slip" && (message.orderRef ?? message.historyOrderNumber) === target);
+    if (!slip) {
+      done.current = true;
+      void fetchJson<{ messageId: string | null }>(`/api/order-chat/${encodeURIComponent(conversationKey)}/history-focus?order=${encodeURIComponent(target)}`)
+        .then(({ messageId }) => { if (messageId) jumpTo(messageId); })
+        .catch(() => toast.info("Use Load earlier messages to find this order's history."));
+      return;
+    }
     done.current = true;
     jumpTo(slip.id);
     requestAnimationFrame(() => {
@@ -593,7 +606,7 @@ function useFocusOrderSlip(messages: ChatMessageDto[] | null, jumpTo: (messageId
       url.searchParams.delete("focus");
       window.history.replaceState(window.history.state, "", url);
     }
-  }, [messages, jumpTo]);
+  }, [messages, jumpTo, conversationKey]);
 }
 
 /** ?placed=BW-XXXX after checkout (0033: the order is in this conversation). */

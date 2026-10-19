@@ -199,7 +199,16 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
     (message: ChatMessageDto) => (message.senderRole === "customer" ? customerName : staffLabelOf(message.senderUserId)),
     [customerName, staffLabelOf],
   );
-  const features = useMessageFeatures({ thread, senderLabelOf: replySenderLabel, quoteLabel });
+  const features = useMessageFeatures({ thread, conversationKey: orderNumber, senderLabelOf: replySenderLabel, quoteLabel });
+  const focusedHistory = useRef(false);
+  useEffect(() => {
+    if (!thread.state.loaded || focusedHistory.current) return;
+    const target = new URLSearchParams(window.location.search).get("focus");
+    if (!target) return;
+    focusedHistory.current = true;
+    void fetchJson<{ messageId: string }>(`/api/order-chat/${encodeURIComponent(orderNumber)}/history-focus?as=admin&order=${encodeURIComponent(target)}`)
+      .then(({ messageId }) => features.actions.jumpTo(messageId)).catch(() => toast.info("Order history is unavailable."));
+  }, [thread.state.loaded, features.actions, orderNumber]);
   const sendText = useCallback(
     (text: string) => {
       features.sendText(text);
@@ -272,11 +281,16 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
   // admin's confirmation arrives as an inbox row update and the card is
   // re-read from the server (also after a missed event).
   const { refreshMessage, addConfirmed, fetchNewer } = thread;
+  useEffect(() => subscribe((event, payload) => {
+    if (event === "history_payment" && payload.order_number === orderNumber && typeof payload.message_id === "string") {
+      void refreshMessage(payload.message_id);
+    }
+  }), [subscribe, orderNumber, refreshMessage]);
   // Order chats, (0031) General Inquiry quotes and (0033) every order in a
   // customer conversation — each order's latest card on its own.
   const confirmableIds = useMemo(
-    () => confirmablePaymentIds(thread.state.messages, row?.paymentRequestMessageId),
-    [thread.state.messages, row?.paymentRequestMessageId],
+    () => confirmablePaymentIds(thread.state.messages, thread.state.historyWindow ? null : row?.paymentRequestMessageId),
+    [thread.state.messages, thread.state.historyWindow, row?.paymentRequestMessageId],
   );
   const staleCardId = paymentMessageToRefresh(thread.state.messages, row?.paymentReceivedMessageId);
   useEffect(() => {
@@ -316,7 +330,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
         addConfirmed(result.message);
         const received = result.message.paymentReceived;
         const current = rowRef.current;
-        if (current && received) {
+        if (current && received && !isInquiryKey(orderNumber)) {
           dispatch({
             type: "upsert_row",
             row: {
@@ -329,6 +343,12 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
             activeOrderNumber: orderNumber,
           });
         }
+        if (isInquiryKey(orderNumber)) {
+          void loadDetails();
+          void fetchJson<{ row: InboxRow }>(`/api/admin/inbox/${encodeURIComponent(orderNumber)}`)
+            .then(({ row: fresh }) => dispatch({ type: "upsert_row", row: fresh, activeOrderNumber: orderNumber }))
+            .catch(() => undefined);
+        }
         if (result.created) toast.success("Payment Received. The customer can see it now.");
         else toast.info(`Already confirmed by ${nameFor(received?.confirmedBy) ?? "another admin"}.`);
         return true;
@@ -339,7 +359,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
         return false;
       }
     },
-    [orderNumber, addConfirmed, dispatch, nameFor, fetchNewer],
+    [orderNumber, addConfirmed, dispatch, nameFor, fetchNewer, loadDetails],
   );
   const paymentActions = useMemo<PaymentConfirmActions>(
     () => ({ confirmableIds, confirm: confirmPayment, nameFor }),
@@ -467,6 +487,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
           senderLabelFor={senderLabelFor}
           otherSideReadCursor={row ? { at: row.customerReadAt, messageId: row.customerReadMessageId } : null}
           initialReadCursor={initialRead.current}
+          onReturnLatest={() => void thread.returnToLatest()}
           onLoadOlder={() => void thread.loadOlder()}
           onRetry={thread.retry}
           onDiscard={thread.discard}
@@ -486,7 +507,9 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
         </ProductCardViewerContext.Provider>
         </PaymentConfirmContext.Provider>
 
-        <Composer
+        {details?.readOnlyHome ? (
+          <a href={`/admin/orders/${encodeURIComponent(details.readOnlyHome)}`} className="text-primary border-border border-t p-4 text-center text-sm font-semibold">Historical chat · Continue in current conversation</a>
+        ) : !thread.state.historyWindow && <Composer
           placeholder="Reply… (/ for saved replies)"
           onSendText={sendText}
           replyTo={features.replyTo}
@@ -526,7 +549,7 @@ export function ConversationView({ orderNumber }: { orderNumber: string }) {
               />
             </>
           }
-        />
+        />}
       </section>
 
       <aside className="border-border/60 hidden min-h-0 w-[360px] shrink-0 overflow-y-auto border-l xl:block" aria-label={hasOrders ? "Customer and orders" : isInquiry ? "Customer" : "Order details"}>

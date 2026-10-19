@@ -1,7 +1,7 @@
 import { isUuid } from "@/lib/order-chat.mjs";
 import { isReactionKey, reactionsFromEvent } from "@/lib/chat/message-meta.mjs";
 import { createRateLimiter } from "@/lib/chat/rate-limit.mjs";
-import { resolveChatActor, setReaction } from "@/lib/queries/order-chat";
+import { getMessageInOrder, resolveChatActor, setReaction } from "@/lib/queries/order-chat";
 import { chatError, chatJson, isSameOriginRequest, parseActingAs, readSmallJson, routeErrorResponse } from "@/lib/order-chat-http";
 
 type Context = { params: Promise<{ orderNumber: string }> };
@@ -24,8 +24,10 @@ export async function POST(request: Request, { params }: Context) {
   }
   if (!limiter.take(actor.userId).ok) return chatError("Too many reactions. Please wait a moment.", 429);
   try {
+    const message = await getMessageInOrder(orderNumber, body.messageId);
+    if (!message) return chatError("Not found.", 404);
     const summary = await setReaction({
-      orderNumber,
+      orderNumber: message.order_number,
       messageId: body.messageId,
       actorId: actor.userId,
       role: actor.role,

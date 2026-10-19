@@ -117,7 +117,7 @@ export function useInbox() {
 // Hidden-urgent count (0029): re-read at most this often after activity.
 const OUTSIDE_RECOUNT_MS = 1500;
 
-const EVENTS = ["message", "conversation", "read", "signal", "quick_replies", "fulfillment", "reaction"] as const;
+const EVENTS = ["message", "conversation", "read", "signal", "quick_replies", "fulfillment", "reaction", "history", "history_payment"] as const;
 
 export interface InboxGameOption {
   id: string;
@@ -357,6 +357,20 @@ export function InboxProvider({
       const active = activeRef.current;
       const orderNumber = typeof payload.order_number === "string" ? payload.order_number : null;
       switch (event) {
+        case "history":
+          if (orderNumber && payload.source_key === active.orderNumber) select(orderNumber);
+          void loadPage(viewRef.current, null);
+          if (orderNumber) {
+            cache.markDetailsStale(orderNumber);
+            // Historical arrivals precede the delta cursor: invalidate the page,
+            // rather than incorrectly treating them as newly sent messages.
+            cache.dispatch(orderNumber, { type: "history_window", messages: [], hasOlder: false, historyWindow: false }, { create: false });
+            if (cache.has(orderNumber)) void loader.ensureThread(orderNumber, { maxAgeMs: 0 });
+          }
+          break;
+        case "history_payment":
+          if (orderNumber) { cache.markDetailsStale(orderNumber); void loader.ensureDetails(orderNumber, { force: true }); }
+          break;
         case "message":
           dispatch({
             type: "message_event",
@@ -415,7 +429,7 @@ export function InboxProvider({
       }
       emit(event, payload);
     },
-    [emit, cache, loader, refreshOutside, me],
+    [emit, cache, loader, refreshOutside, me, loadPage, select],
   );
 
   const onResync = useCallback(() => {

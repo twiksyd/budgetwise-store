@@ -453,6 +453,43 @@ async function concurrentAttach(db) {
   }
 }
 
+async function concurrentHistory(db) {
+  const actor = "00000000-0000-0000-0000-0000000000a1";
+  const customer = "00000000-0000-0000-0000-000000003501";
+  const seed = async (c, key) => {
+    await c.query(`insert into store_order_snapshots(order_number,idempotency_key,request_fingerprint,view_token_hash,buyer_name,buyer_roblox_username,total_amount,owner_user_id)
+      values($1,'race-history-'||$1,repeat('5',64),repeat('5',64),'Same Name','same',150,$2)`,[key,customer]);
+    await c.query(`insert into store_order_line_snapshots(order_number,line_index,product_name,game_name,robux_amount,quantity,unit_price,line_total)
+      values($1,0,'Test','Game',100,1,150,150)`,[key]);
+    await c.query("insert into orders(order_number,buyer_name,buyer_roblox_username,status) values($1,'Same Name','same','delivered')",[key]);
+    const { rows } = await c.query("select store_post_message($1,'customer',$2,'text','History',null,null,gen_random_uuid()) as posted",[key,customer]);
+    const message = rows[0].posted.message.id;
+    await c.query("select store_mark_admin_read($1,user_id,$2) from admin_users",[key,message]);
+    await c.query("select store_set_conversation_state($1,$2,'done',$3)",[key,actor,message]);
+  };
+  await withDb(db, async setup => {
+    for (const key of ['BW-HRACE1','BW-HRACE2','BW-HRACE3','BW-HRACE4']) await seed(setup,key);
+    await withDb(db, first => withDb(db, async second => {
+      const link = "select store_link_historical_chat($1,$2) as linked";
+      const results = await Promise.all([first.query(link,['BW-HRACE1',actor]),second.query(link,['BW-HRACE2',actor])]);
+      if (!results.every(r=>r.rows[0].linked)) throw new Error('different-source linking failed');
+      const retry = await Promise.all([first.query(link,['BW-HRACE1',actor]),second.query(link,['BW-HRACE1',actor])]);
+      if (!retry.every(r=>r.rows[0].linked)) throw new Error('idempotent concurrent retries failed');
+      await first.query('begin');
+      await first.query("select store_post_message('BW-HRACE3','customer',$1,'text','New unresolved work',null,null,gen_random_uuid())",[customer]);
+      const waiting = second.query(link,['BW-HRACE3',actor]);
+      await first.query('commit');
+      if ((await waiting).rows[0].linked) throw new Error('link hid a concurrent customer message');
+      await first.query('begin');
+      await first.query(link,['BW-HRACE4',actor]);
+      const rejected = second.query("select store_post_message('BW-HRACE4','customer',$1,'text','Old tab',null,null,gen_random_uuid())",[customer]).then(()=>null,e=>e.code);
+      await first.query('commit');
+      if ((await rejected) !== 'BW030') throw new Error('old tab wrote after concurrent link');
+    }));
+  });
+  console.log('ok - concurrent different-source links, duplicate retries, message-before-link and link-before-message');
+}
+
 async function freshBase(db) {
   await admin(`create database ${db}`);
   for (const name of [
@@ -466,6 +503,22 @@ async function freshBase(db) {
 }
 
 async function run() {
+  if (process.argv.includes("--history-only")) {
+    await freshBase(MAIN);
+    for (const name of [
+      "0022_store_order_fulfillment_details.sql", "0024_store_conversation_workflow_and_albums.sql",
+      "0025_store_admin_public_usernames.sql", "0026_store_general_inquiries.sql",
+      "0027_store_payment_received.sql", "0028_store_inbox_reply_state.sql",
+      "0029_store_inbox_assign_games_avatars.sql", "0030_store_inbox_attention_filters.sql",
+      "0031_store_inquiry_payment_details.sql", "0032_store_message_reactions_and_replies.sql",
+      "0033_store_unified_customer_thread.sql", "0034_store_vouch_requests.sql",
+      "0035_store_historical_chat_links.sql", "0035_store_historical_chat_links.sql",
+    ]) await apply(MAIN, `../migrations/${name}`);
+    await check(MAIN, "38_historical_chat_test.sql");
+    await concurrentHistory(MAIN);
+    await check(MAIN, "39_historical_performance_test.sql");
+    return;
+  }
   // ---- Database 1: the production path (0023 is NOT applied in production),
   // then the same objects after 0023 as well.
   await freshBase(MAIN);
@@ -512,6 +565,12 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0034_store_vouch_requests.sql"));
   await later(() => apply(MAIN, "../migrations/0034_store_vouch_requests.sql")); // second run
   await later(() => check(MAIN, "37_vouch_request_test.sql"));
+  await later(() => apply(MAIN, "../migrations/0035_store_historical_chat_links.sql"));
+  await later(() => apply(MAIN, "../migrations/0035_store_historical_chat_links.sql"));
+  await later(() => check(MAIN, "38_historical_chat_test.sql"));
+  await later(() => concurrentHistory(MAIN));
+  await later(() => check(MAIN, "39_historical_performance_test.sql"));
+  if (!process.argv.includes("--without-legacy-cleanup")) {
   // The repository's own sequence also covers a database where 0023 ran
   // (throwaway local database only; production never runs 0023 here).
   await apply(MAIN, "../migrations/0023_store_chat_legacy_cleanup.sql");
@@ -529,6 +588,7 @@ async function run() {
   await later(() => apply(MAIN, "../migrations/0033_store_unified_customer_thread.sql"));
   await later(() => apply(MAIN, "../migrations/0034_store_vouch_requests.sql"));
 
+  }
   // ---- Database 2: rollbacks.
   await freshBase(ROLL);
   await check(ROLL, "40_rollback_test.sql");
@@ -623,6 +683,7 @@ async function run() {
       "../migrations/0032_store_message_reactions_and_replies.sql",
       "../migrations/0033_store_unified_customer_thread.sql",
       "../migrations/0034_store_vouch_requests.sql",
+      "../migrations/0035_store_historical_chat_links.sql",
     ]) await apply(REGR, name);
     await check(REGR, "25_fulfillment_test.sql");
     await check(REGR, "26_workflow_albums_test.sql");

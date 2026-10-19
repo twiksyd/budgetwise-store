@@ -18,10 +18,12 @@ export async function POST(request: Request, { params }: Context) {
   const body = (await readSmallJson(request)) as { messageId?: unknown } | null;
   if (!isUuid(body?.messageId)) return chatError("Invalid request.", 400);
   try {
-    const result = await confirmPaymentReceived({ orderNumber, messageId: body.messageId, actorId: gate.adminId });
+    const original = await getMessageInOrder(orderNumber, body.messageId);
+    if (!original) return chatError("Not found.", 404);
+    const result = await confirmPaymentReceived({ orderNumber: original.order_number, messageId: body.messageId, actorId: gate.adminId });
     const row = await getMessageInOrder(orderNumber, body.messageId);
     if (!row) return chatError("Not found.", 404);
-    const [message] = await toChatMessages([row], { viewer: "admin", viewerUserId: gate.adminId });
+    const [message] = await toChatMessages([row], { viewer: "admin", viewerUserId: gate.adminId, conversationKey: orderNumber });
     return chatJson({ created: result.created, message }, result.created ? 201 : 200);
   } catch (error) {
     return routeErrorResponse(error, "Confirm payment");

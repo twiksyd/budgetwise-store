@@ -1,3 +1,4 @@
+import { conversationSources, linkCompletedHistory } from "@/lib/queries/chat-history";
 import "server-only";
 import { createHmac } from "node:crypto";
 import { cache } from "react";
@@ -393,13 +394,13 @@ async function loadReactionRows(messageIds: string[]) {
  * 0032: originals quoted by replies on this page that are not on the page
  * themselves — one query, and only from the same conversation.
  */
-async function loadReplyTargets(orderNumber: string, ids: string[]): Promise<MessageRow[]> {
+async function loadReplyTargets(orderNumbers: string[], ids: string[]): Promise<MessageRow[]> {
   if (ids.length === 0) return [];
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("store_order_messages")
     .select("*")
-    .eq("order_number", orderNumber)
+    .in("order_number", orderNumbers)
     .in("id", ids);
   if (error) throw error;
   return (data ?? []) as MessageRow[];
@@ -412,7 +413,7 @@ async function loadReplyTargets(orderNumber: string, ids: string[]): Promise<Mes
  */
 export async function toChatMessages(
   rows: MessageRow[],
-  viewer: { viewer: ChatRole; viewerUserId: string },
+  viewer: { viewer: ChatRole; viewerUserId: string; conversationKey?: string },
 ): Promise<ChatMessageDto[]> {
   const albumIds = rows.filter((row) => row.kind === "album").map((row) => row.id);
   const paymentIds = rows.filter((row) => row.kind === "payment").map((row) => row.id);
@@ -423,15 +424,15 @@ export async function toChatMessages(
   const needsNames =
     viewer.viewer === "customer" && (rows.some((row) => row.sender_role === "admin") || quoted.length > 0);
   // 0033: slips of orders in a customer conversation, and product cards.
-  const slipRefs = rows.filter((row) => row.kind === "slip" && row.order_ref).map((row) => row.order_ref as string);
+  const slipRefs = rows.filter((row) => row.kind === "slip").map((row) => row.order_ref ?? row.order_number).filter((key) => !isInquiryKey(key));
   const productRows = rows.filter((row) => row.kind === "product");
   const [attachments, publicNames, paymentConfirmations, reactionRows, fetchedTargets, slipOrders, productData] = await Promise.all([
     loadAlbumAttachments(albumIds) as Promise<Map<string, AttachmentRowLike[]>>,
     needsNames ? loadPublicAdminNames() : Promise.resolve(undefined),
     loadPaymentConfirmations(paymentIds),
     loadReactionRows(rows.map((row) => row.id)),
-    rows.length ? loadReplyTargets(rows[0].order_number, missingQuoted) : Promise.resolve([]),
-    slipRefs.length ? loadSlipOrders(rows[0].order_number, slipRefs) : Promise.resolve(undefined),
+    rows.length ? loadReplyTargets([...new Set(rows.map((row) => row.order_number))], missingQuoted) : Promise.resolve([]),
+    slipRefs.length ? loadSlipOrders(viewer.conversationKey ?? rows[0].order_number, slipRefs) : Promise.resolve(undefined),
     productRows.length ? loadProductCardData(productRows) : Promise.resolve(undefined),
   ]);
   const replyTargets = new Map<string, MessageRow>();
@@ -501,7 +502,7 @@ export async function listMessagesSinceTimestamp(
   const { data, error } = await supabase
     .from("store_order_messages")
     .select("*")
-    .eq("order_number", orderNumber)
+    .in("order_number", await conversationSources(orderNumber))
     .gt("created_at", isoAfter)
     .order("created_at", { ascending: true })
     .order("id", { ascending: true })
@@ -520,7 +521,7 @@ export async function getMessageInOrder(
     .from("store_order_messages")
     .select("*")
     .eq("id", messageId)
-    .eq("order_number", orderNumber)
+    .in("order_number", await conversationSources(orderNumber))
     .maybeSingle();
   if (error) throw error;
   return (data as MessageRow | null) ?? null;
@@ -1028,6 +1029,10 @@ export async function setConversationState(input: {
     p_last_seen_message_id: input.lastSeenMessageId,
   });
   if (error) throw toChatDataError(error);
+  if (input.state === "done") {
+    try { await linkCompletedHistory(input.orderNumber, input.actorId); }
+    catch (error) { console.error("Historical linking deferred", error instanceof Error ? error.message : "unknown error"); }
+  }
   return data;
 }
 

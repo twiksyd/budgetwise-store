@@ -37,6 +37,7 @@ export interface CustomerOrderSummaryData {
 
 /** Everything the chat shows besides the messages (GET .../summary). */
 export interface CustomerChatDetails {
+  readOnlyHome?: string | null;
   summary: CustomerOrderSummaryData;
   adminRead: Cursor;
   ownRead: Cursor;
