@@ -21,7 +21,7 @@ export function InboxShell({ children }: { children: React.ReactNode }) {
   const hasConversation = Boolean(activeOrderNumber);
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="admin-workspace flex min-h-0 flex-1">
       <aside
         className={cn(
           "border-border/60 min-h-0 w-full flex-col border-r md:w-[320px] lg:w-[340px] md:shrink-0",

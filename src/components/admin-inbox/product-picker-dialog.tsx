@@ -188,13 +188,14 @@ export function ProductPickerDialog({ orderNumber, onSent }: { orderNumber: stri
         <Button
           type="button"
           variant="outline"
-          size="icon"
-          className="shrink-0 rounded-full"
+          size="sm"
+          className="min-h-10 shrink-0 gap-1.5 rounded-lg px-3 text-xs"
           aria-label="Send from catalog"
           title="Send a pricelist or product"
           data-testid="product-picker-trigger"
         >
           <PackagePlus className="size-4" />
+          <span>Products</span>
         </Button>
       </DialogPrimitive.Trigger>
       <DialogPrimitive.Portal>

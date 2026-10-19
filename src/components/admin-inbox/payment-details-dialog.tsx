@@ -116,8 +116,9 @@ export function PaymentDetailsDialog({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Trigger asChild>
-        <Button type="button" variant="outline" size="icon" className="shrink-0 rounded-full" aria-label="Send payment details" title="Send payment details">
+        <Button type="button" variant="outline" size="sm" className="min-h-10 shrink-0 gap-1.5 rounded-lg px-3 text-xs" aria-label="Send payment details" title="Send payment details">
           <Wallet className="size-4" />
+          <span>Payment</span>
         </Button>
       </DialogPrimitive.Trigger>
       <DialogPrimitive.Portal>
