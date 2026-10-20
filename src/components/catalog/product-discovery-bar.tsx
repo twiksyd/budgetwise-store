@@ -5,6 +5,7 @@ import { ArrowUp, Search, SearchX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 export type CategoryShortcut = {
   id: string;
@@ -111,14 +112,14 @@ export function ProductDiscoveryBar({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={searchLabel}
-            className="h-11 rounded-full pl-10 pr-10"
+            className="h-11 rounded-lg pl-10 pr-10"
           />
           {query.length > 0 && (
             <button
               type="button"
               onClick={() => onQueryChange("")}
               aria-label="Clear search"
-              className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 absolute top-1/2 right-2.5 -translate-y-1/2 rounded-full p-1.5 outline-none transition-colors focus-visible:ring-3"
+              className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 absolute top-1/2 right-2.5 -translate-y-1/2 rounded-lg p-1.5 outline-none transition-colors focus-visible:ring-3"
             >
               <X className="size-4" />
             </button>
@@ -141,12 +142,20 @@ export function ProductDiscoveryBar({
               }}
               aria-current={activeId === cat.id ? "true" : undefined}
               className={cn(
-                "focus-visible:ring-ring/50 shrink-0 rounded-full border px-4 py-1.5 text-xs font-medium outline-none transition-all focus-visible:ring-3 sm:text-sm",
+                "focus-visible:ring-ring/50 relative isolate shrink-0 rounded-lg border px-4 py-1.5 text-xs font-medium outline-none transition-[color,border-color] duration-300 focus-visible:ring-3 sm:text-sm",
                 activeId === cat.id
-                  ? "border-primary bg-primary text-primary-foreground"
+                  ? "border-primary text-primary-foreground"
                   : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 bg-background",
               )}
             >
+              {activeId === cat.id && (
+                <motion.span
+                  layoutId="category-active"
+                  aria-hidden
+                  className="bg-primary absolute inset-[-1px] -z-10 rounded-lg"
+                  transition={{ type: "spring", stiffness: 420, damping: 36 }}
+                />
+              )}
               {cat.label}
               <span className="ml-1.5 opacity-70">{cat.count}</span>
             </a>
@@ -170,7 +179,7 @@ export function BackToCategoriesButton({
     <button
       type="button"
       onClick={() => scrollToId(targetId)}
-      className="border-border/70 bg-background/95 text-foreground focus-visible:ring-ring/50 fixed bottom-20 right-4 z-40 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-medium shadow-lg backdrop-blur-md outline-none transition-colors focus-visible:ring-3 sm:bottom-24 sm:right-8"
+      className="border-border/70 bg-background/95 text-foreground focus-visible:ring-ring/50 fixed bottom-20 right-4 z-40 inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-xs font-medium shadow-lg backdrop-blur-md outline-none transition-colors focus-visible:ring-3 sm:bottom-24 sm:right-8"
     >
       <ArrowUp className="size-3.5" />
       Categories

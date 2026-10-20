@@ -4,10 +4,10 @@ import Image from "next/image";
 import { Gamepad2, Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Price } from "@/components/shared/price";
 import { useCartStore } from "@/stores/cart-store";
 import { MAX_QUANTITY_PER_PRODUCT } from "@/lib/validations/order";
 import { cn } from "@/lib/utils";
+import { AnimatedPrice } from "@/components/shared/animated-price";
 import type { CartItem } from "@/types/domain";
 
 export function CartLineItem({ item }: { item: CartItem }) {
@@ -31,7 +31,7 @@ export function CartLineItem({ item }: { item: CartItem }) {
   return (
     <div
       className={cn(
-        "surface-premium flex gap-3.5 rounded-2xl p-3.5",
+        "surface-premium flex gap-3.5 rounded-xl p-3.5",
         exceedsMax && "ring-destructive/50 ring-1",
       )}
     >
@@ -93,7 +93,7 @@ export function CartLineItem({ item }: { item: CartItem }) {
               <Plus className="size-3" />
             </Button>
           </div>
-          <Price
+          <AnimatedPrice
             amount={item.price * item.quantity}
             variant="cart"
             className="mr-0.5 mb-0.5 self-end"

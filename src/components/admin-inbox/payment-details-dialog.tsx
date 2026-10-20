@@ -135,7 +135,7 @@ export function PaymentDetailsDialog({
                     : "The customer will see this card. The amount is the order total."}
               </DialogPrimitive.Description>
             </div>
-            <DialogPrimitive.Close className="hover:bg-muted rounded-full p-1.5" aria-label="Close">
+            <DialogPrimitive.Close className="hover:bg-muted rounded-lg p-1.5" aria-label="Close">
               <X className="size-4" />
             </DialogPrimitive.Close>
           </div>

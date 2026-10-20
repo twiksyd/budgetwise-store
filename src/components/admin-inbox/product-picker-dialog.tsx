@@ -222,7 +222,7 @@ export function ProductPickerDialog({ orderNumber, onSent }: { orderNumber: stri
                 The customer taps the card to order. Prices are always current.
               </DialogPrimitive.Description>
             </div>
-            <DialogPrimitive.Close className="hover:bg-muted -mr-1.5 rounded-full p-2" aria-label="Close">
+            <DialogPrimitive.Close className="hover:bg-muted -mr-1.5 rounded-lg p-2" aria-label="Close">
               <X className="size-4" />
             </DialogPrimitive.Close>
           </div>

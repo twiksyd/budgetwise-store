@@ -61,7 +61,7 @@ export default async function RobuxViaLinkPage() {
 
       <div className="mt-4 flex items-center gap-3.5 sm:gap-6">
         <div
-          className="surface-premium relative flex size-18 shrink-0 items-center justify-center overflow-hidden rounded-2xl sm:size-28 sm:rounded-3xl"
+          className="surface-premium relative flex size-18 shrink-0 items-center justify-center overflow-hidden rounded-xl sm:size-28 sm:rounded-xl"
           style={{ backgroundColor: `${robuxViaLinkTile.color}1a` }}
         >
           <Image
@@ -99,7 +99,7 @@ export default async function RobuxViaLinkPage() {
       {/* Explains the two sections before the customer has to guess which
           one applies to them — the whole point of merging these into one
           page instead of two confusingly-similar game cards. */}
-      <div className="surface-premium mt-4 grid gap-2 rounded-2xl p-3 sm:grid-cols-2 sm:gap-0 sm:p-4">
+      <div className="surface-premium mt-4 grid gap-2 rounded-xl p-3 sm:grid-cols-2 sm:gap-0 sm:p-4">
         <div className="flex gap-2.5">
           <ShieldCheck className="text-primary mt-0.5 size-4 shrink-0" />
           <div>

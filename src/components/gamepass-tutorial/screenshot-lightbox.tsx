@@ -53,7 +53,7 @@ export function ScreenshotLightbox({
           <DialogPrimitive.Close asChild>
             <button
               type="button"
-              className="fixed top-4 right-4 z-50 flex size-11 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70 focus-visible:ring-3 focus-visible:ring-white/50 focus-visible:outline-none sm:top-6 sm:right-6"
+              className="fixed top-4 right-4 z-50 flex size-11 items-center justify-center rounded-lg bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70 focus-visible:ring-3 focus-visible:ring-white/50 focus-visible:outline-none sm:top-6 sm:right-6"
             >
               <XIcon className="size-5" />
               <span className="sr-only">Close</span>

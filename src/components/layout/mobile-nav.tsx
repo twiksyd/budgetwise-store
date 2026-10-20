@@ -34,12 +34,13 @@ export function MobileNav() {
           </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-1 px-4">
-          {siteConfig.nav.map((item) => (
+          {siteConfig.nav.map((item, index) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
-              className="text-foreground hover:bg-accent flex items-center rounded-lg px-3 py-3.5 text-sm font-medium"
+              className="text-foreground hover:bg-accent animate-in fade-in-0 slide-in-from-left-3 fill-mode-both flex items-center rounded-lg px-3 py-3.5 text-sm font-medium duration-500 motion-reduce:animate-none"
+              style={{ animationDelay: `${80 + index * 60}ms` }}
             >
               {item.label}
             </Link>

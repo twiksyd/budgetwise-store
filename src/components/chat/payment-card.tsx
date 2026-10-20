@@ -365,7 +365,7 @@ function ConfirmPaymentButton({ card, onConfirm }: { card: PaymentCardData; onCo
         <DialogPrimitive.Content className="bg-background fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl p-5 shadow-2xl">
           <div className="flex items-start justify-between gap-3">
             <DialogPrimitive.Title className="font-heading text-lg font-semibold">Confirm payment received?</DialogPrimitive.Title>
-            <DialogPrimitive.Close className="hover:bg-muted rounded-full p-1.5 disabled:opacity-50" aria-label="Close" disabled={busy}>
+            <DialogPrimitive.Close className="hover:bg-muted rounded-lg p-1.5 disabled:opacity-50" aria-label="Close" disabled={busy}>
               <X className="size-4" />
             </DialogPrimitive.Close>
           </div>

@@ -1,6 +1,7 @@
 import { Separator } from "@/components/ui/separator";
 import { Price } from "@/components/shared/price";
 import { isRobuxPlusGame, robuxPlusPresentation } from "@/config/robux-products";
+import { AnimatedPrice } from "@/components/shared/animated-price";
 import type { CartItem } from "@/types/domain";
 
 export function OrderSummary({
@@ -13,7 +14,7 @@ export function OrderSummary({
   const hasRobuxPlus = items.some((item) => isRobuxPlusGame(item.gameId));
 
   return (
-    <div className="surface-premium rounded-2xl p-6 sm:p-7">
+    <div className="surface-premium rounded-xl p-6 sm:p-7">
       <h2 className="font-heading text-sm font-semibold">Order summary</h2>
       {hasRobuxPlus && (
         <div className="border-red-500/25 bg-red-500/10 text-red-950 dark:text-red-100 mt-3 rounded-2xl border px-3.5 py-3 text-xs leading-relaxed">
@@ -53,7 +54,7 @@ export function OrderSummary({
       <Separator className="my-5" />
       <div className="flex justify-between text-sm">
         <span className="text-muted-foreground">Total</span>
-        <Price amount={subtotal} variant="cart" className="text-foreground" />
+        <AnimatedPrice amount={subtotal} variant="cart" className="text-foreground" />
       </div>
     </div>
   );

@@ -48,7 +48,7 @@ export function MessagesEntry() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="hover:bg-muted active:bg-muted inline-flex size-11 shrink-0 items-center justify-center rounded-full"
+            className="hover:bg-muted active:bg-muted inline-flex size-11 shrink-0 items-center justify-center rounded-lg"
             aria-label="Back"
           >
             <ArrowLeft className="size-5" />
@@ -67,7 +67,7 @@ export function MessagesEntry() {
                 setFailed(false);
                 setAttempt((value) => value + 1);
               }}
-              className="border-border hover:bg-muted inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold"
+              className="border-border hover:bg-muted inline-flex min-h-11 items-center gap-2 rounded-lg border px-4 text-sm font-semibold"
             >
               <RotateCw className="size-4" />
               Couldn&apos;t open the chat — try again

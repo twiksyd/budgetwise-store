@@ -1,3 +1,5 @@
+import { DrawLine, Stagger, StaggerItem } from "@/components/motion/reveal";
+
 const steps = [
   {
     title: "Pumili ng Game",
@@ -17,26 +19,28 @@ const steps = [
   },
 ];
 
+// Four steps that read as one sequence: they cascade in left to right while
+// a hairline draws across behind their numbers.
 export function HomepageOrderingGuide() {
   return (
     <section className="mx-auto max-w-6xl px-6 pb-12 sm:pb-16">
-      <div className="grid gap-2.5 sm:grid-cols-4">
-        {steps.map((step, index) => (
-          <div
-            key={step.title}
-            className="surface-premium rounded-2xl p-3.5 sm:p-4"
-          >
-            <div className="text-primary font-heading text-lg font-bold tabular-nums">
-              {index + 1}
-            </div>
-            <h2 className="font-heading mt-2 text-sm font-semibold">
-              {step.title}
-            </h2>
-            <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">
-              {step.description}
-            </p>
-          </div>
-        ))}
+      <div className="relative">
+        <DrawLine className="bg-primary/25 absolute top-[1.85rem] right-6 left-6 hidden h-px sm:block" />
+        <Stagger className="relative grid gap-2.5 sm:grid-cols-4">
+          {steps.map((step, index) => (
+            <StaggerItem key={step.title} className="surface-premium group rounded-xl p-3.5 sm:p-4">
+              <div className="text-primary bg-background ring-primary/20 relative z-10 inline-flex size-8 items-center justify-center rounded-lg font-heading text-sm font-bold tabular-nums ring-1 transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+                {index + 1}
+              </div>
+              <h2 className="font-heading relative z-10 mt-2.5 text-sm font-semibold">
+                {step.title}
+              </h2>
+              <p className="text-muted-foreground relative z-10 mt-1.5 text-xs leading-relaxed">
+                {step.description}
+              </p>
+            </StaggerItem>
+          ))}
+        </Stagger>
       </div>
     </section>
   );

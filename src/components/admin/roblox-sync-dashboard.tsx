@@ -106,7 +106,7 @@ function MetricCard({
   help?: string;
 }) {
   return (
-    <div className="surface-premium rounded-2xl p-3">
+    <div className="surface-premium rounded-xl p-3">
       <p className="text-muted-foreground text-xs font-medium">{label}</p>
       <p className="font-heading mt-1 text-2xl font-semibold tracking-tight">
         {typeof value === "number" ? formatNumber(value) : value}
@@ -118,7 +118,7 @@ function MetricCard({
 
 function EmptyState({ title, detail }: { title: string; detail: string }) {
   return (
-    <div className="surface-premium rounded-2xl p-6 text-center">
+    <div className="surface-premium rounded-xl p-6 text-center">
       <p className="font-heading text-sm font-semibold">{title}</p>
       <p className="text-muted-foreground mt-1 text-sm">{detail}</p>
     </div>
@@ -318,7 +318,7 @@ export function RobloxSyncDashboard({ data }: { data: RobloxSyncDashboardData })
         <MetricCard label="Latest sync activity" value={formatDate(data.summary.latestSyncActivity)} />
       </section>
 
-      <section className="surface-premium rounded-2xl p-4">
+      <section className="surface-premium rounded-xl p-4">
         <div className="flex items-start gap-2">
           <Info className="text-primary mt-0.5 size-4 shrink-0" />
           <div className="text-muted-foreground text-sm">
@@ -377,7 +377,7 @@ export function RobloxSyncDashboard({ data }: { data: RobloxSyncDashboardData })
           title="Configuration Coverage"
           detail="Configured games have a Roblox universe ID. Unconfigured games are not failed syncs."
         />
-        <div className="surface-premium overflow-hidden rounded-2xl">
+        <div className="surface-premium overflow-hidden rounded-xl">
           {filteredCoverage.length > 0 ? filteredCoverage.map((game) => (
             <div key={game.gameId} className="grid gap-3 border-b p-3 last:border-b-0 lg:grid-cols-[minmax(12rem,1fr)_8rem_8rem_8rem_8rem_9rem_9rem] lg:items-center">
               <div className="min-w-0">
@@ -397,7 +397,7 @@ export function RobloxSyncDashboard({ data }: { data: RobloxSyncDashboardData })
         </div>
       </section>
 
-      <section className="surface-premium rounded-2xl p-4">
+      <section className="surface-premium rounded-xl p-4">
         <SectionHeading
           title="Latest Sync Activity"
           detail="Inferred from nearby per-game log timestamps. The current schema has no global sync-run ID."
@@ -421,7 +421,7 @@ export function RobloxSyncDashboard({ data }: { data: RobloxSyncDashboardData })
       <section className="flex flex-col gap-3">
         <SectionHeading title="Recent Per-Game Sync Logs" />
         <DateFilters fromDate={fromDate} toDate={toDate} setFromDate={setFromDate} setToDate={setToDate} />
-        <div className="surface-premium overflow-hidden rounded-2xl">
+        <div className="surface-premium overflow-hidden rounded-xl">
           {filteredLogs.length > 0 ? filteredLogs.map((log) => (
             <SyncLogRow
               key={log.id}
@@ -450,7 +450,7 @@ export function RobloxSyncDashboard({ data }: { data: RobloxSyncDashboardData })
         {data.recentChanges.length === 0 ? (
           <EmptyState title="No parsed change events" detail="Recent log rows do not contain structured details events." />
         ) : (
-          <div className="surface-premium overflow-hidden rounded-2xl">
+          <div className="surface-premium overflow-hidden rounded-xl">
             {filteredChanges.length > 0 ? filteredChanges.map((event) => (
               <div key={event.id} className="border-b p-3 last:border-b-0">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -503,7 +503,7 @@ export function RobloxSyncDashboard({ data }: { data: RobloxSyncDashboardData })
             </SelectContent>
           </Select>
         </div>
-        <div className="surface-premium overflow-hidden rounded-2xl">
+        <div className="surface-premium overflow-hidden rounded-xl">
           {filteredReview.length > 0 ? filteredReview.slice(0, Number(rowsToShow)).map((item) => (
             <div key={item.productId} className="grid gap-3 border-b p-3 last:border-b-0 lg:grid-cols-[minmax(14rem,1fr)_8rem_9rem_10rem_10rem] lg:items-center">
               <div className="min-w-0">
@@ -530,7 +530,7 @@ export function RobloxSyncDashboard({ data }: { data: RobloxSyncDashboardData })
       </section>
 
       {data.summary.ambiguous === 0 && (
-        <div className="surface-premium flex items-start gap-2 rounded-2xl p-4 text-sm">
+        <div className="surface-premium flex items-start gap-2 rounded-xl p-4 text-sm">
           <AlertTriangle className="text-muted-foreground mt-0.5 size-4 shrink-0" />
           <p className="text-muted-foreground">No ambiguous matches are currently present.</p>
         </div>

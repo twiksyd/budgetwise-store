@@ -2,55 +2,57 @@
 
 import { useRef } from "react";
 import Image from "next/image";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import bannerSrc from "../../../public/icons/budgetwise-logo.png";
 
 const BANNER_SRC = bannerSrc;
 
-// The official BudgetWise mark, transparent PNG, used as hero backdrop —
-// branding, not decoration. Blurred at 13px (~20% of Tailwind's 64px max
-// blur preset) and shown at reduced opacity so it
-// reads as a large soft brand watermark behind the content rather than
-// competing with it. Layering (back to front): banner -> dark overlay ->
-// soft purple glow -> hero content. Fades into the section below via a
-// mask, and drifts a few px on scroll for a barely-there parallax.
+// Hero backdrop, back to front:
+//   a fine dot grid that fades out toward the edges (structure, not fog);
+//   two brand-colour light fields that drift very slowly (CSS, transform-only);
+//   the BudgetWise mark as a large watermark that sinks and grows on scroll.
+// Everything is static for reduced motion.
 export function HeroBanner() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
   });
-  const y = useTransform(scrollYProgress, [0, 1], [0, 40]);
+  const y = useTransform(scrollYProgress, [0, 1], [0, reduce ? 0 : 140]);
+  const scale = useTransform(scrollYProgress, [0, 1], [1, reduce ? 1 : 1.12]);
+  const fade = useTransform(scrollYProgress, [0, 0.9], [1, reduce ? 1 : 0.2]);
 
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 overflow-hidden [mask-image:linear-gradient(to_bottom,black_0%,black_70%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_0%,black_70%,transparent_100%)]"
+      aria-hidden
+      className="absolute inset-0 overflow-hidden [mask-image:linear-gradient(to_bottom,black_0%,black_72%,transparent_100%)]"
     >
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1.4, ease: "easeOut" }}
-        style={{ y }}
-        className="absolute inset-x-0 -top-12 -bottom-12"
-      >
-        <Image
-          src={BANNER_SRC}
-          alt=""
-          fill
-          priority
-          quality={90}
-          sizes="100vw"
-          className="object-contain opacity-80 blur-[13px]"
-        />
+      <div className="bw-hero-grid absolute inset-0" />
+      <div className="bw-hero-field bw-hero-field-a" />
+      <div className="bw-hero-field bw-hero-field-b" />
+
+      <motion.div style={{ y, scale, opacity: fade }} className="absolute inset-x-0 -top-12 -bottom-12">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.6, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute inset-0"
+        >
+          <Image
+            src={BANNER_SRC}
+            alt=""
+            fill
+            priority
+            quality={90}
+            sizes="100vw"
+            className="object-contain opacity-[0.22] blur-[3px] dark:opacity-[0.16]"
+          />
+        </motion.div>
       </motion.div>
 
-      {/* Dark, theme-aware overlay — sits on top of the banner */}
-      <div className="bg-background/55 absolute inset-0" />
-
-      {/* Soft purple ambient glow — above the overlay, below the content,
-          intentionally faint so it never outshines the banner itself */}
-      <div className="hero-glow absolute inset-0" />
+      <div className="bg-background/40 absolute inset-0" />
     </div>
   );
 }

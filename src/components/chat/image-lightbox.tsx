@@ -42,7 +42,7 @@ export function ImageLightbox({
             />
           )}
           <DialogPrimitive.Close
-            className="absolute top-3 right-3 inline-flex size-11 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
+            className="absolute top-3 right-3 inline-flex size-11 items-center justify-center rounded-lg bg-black/50 text-white transition-colors hover:bg-black/70"
             aria-label="Close image"
           >
             <XIcon className="size-5" />

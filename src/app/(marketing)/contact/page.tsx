@@ -28,7 +28,7 @@ export default function ContactPage() {
         general na tanong? Pwede kaming i-message sa TikTok.
       </Taglish>
 
-      <div className="surface-premium mt-10 rounded-2xl p-6 sm:p-7">
+      <div className="surface-premium mt-10 rounded-xl p-6 sm:p-7">
         <div className="bg-primary/10 flex size-11 items-center justify-center rounded-xl">
           <MessageCircle className="text-primary size-5" />
         </div>
@@ -54,7 +54,7 @@ export default function ContactPage() {
       </div>
 
       {supportLink && (
-        <div className="surface-premium mt-6 rounded-2xl p-6 sm:p-7">
+        <div className="surface-premium mt-6 rounded-xl p-6 sm:p-7">
           <h2 className="font-heading text-base font-semibold">
             General questions? Message us on TikTok
           </h2>
@@ -79,7 +79,7 @@ export default function ContactPage() {
       )}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <div className="surface-premium rounded-2xl p-5">
+        <div className="surface-premium rounded-xl p-5">
           <div className="bg-primary/10 flex size-9 items-center justify-center rounded-lg">
             <Timer className="text-primary size-4" />
           </div>
@@ -95,7 +95,7 @@ export default function ContactPage() {
             lahat ng messages binabasa at sinasagot namin.
           </Taglish>
         </div>
-        <div className="surface-premium rounded-2xl p-5">
+        <div className="surface-premium rounded-xl p-5">
           <div className="bg-primary/10 flex size-9 items-center justify-center rounded-lg">
             <Clock className="text-primary size-4" />
           </div>

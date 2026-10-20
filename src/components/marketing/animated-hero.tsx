@@ -8,17 +8,44 @@ import { HeroBanner } from "@/components/marketing/hero-banner";
 import { useStoreStatus } from "@/components/shared/store-status-provider";
 import { cn } from "@/lib/utils";
 
+const EASE = [0.16, 1, 0.3, 1] as const;
+
 const container: Variants = {
   hidden: {},
   show: {
-    transition: { staggerChildren: 0.09, delayChildren: 0.05 },
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
   },
 };
 
 const item: Variants = {
-  hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+  hidden: { opacity: 0, y: 18, filter: "blur(6px)" },
+  show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.8, ease: EASE } },
 };
+
+// Headline: each word rises from behind its own mask, one after another.
+const words: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07 } },
+};
+const word: Variants = {
+  hidden: { y: "110%", rotate: 4 },
+  show: { y: "0%", rotate: 0, transition: { duration: 0.9, ease: EASE } },
+};
+
+function MaskedHeadline({ text }: { text: string }) {
+  return (
+    <motion.span variants={words} className="inline">
+      {text.split(" ").map((part, index) => (
+        <span key={index} className="inline-block overflow-hidden pb-[0.12em] align-bottom">
+          <motion.span variants={word} className="inline-block origin-bottom-left will-change-transform">
+            {part}
+            {"\u00a0"}
+          </motion.span>
+        </span>
+      ))}
+    </motion.span>
+  );
+}
 
 // Same three-way palette as the sitewide status banner (amber for
 // maintenance, destructive red for closed) so the hero badge never tells a
@@ -68,15 +95,11 @@ export function AnimatedHero() {
         <motion.div
           variants={item}
           className={cn(
-            "mb-5 flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-xs font-semibold sm:mb-8 sm:text-sm",
+            "mb-5 flex items-center gap-2.5 rounded-lg border px-3.5 py-2 text-xs font-semibold sm:mb-8 sm:text-sm",
             badge.className,
           )}
         >
-          <motion.span
-            animate={badge.pulse ? { opacity: [1, 0.45, 1] } : undefined}
-            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-            className={cn("size-2 shrink-0 rounded-full", badge.dotClassName)}
-          />
+          <span className={cn("relative size-2 shrink-0 rounded-full", badge.dotClassName, badge.pulse && "bw-ping")} />
           <span className={cn("font-bold tracking-wide uppercase", badge.eyebrowClassName)}>
             {badge.eyebrow}
           </span>
@@ -85,10 +108,13 @@ export function AnimatedHero() {
         </motion.div>
 
         <motion.h1
-          variants={item}
+          variants={words}
           className="font-heading max-w-3xl text-4xl font-semibold tracking-[-0.03em] text-balance sm:text-7xl"
         >
-          Buy gamepasses. Skip overpriced stores.
+          <MaskedHeadline text="Buy gamepasses." />{" "}
+          <span className="text-[color-mix(in_oklch,var(--primary)_78%,var(--foreground))]">
+            <MaskedHeadline text="Skip overpriced stores." />
+          </span>
         </motion.h1>
 
         <motion.p

@@ -72,7 +72,7 @@ export function OrderLanding({
         </p>
         <Link
           href={game ? `/games/${game.slug}` : "/games"}
-          className="bg-primary text-primary-foreground mt-5 inline-flex min-h-11 items-center gap-1.5 rounded-full px-5 text-sm font-semibold"
+          className="bg-primary text-primary-foreground mt-5 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-5 text-sm font-semibold"
         >
           {game ? `Browse ${game.name}` : "Browse games"}
           <ArrowRight className="size-4" aria-hidden />
@@ -131,7 +131,7 @@ export function OrderLanding({
         </Link>
       </nav>
 
-      <section className="bw-card-in surface-premium mt-4 overflow-hidden rounded-3xl" aria-labelledby="order-landing-title">
+      <section className="bw-card-in surface-premium mt-4 overflow-hidden rounded-xl" aria-labelledby="order-landing-title">
         {fromChat && (
           <p className="bg-primary/[0.07] text-primary flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold">
             <Sparkles className="size-3.5" aria-hidden />
@@ -166,12 +166,12 @@ export function OrderLanding({
           <div className="border-border/60 border-t p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-semibold">Quantity</span>
-              <div className="border-border flex items-center rounded-full border">
+              <div className="border-border flex items-center rounded-lg border">
                 <button
                   type="button"
                   onClick={() => setQuantity((value) => Math.max(1, value - 1))}
                   disabled={quantity <= 1}
-                  className="hover:bg-muted inline-flex size-11 items-center justify-center rounded-full transition-colors disabled:opacity-40"
+                  className="hover:bg-muted inline-flex size-11 items-center justify-center rounded-lg transition-colors disabled:opacity-40"
                   aria-label="Decrease quantity"
                 >
                   <Minus className="size-4" />
@@ -183,7 +183,7 @@ export function OrderLanding({
                   type="button"
                   onClick={() => setQuantity((value) => Math.min(MAX_QUANTITY_PER_PRODUCT, value + 1))}
                   disabled={quantity >= MAX_QUANTITY_PER_PRODUCT}
-                  className="hover:bg-muted inline-flex size-11 items-center justify-center rounded-full transition-colors disabled:opacity-40"
+                  className="hover:bg-muted inline-flex size-11 items-center justify-center rounded-lg transition-colors disabled:opacity-40"
                   aria-label="Increase quantity"
                 >
                   <Plus className="size-4" />

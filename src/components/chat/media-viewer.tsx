@@ -91,7 +91,7 @@ export function MediaViewer({
               {many && index !== null ? `${index + 1} / ${items.length}` : ""}
             </span>
             <DialogPrimitive.Close
-              className="inline-flex size-11 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20"
+              className="inline-flex size-11 items-center justify-center rounded-lg bg-white/10 transition-colors hover:bg-white/20"
               aria-label="Close"
             >
               <XIcon className="size-5" />
@@ -135,7 +135,7 @@ export function MediaViewer({
               <button
                 type="button"
                 onClick={() => go(-1)}
-                className="inline-flex size-12 items-center justify-center rounded-full bg-white/10 hover:bg-white/20"
+                className="inline-flex size-12 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20"
                 aria-label="Previous image"
               >
                 <ChevronLeft className="size-6" />
@@ -143,14 +143,14 @@ export function MediaViewer({
               <button
                 type="button"
                 onClick={() => setZoomed((value) => !value)}
-                className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold hover:bg-white/20"
+                className="rounded-lg bg-white/10 px-4 py-2 text-xs font-semibold hover:bg-white/20"
               >
                 {zoomed ? "Fit" : "Zoom"}
               </button>
               <button
                 type="button"
                 onClick={() => go(1)}
-                className="inline-flex size-12 items-center justify-center rounded-full bg-white/10 hover:bg-white/20"
+                className="inline-flex size-12 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20"
                 aria-label="Next image"
               >
                 <ChevronRight className="size-6" />
@@ -162,7 +162,7 @@ export function MediaViewer({
               <button
                 type="button"
                 onClick={() => setZoomed((value) => !value)}
-                className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white hover:bg-white/20"
+                className="rounded-lg bg-white/10 px-4 py-2 text-xs font-semibold text-white hover:bg-white/20"
               >
                 {zoomed ? "Fit" : "Zoom"}
               </button>

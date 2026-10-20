@@ -33,7 +33,7 @@ export function ChatPricelistBanner({ gameId }: { gameId: string }) {
       <button
         type="button"
         onClick={() => setVisible(false)}
-        className="hover:bg-primary/10 -m-1 rounded-full p-1.5"
+        className="hover:bg-primary/10 -m-1 rounded-lg p-1.5"
         aria-label="Dismiss"
       >
         <X className="size-4" />

@@ -10,6 +10,7 @@ import { getProductDisplayName } from "@/lib/product-display-name";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import { useUIStore } from "@/stores/ui-store";
+import { flyToCart } from "@/lib/fly-to-cart";
 import {
   MAX_DISTINCT_ORDER_ITEMS,
   MAX_QUANTITY_PER_PRODUCT,
@@ -62,15 +63,12 @@ export function AddToCartButton({
   }, []);
 
   return (
-    <motion.div
-      whileTap={disabled ? undefined : { scale: 0.97 }}
-      className={fullWidth ? "block w-full" : "inline-block"}
-    >
+    <div className={fullWidth ? "block w-full" : "inline-block"}>
       <Button
         size={fullWidth ? "default" : "sm"}
         className={cn(
           fullWidth &&
-            "h-11 w-full rounded-xl px-3 text-sm font-semibold shadow-[0_10px_24px_-16px_color-mix(in_oklch,var(--primary)_60%,transparent)] sm:h-10",
+            "h-11 w-full rounded-lg px-3 text-sm font-semibold sm:h-10",
           // Local, in-place confirmation exactly where the customer
           // tapped — the toast still fires, but this doesn't ask them to
           // glance somewhere else to know it worked.
@@ -78,7 +76,8 @@ export function AddToCartButton({
             "bg-emerald-600 hover:bg-emerald-600 dark:bg-emerald-500 dark:hover:bg-emerald-500",
         )}
         disabled={disabled || cartLimitReached}
-        onClick={() => {
+        onClick={(event) => {
+          const button = event.currentTarget;
           const result = addItem({
             gamepassId: gamepass.id,
             gameId,
@@ -99,6 +98,8 @@ export function AddToCartButton({
             return;
           }
 
+          // The product flies into the header cart, which pops on arrival.
+          flyToCart(button);
           setJustAdded(true);
           if (revertTimer.current) clearTimeout(revertTimer.current);
           revertTimer.current = setTimeout(
@@ -156,6 +157,6 @@ export function AddToCartButton({
           )}
         </AnimatePresence>
       </Button>
-    </motion.div>
+    </div>
   );
 }

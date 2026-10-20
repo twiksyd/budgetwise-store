@@ -293,7 +293,7 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
         <Link
           href={MY_ORDERS}
           onClick={goBack}
-          className="hover:bg-muted active:bg-muted inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-75"
+          className="hover:bg-muted active:bg-muted inline-flex size-11 shrink-0 items-center justify-center rounded-lg transition-colors duration-75"
           aria-label="Back"
           data-testid="chat-back"
         >
@@ -457,7 +457,7 @@ function ReadOnlyNotice({ link }: { link: string | null }) {
         {link && (
           <a
             href={link}
-            className="bg-primary text-primary-foreground inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-sm font-semibold"
+            className="bg-primary text-primary-foreground inline-flex min-h-10 items-center gap-1.5 rounded-lg px-4 text-sm font-semibold"
           >
             <MessageCircle className="size-4" aria-hidden />
             Open BudgetWise DGM
@@ -467,7 +467,7 @@ function ReadOnlyNotice({ link }: { link: string | null }) {
           href={siteConfig.facebookPageUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="border-border hover:bg-muted inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-semibold"
+          className="border-border hover:bg-muted inline-flex min-h-10 items-center rounded-lg border px-4 text-sm font-semibold"
         >
           Visit our page
         </a>
@@ -492,7 +492,7 @@ function MessengerContinue({ orderNumber, link }: { orderNumber: string; link: s
       {link && (
         <a
           href={link}
-          className="bg-primary text-primary-foreground mt-1 inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold"
+          className="bg-primary text-primary-foreground mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg px-5 text-sm font-semibold"
         >
           <MessageCircle className="size-4" aria-hidden />
           Continue on Messenger
@@ -508,7 +508,7 @@ function OrderUnavailable({ isInquiry }: { isInquiry: boolean }) {
       <SearchX className="text-muted-foreground size-10" />
       <p className="font-heading text-base font-semibold">We couldn&apos;t find this {isInquiry ? "chat" : "order"}</p>
       <p className="text-muted-foreground max-w-xs text-sm">It may belong to a different account. Your orders are all in My Orders.</p>
-      <Link href={MY_ORDERS} className="bg-primary text-primary-foreground mt-1 inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold">
+      <Link href={MY_ORDERS} className="bg-primary text-primary-foreground mt-1 inline-flex min-h-11 items-center rounded-lg px-5 text-sm font-semibold">
         Go to My Orders
       </Link>
     </div>
@@ -645,7 +645,7 @@ function WelcomeCard({ onDismiss }: { onDismiss: () => void }) {
       <button
         type="button"
         onClick={onDismiss}
-        className="bg-primary text-primary-foreground mt-2.5 inline-flex min-h-10 items-center rounded-full px-4 text-sm font-semibold"
+        className="bg-primary text-primary-foreground mt-2.5 inline-flex min-h-10 items-center rounded-lg px-4 text-sm font-semibold"
       >
         Got it
       </button>
@@ -727,7 +727,7 @@ function PlacedBanner({ orderNumber, onDismiss }: { orderNumber: string; onDismi
       <button
         type="button"
         onClick={onDismiss}
-        className="text-primary hover:bg-primary/10 -m-1 inline-flex min-h-9 items-center rounded-full px-3 text-xs font-semibold"
+        className="text-primary hover:bg-primary/10 -m-1 inline-flex min-h-9 items-center rounded-lg px-3 text-xs font-semibold"
       >
         Got it
       </button>

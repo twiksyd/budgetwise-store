@@ -231,7 +231,7 @@ export function ArtworkReconciliationManager({
 
   if (remaining.length === 0) {
     return (
-      <div className="surface-premium rounded-2xl p-8 text-center">
+      <div className="surface-premium rounded-xl p-8 text-center">
         <p className="font-heading text-sm font-semibold">
           No orphaned artwork.
         </p>
@@ -249,7 +249,7 @@ export function ArtworkReconciliationManager({
         — the product these were saved for no longer exists under that id,
         usually because it was re-imported with a new one.
       </div>
-      <div className="surface-premium overflow-hidden rounded-2xl">
+      <div className="surface-premium overflow-hidden rounded-xl">
         {remaining.map((orphan) => (
           <OrphanRow
             key={orphan.oldGamepassId}

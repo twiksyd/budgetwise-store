@@ -8,7 +8,7 @@ export function VouchRequestCard({ request, isMine }: { request: VouchRequestDto
   return (
     <article
       className={cn(
-        "surface-premium relative w-[min(19rem,82vw)] overflow-hidden rounded-3xl border border-violet-300/50 bg-[linear-gradient(145deg,rgba(255,255,255,0.98),rgba(245,243,255,0.96))] p-4 text-left dark:border-violet-400/20 dark:bg-[linear-gradient(145deg,rgba(35,28,55,0.98),rgba(21,18,34,0.98))]",
+        "surface-premium relative w-[min(19rem,82vw)] overflow-hidden rounded-xl border border-violet-300/50 bg-[linear-gradient(145deg,rgba(255,255,255,0.98),rgba(245,243,255,0.96))] p-4 text-left dark:border-violet-400/20 dark:bg-[linear-gradient(145deg,rgba(35,28,55,0.98),rgba(21,18,34,0.98))]",
         isMine && "ml-auto",
       )}
       data-testid="vouch-request-card"
@@ -36,7 +36,7 @@ export function VouchRequestCard({ request, isMine }: { request: VouchRequestDto
         href={request.facebookUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="relative mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#1877F2] px-4 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#1268d3] hover:shadow-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-blue-500/40 motion-reduce:transform-none"
+        className="relative mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#1877F2] px-4 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#1268d3] hover:shadow-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-blue-500/40 motion-reduce:transform-none"
         data-testid="leave-vouch-link"
       >
         Leave a vouch on Facebook

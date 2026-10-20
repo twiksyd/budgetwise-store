@@ -194,7 +194,7 @@ export function GamepassTutorialClient({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
-          className="surface-premium rounded-2xl p-6 text-center sm:p-8"
+          className="surface-premium rounded-xl p-6 text-center sm:p-8"
         >
           <div className="bg-primary/10 mx-auto flex size-14 items-center justify-center rounded-2xl text-3xl">
             🎉
@@ -333,7 +333,7 @@ export function GamepassTutorialClient({
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -8 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
-          className="surface-premium mt-6 overflow-hidden rounded-2xl"
+          className="surface-premium mt-6 overflow-hidden rounded-xl"
         >
           <div className="flex items-center justify-between px-5 pt-5 sm:px-6 sm:pt-6">
             <p className="text-primary text-xs font-semibold tracking-wide uppercase">

@@ -36,6 +36,7 @@ import { BLOX_FRUITS_GAME_ID } from "@/config/blox-fruits";
 import { GROW_A_GARDEN_2_GAME_ID } from "@/config/grow-a-garden-2";
 import { isRobuxPlusGame, robuxPlusPresentation } from "@/config/robux-products";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
+import { RevealText } from "@/components/motion/reveal";
 import { getProductLayoutForGameSafe } from "@/lib/queries/product-layout";
 
 export const revalidate = 60;
@@ -138,7 +139,7 @@ export default async function GameDetailPage({ params }: Props) {
 
       <section className="mt-4 flex items-center gap-3.5 sm:gap-6">
         <div
-          className="surface-premium relative flex size-18 shrink-0 items-center justify-center overflow-hidden rounded-2xl sm:size-28 sm:rounded-3xl"
+          className="surface-premium relative flex size-18 shrink-0 items-center justify-center overflow-hidden rounded-xl sm:size-28 sm:rounded-xl"
           style={game.color ? { backgroundColor: `${game.color}1a` } : undefined}
         >
           {game.icon_url ? (
@@ -170,7 +171,7 @@ export default async function GameDetailPage({ params }: Props) {
             </span>
           </div>
           <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight text-balance sm:text-5xl">
-            {displayGameName}
+            <RevealText text={displayGameName} />
           </h1>
           <p className="text-muted-foreground mt-1.5 max-w-2xl text-sm leading-relaxed sm:text-base">
             Piliin ang items sa baba, tapos i-add sa cart.

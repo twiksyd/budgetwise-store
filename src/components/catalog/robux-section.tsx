@@ -25,7 +25,7 @@ type RobuxOption = {
 
 function RobuxOptionCard({ option }: { option: RobuxOption }) {
   const content = (
-    <div className="surface-premium surface-premium-hover group grid min-h-[132px] grid-cols-[72px_1fr] gap-3 overflow-hidden rounded-2xl p-3 transition-transform active:scale-[0.98] sm:h-full sm:min-h-[190px] sm:grid-cols-[96px_1fr] sm:p-4">
+    <div className="surface-premium surface-premium-hover group grid min-h-[132px] grid-cols-[72px_1fr] gap-3 overflow-hidden rounded-xl p-3 transition-transform active:scale-[0.98] sm:h-full sm:min-h-[190px] sm:grid-cols-[96px_1fr] sm:p-4">
       <div
         className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl"
         style={option.color ? { backgroundColor: `${option.color}1a` } : undefined}

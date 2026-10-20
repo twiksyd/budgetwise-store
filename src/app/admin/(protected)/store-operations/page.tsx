@@ -55,7 +55,7 @@ export default async function StoreOperationsPage() {
         <p className="text-muted-foreground mt-1 text-sm">
           Hidden games are removed from the storefront but stay listed here.
         </p>
-        <div className="surface-premium mt-4 rounded-2xl p-2">
+        <div className="surface-premium mt-4 rounded-xl p-2">
           <GameAvailabilityTable games={games} />
         </div>
       </div>
@@ -68,7 +68,7 @@ export default async function StoreOperationsPage() {
           Grouped by game. Hidden products are removed from the storefront
           but stay listed here.
         </p>
-        <div className="surface-premium mt-4 rounded-2xl p-2">
+        <div className="surface-premium mt-4 rounded-xl p-2">
           <ProductAvailabilityAccordion games={games} gamepasses={gamepasses} />
         </div>
       </div>

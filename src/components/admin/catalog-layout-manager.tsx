@@ -332,7 +332,7 @@ export function CatalogLayoutManager({
           />
         </div>
 
-        <div className="surface-premium mt-4 overflow-hidden rounded-2xl">
+        <div className="surface-premium mt-4 overflow-hidden rounded-xl">
           {visibleGameOrder.map((game, index) => (
             <GameRow
               key={game.id}
@@ -431,7 +431,7 @@ export function CatalogLayoutManager({
           </div>
         )}
 
-        <div className="surface-premium mt-4 overflow-hidden rounded-2xl">
+        <div className="surface-premium mt-4 overflow-hidden rounded-xl">
           {featuredGames.length > 0 ? (
             featuredGames.map((game, index) => (
               <GameRow

@@ -330,7 +330,7 @@ export function ChatThread({
         <button
           type="button"
           onClick={() => scrollToBottom(true)}
-          className="bg-background text-foreground border-border absolute right-3 bottom-3 inline-flex size-10 items-center justify-center rounded-full border shadow-lg"
+          className="bg-background text-foreground border-border absolute right-3 bottom-3 inline-flex size-10 items-center justify-center rounded-lg border shadow-lg"
           aria-label="Jump to latest message"
         >
           <ArrowDown className="size-4" />
@@ -341,7 +341,7 @@ export function ChatThread({
         <button
           type="button"
           onClick={() => scrollToBottom(true)}
-          className="bg-primary text-primary-foreground absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold shadow-lg"
+          className="bg-primary text-primary-foreground absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold shadow-lg"
         >
           {newCount} new message{newCount === 1 ? "" : "s"}
           <ArrowDown className="size-3.5" />

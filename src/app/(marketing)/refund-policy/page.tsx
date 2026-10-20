@@ -36,7 +36,7 @@ export default function RefundPolicyPage() {
       </Taglish>
 
       <div className="mt-10 grid gap-5 sm:grid-cols-2">
-        <div className="surface-premium rounded-2xl p-6">
+        <div className="surface-premium rounded-xl p-6">
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="text-primary size-5" />
             <h2 className="font-heading text-sm font-semibold">
@@ -59,7 +59,7 @@ export default function RefundPolicyPage() {
           </Taglish>
         </div>
 
-        <div className="surface-premium rounded-2xl p-6">
+        <div className="surface-premium rounded-xl p-6">
           <div className="flex items-center gap-2.5">
             <XCircle className="text-muted-foreground size-5" />
             <h2 className="font-heading text-sm font-semibold">
