@@ -423,7 +423,7 @@ export function ProductAssetsManager({
         <span>{counts.ambiguous} ambiguous</span>
       </div>
 
-      <div className="surface-premium overflow-hidden rounded-2xl">
+      <div className="surface-premium overflow-hidden rounded-xl">
         <div className="border-b px-3 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase md:grid md:grid-cols-[minmax(18rem,1fr)_minmax(15rem,0.9fr)_minmax(18rem,1.1fr)]">
           <span>Product</span>
           <span className="hidden md:block">Status</span>

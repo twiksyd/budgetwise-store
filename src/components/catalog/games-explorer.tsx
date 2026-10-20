@@ -115,7 +115,7 @@ export function GamesExplorer({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search Roblox games..."
-              className="h-11 rounded-full pl-10"
+              className="h-11 rounded-lg pl-10"
             />
           </div>
 
@@ -125,7 +125,7 @@ export function GamesExplorer({
                 size="sm"
                 variant={category === null ? "default" : "outline"}
                 onClick={() => setCategory(null)}
-                className="shrink-0 rounded-full px-5 transition-all"
+                className="shrink-0 rounded-lg px-5 transition-all"
               >
                 All
               </Button>
@@ -135,7 +135,7 @@ export function GamesExplorer({
                   size="sm"
                   variant={category === cat ? "default" : "outline"}
                   onClick={() => setCategory(cat === category ? null : cat)}
-                  className="shrink-0 rounded-full px-5 transition-all"
+                  className="shrink-0 rounded-lg px-5 transition-all"
                 >
                   {cat}
                 </Button>

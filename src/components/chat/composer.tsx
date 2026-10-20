@@ -234,7 +234,7 @@ export function Composer({
           <button
             type="button"
             onClick={onCancelReply}
-            className="hover:bg-muted text-muted-foreground inline-flex size-8 shrink-0 items-center justify-center rounded-full"
+            className="hover:bg-muted text-muted-foreground inline-flex size-8 shrink-0 items-center justify-center rounded-lg"
             aria-label="Cancel reply"
           >
             <X className="size-4" />
@@ -289,7 +289,7 @@ export function Composer({
                   onClick={() => setProof((value) => !value)}
                   aria-pressed={proof}
                   className={cn(
-                    "inline-flex min-h-8 items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold",
+                    "inline-flex min-h-8 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold",
                     proof ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground",
                   )}
                 >
@@ -309,7 +309,7 @@ export function Composer({
                 <button
                   type="button"
                   onClick={() => removePicked(item.id)}
-                  className="bg-foreground/80 text-background absolute -top-1 -right-1 inline-flex size-6 items-center justify-center rounded-full after:absolute after:-inset-2 after:content-['']"
+                  className="bg-foreground/80 text-background absolute -top-1 -right-1 inline-flex size-6 items-center justify-center rounded-lg after:absolute after:-inset-2 after:content-['']"
                   aria-label={`Remove image ${index + 1}`}
                 >
                   <X className="size-3.5" />
@@ -360,7 +360,7 @@ export function Composer({
           title="Attach photos or screenshots (JPG, PNG, WebP · up to 10 · max 4 MB each)"
           disabled={disabled || picked.length >= ALBUM_MAX_IMAGES}
           onClick={() => fileInput.current?.click()}
-          className="size-11 shrink-0 rounded-full"
+          className="size-11 shrink-0 rounded-lg"
         >
           <ImagePlus className="size-5" />
         </Button>
@@ -394,7 +394,7 @@ export function Composer({
           aria-label="Send message"
           disabled={!canSend}
           onClick={send}
-          className="size-11 shrink-0 rounded-full"
+          className="size-11 shrink-0 rounded-lg"
         >
           <Send className="size-4" />
         </Button>

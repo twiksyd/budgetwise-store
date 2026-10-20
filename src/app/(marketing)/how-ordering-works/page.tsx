@@ -210,7 +210,7 @@ export default function HowOrderingWorksPage() {
 
       <Link
         href="/gamepass-tutorial"
-        className="surface-premium surface-premium-hover mt-8 flex items-center gap-3.5 rounded-2xl p-5 transition-transform active:scale-[0.99] sm:p-6"
+        className="surface-premium surface-premium-hover mt-8 flex items-center gap-3.5 rounded-xl p-5 transition-transform active:scale-[0.99] sm:p-6"
       >
         <div className="bg-primary/10 flex size-11 shrink-0 items-center justify-center rounded-xl">
           <Gamepad2 className="text-primary size-5" />
@@ -226,7 +226,7 @@ export default function HowOrderingWorksPage() {
         <ChevronRight className="text-muted-foreground size-4 shrink-0" />
       </Link>
 
-      <div className="surface-premium mt-8 rounded-2xl p-6 text-center sm:p-7">
+      <div className="surface-premium mt-8 rounded-xl p-6 text-center sm:p-7">
         <p className="font-heading text-base font-semibold">
           Ready to browse?
         </p>

@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 const steps = [
   { number: 1, label: "Game" },
@@ -35,7 +36,7 @@ export function OrderingProgress({
   return (
     <section
       className={cn(
-        "surface-premium rounded-2xl",
+        "surface-premium rounded-xl",
         compact ? "p-3 sm:p-3.5" : "p-3.5 sm:p-4",
       )}
       aria-label={`Step ${currentStep} of 4 - ${currentTitle}`}
@@ -65,7 +66,7 @@ export function OrderingProgress({
             <li key={step.number} className="min-w-0">
               <div
                 className={cn(
-                  "flex flex-col items-center justify-center rounded-xl border px-1.5 text-center transition-colors",
+                  "flex flex-col items-center justify-center rounded-lg border px-1.5 text-center transition-colors duration-300",
                   compact ? "min-h-11 py-1.5 sm:min-h-12" : "min-h-14 py-2",
                   completed &&
                     "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
@@ -79,7 +80,7 @@ export function OrderingProgress({
               >
                 <span
                   className={cn(
-                    "flex items-center justify-center rounded-full font-bold",
+                    "flex items-center justify-center rounded-md font-bold",
                     compact ? "size-4 text-[10px]" : "size-5 text-[11px]",
                     completed && "bg-emerald-600 text-white",
                     current && "bg-primary text-primary-foreground",
@@ -109,6 +110,15 @@ export function OrderingProgress({
           );
         })}
       </ol>
+      {/* How far along the order is: fills to the current step on arrival. */}
+      <div className="bg-muted mt-2.5 h-0.5 overflow-hidden rounded-sm" aria-hidden>
+        <motion.div
+          className="bg-primary h-full origin-left rounded-sm"
+          initial={{ scaleX: Math.max(0, (currentStep - 1.6) / 4) }}
+          animate={{ scaleX: (currentStep - 0.5) / 4 }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+        />
+      </div>
     </section>
   );
 }

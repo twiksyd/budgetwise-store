@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Clock } from "lucide-react";
+import { ArrowUpRight, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { GameArtworkFallback } from "@/components/catalog/game-artwork-fallback";
 import { RobuxPlusAcknowledgementLink } from "@/components/catalog/robux-plus-acknowledgement";
@@ -33,7 +33,7 @@ export function GameCard({
           fill
           sizes="(min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"
           className={cn(
-            "object-cover transition-transform duration-500 ease-out",
+            "object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
             isUnavailable
               ? "grayscale-[0.6] opacity-70"
               : "saturate-90 group-hover:scale-[1.06]",
@@ -73,8 +73,14 @@ export function GameCard({
   );
 
   const details = (
-    <div className="px-4 pt-3.5 pb-4">
-      <h3 className="font-heading truncate text-[13.5px] font-semibold">
+    <div className="relative px-4 pt-3.5 pb-4">
+      {!isUnavailable && (
+        <ArrowUpRight
+          aria-hidden
+          className="text-primary absolute top-3.5 right-3.5 size-4 -translate-x-1 translate-y-1 opacity-0 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100"
+        />
+      )}
+      <h3 className="font-heading truncate pr-5 text-[13.5px] font-semibold">
         {displayName}
       </h3>
       <div className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
@@ -98,7 +104,7 @@ export function GameCard({
   // there is to say without opening the game page.
   if (isUnavailable) {
     return (
-      <div className="surface-premium cursor-default overflow-hidden rounded-2xl">
+      <div className="surface-premium cursor-default overflow-hidden rounded-xl">
         {artwork}
         {details}
       </div>
@@ -106,7 +112,7 @@ export function GameCard({
   }
 
   const className = cn(
-    "surface-premium surface-premium-hover group block overflow-hidden rounded-2xl transition-transform active:scale-[0.97]",
+    "surface-premium surface-premium-hover group block overflow-hidden rounded-xl transition-transform active:scale-[0.97]",
     isComingSoon && "opacity-80",
   );
 

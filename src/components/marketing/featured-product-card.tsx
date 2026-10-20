@@ -15,7 +15,7 @@ export function FeaturedProductCard({
   const productName = getProductDisplayName(gamepass);
 
   return (
-    <div className="surface-premium surface-premium-hover flex flex-col rounded-2xl p-5">
+    <div className="surface-premium surface-premium-hover flex flex-col rounded-xl p-5">
       <div className="flex items-start justify-between gap-2">
         <Link
           href={`/games/${game.slug}`}

@@ -429,7 +429,7 @@ function AccentPreview({
   const customerName = product.displayName?.trim() || product.name;
 
   return (
-    <div className="surface-premium relative overflow-hidden rounded-2xl p-3.5">
+    <div className="surface-premium relative overflow-hidden rounded-xl p-3.5">
       <ProductCardArtworkAccent src={product.artworkUrl} settings={settings} />
       <div className="relative z-10 grid grid-cols-[4.75rem_1fr] gap-3">
         <div className="bg-muted relative aspect-square overflow-hidden rounded-2xl">
@@ -923,7 +923,7 @@ export function ProductLayoutManager({
             </select>
           </label>
 
-          <div className="surface-premium overflow-hidden rounded-2xl">
+          <div className="surface-premium overflow-hidden rounded-xl">
             <div className="border-b p-3">
               <div className="flex items-center justify-between gap-2">
                 <div>
@@ -1015,7 +1015,7 @@ export function ProductLayoutManager({
             )}
           </div>
 
-          <div className="surface-premium overflow-hidden rounded-2xl">
+          <div className="surface-premium overflow-hidden rounded-xl">
             <div className="border-b p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -1230,7 +1230,7 @@ export function ProductLayoutManager({
               }
 
               return (
-                <div key={section.id} className="surface-premium overflow-hidden rounded-2xl">
+                <div key={section.id} className="surface-premium overflow-hidden rounded-xl">
                   <div className="bg-muted/50 flex items-center justify-between gap-3 border-b px-3 py-2.5">
                     <div>
                       <h3 className="text-sm font-semibold">{section.name}</h3>

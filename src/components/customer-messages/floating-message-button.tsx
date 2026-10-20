@@ -90,7 +90,7 @@ export function FloatingMessageButton() {
   const badge = badgeText(total);
 
   return (
-    <div className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 sm:right-6 sm:bottom-6">
+    <div className="animate-in fade-in-0 slide-in-from-bottom-4 zoom-in-95 fill-mode-both fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 delay-500 duration-700 sm:right-6 sm:bottom-6 motion-reduce:animate-none">
       {coachmark && !toMessenger && (
         <div
           role="status"
@@ -100,7 +100,7 @@ export function FloatingMessageButton() {
           <button
             type="button"
             onClick={dismissCoachmark}
-            className="absolute top-1.5 right-1.5 inline-flex size-7 items-center justify-center rounded-full"
+            className="absolute top-1.5 right-1.5 inline-flex size-7 items-center justify-center rounded-lg"
             aria-label="Dismiss tip"
           >
             <X className="size-3.5" />
@@ -125,7 +125,7 @@ export function FloatingMessageButton() {
         aria-label={total > 0 ? `Message Us Now (${total} unread)` : "Message Us Now"}
         data-testid="message-us-now"
         className={cn(
-          "bg-primary text-primary-foreground relative inline-flex h-14 items-center gap-2 rounded-full pr-5 pl-4 text-sm font-semibold shadow-[0_10px_28px_-8px_color-mix(in_oklch,var(--primary)_55%,transparent)] transition-transform duration-100 active:scale-95",
+          "bg-primary text-primary-foreground relative inline-flex h-12 items-center gap-2 rounded-lg pr-4 pl-3.5 text-sm font-semibold shadow-[0_10px_28px_-8px_color-mix(in_oklch,var(--primary)_55%,transparent)] transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] motion-reduce:transform-none",
           nudge > 0 && "animate-[bw-nudge_0.7s_ease-out_1] motion-reduce:animate-none",
         )}
       >

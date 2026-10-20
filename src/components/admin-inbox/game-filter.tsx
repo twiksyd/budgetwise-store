@@ -60,7 +60,7 @@ export function GameFilter() {
         aria-expanded={open}
         aria-haspopup="listbox"
         className={cn(
-          "border-border hover:bg-muted inline-flex h-8 max-w-[12rem] items-center gap-1.5 rounded-full border px-3 text-xs font-semibold",
+          "border-border hover:bg-muted inline-flex h-8 max-w-[12rem] items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold",
           !allGames && "border-primary/40 text-primary",
         )}
         data-testid="game-filter"

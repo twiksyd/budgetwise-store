@@ -49,7 +49,7 @@ export function GamepassLinkCard({
   }
 
   return (
-    <section className="surface-premium rounded-2xl p-4 sm:p-5" aria-label="Gamepass link">
+    <section className="surface-premium rounded-xl p-4 sm:p-5" aria-label="Gamepass link">
       <div className="flex items-start gap-3">
         <div className="bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-full">
           <Link2 className="text-primary size-4" />

@@ -175,14 +175,14 @@ export function PreparedMessagePreview({ message }: { message: string }) {
           <button
             type="button"
             onClick={selectMessageText}
-            className="border-border bg-background hover:bg-muted text-foreground inline-flex min-h-10 items-center justify-center rounded-full border px-3 text-xs font-semibold transition-colors"
+            className="border-border bg-background hover:bg-muted text-foreground inline-flex min-h-10 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition-colors"
           >
             Select All
           </button>
           <button
             type="button"
             onClick={handleCopy}
-            className="border-border bg-background hover:bg-muted text-foreground inline-flex min-h-10 items-center justify-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors"
+            className="border-border bg-background hover:bg-muted text-foreground inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-semibold transition-colors"
           >
             {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
             Copy Order Message

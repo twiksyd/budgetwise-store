@@ -111,7 +111,7 @@ export function ConversationList() {
               aria-selected={view.filter === filter.value}
               onClick={() => setView({ ...view, filter: filter.value })}
               className={cn(
-                "shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                "shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
                 view.filter === filter.value
                   ? "bg-foreground text-background border-foreground"
                   : "border-border text-muted-foreground hover:text-foreground",

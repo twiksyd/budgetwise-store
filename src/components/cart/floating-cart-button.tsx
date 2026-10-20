@@ -38,7 +38,7 @@ export function FloatingCartButton() {
             exit={{ scale: 0, opacity: 0 }}
             whileTap={{ scale: 0.92 }}
             transition={{ type: "spring", stiffness: 400, damping: 22 }}
-            className="bg-primary text-primary-foreground relative flex size-14 items-center justify-center rounded-full shadow-[0_10px_28px_-8px_color-mix(in_oklch,var(--primary)_55%,transparent)]"
+            className="bg-primary text-primary-foreground relative flex size-14 items-center justify-center rounded-lg shadow-[0_10px_28px_-8px_color-mix(in_oklch,var(--primary)_55%,transparent)]"
           >
             <ShoppingBag className="size-5" />
             <AnimatePresence mode="popLayout">

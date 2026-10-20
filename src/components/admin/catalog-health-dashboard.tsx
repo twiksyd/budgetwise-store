@@ -152,7 +152,7 @@ function MetricCard({
   unavailableReason?: string;
 }) {
   return (
-    <div className="surface-premium rounded-2xl p-3">
+    <div className="surface-premium rounded-xl p-3">
       <p className="text-muted-foreground text-xs font-medium">{label}</p>
       <p className="font-heading mt-1 text-2xl font-semibold tracking-tight">
         {value === null ? "Not available" : formatNumber(value)}
@@ -168,7 +168,7 @@ function MetricCard({
 
 function EmptyState({ title, detail }: { title: string; detail: string }) {
   return (
-    <div className="surface-premium rounded-2xl p-6 text-center">
+    <div className="surface-premium rounded-xl p-6 text-center">
       <p className="font-heading text-sm font-semibold">{title}</p>
       <p className="text-muted-foreground mt-1 text-sm">{detail}</p>
     </div>
@@ -355,7 +355,7 @@ export function CatalogHealthDashboard({ data }: { data: CatalogHealthData }) {
         ))}
       </section>
 
-      <section className="surface-premium rounded-2xl p-4">
+      <section className="surface-premium rounded-xl p-4">
         <div className="flex items-start gap-2">
           {data.sourceStatus.every((source) => source.ok) ? (
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
@@ -565,7 +565,7 @@ export function CatalogHealthDashboard({ data }: { data: CatalogHealthData }) {
           detail="Raw XOB game state compared with public Store visibility and Roblox sync configuration."
         />
         {filteredGames.length > 0 ? (
-          <div className="surface-premium overflow-hidden rounded-2xl">
+          <div className="surface-premium overflow-hidden rounded-xl">
             {filteredGames.map((game) => (
               <div
                 key={game.gameId}
@@ -603,7 +603,7 @@ export function CatalogHealthDashboard({ data }: { data: CatalogHealthData }) {
           detail="Per-product visibility, price, parent game, artwork, and Roblox match status."
         />
         {filteredProducts.length > 0 ? (
-          <div className="surface-premium overflow-hidden rounded-2xl">
+          <div className="surface-premium overflow-hidden rounded-xl">
             {filteredProducts.map((product) => (
               <div
                 key={product.productId}
@@ -658,7 +658,7 @@ export function CatalogHealthDashboard({ data }: { data: CatalogHealthData }) {
         {data.orphanedRecords.length > 0 ? (
           <div className="grid gap-3">
             {data.orphanedRecords.map((record) => (
-              <div key={record.id} className="surface-premium rounded-2xl p-4">
+              <div key={record.id} className="surface-premium rounded-xl p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold">
@@ -696,7 +696,7 @@ export function CatalogHealthDashboard({ data }: { data: CatalogHealthData }) {
         {data.duplicateGroups.length > 0 ? (
           <div className="grid gap-3">
             {data.duplicateGroups.map((group) => (
-              <div key={group.id} className="surface-premium rounded-2xl p-4">
+              <div key={group.id} className="surface-premium rounded-xl p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold">
@@ -747,7 +747,7 @@ export function CatalogHealthDashboard({ data }: { data: CatalogHealthData }) {
 
 function IssueCard({ issue }: { issue: CatalogHealthIssue }) {
   return (
-    <article className="surface-premium rounded-2xl p-4">
+    <article className="surface-premium rounded-xl p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -845,7 +845,7 @@ function RulesBlock({
   rules: string[];
 }) {
   return (
-    <div className="surface-premium rounded-2xl p-4">
+    <div className="surface-premium rounded-xl p-4">
       <div className="flex items-center gap-2">
         <div className="bg-primary/10 flex size-8 items-center justify-center rounded-xl">
           <Icon className="text-primary size-4" />

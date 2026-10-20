@@ -15,7 +15,7 @@ export function HowItWorksPreview() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="surface-premium surface-premium-hover mx-auto flex max-w-3xl flex-col items-center gap-4 rounded-3xl p-8 text-center sm:p-12"
+        className="surface-premium surface-premium-hover mx-auto flex max-w-3xl flex-col items-center gap-4 rounded-xl p-8 text-center sm:p-12"
       >
         <div className="bg-primary/10 flex size-14 items-center justify-center rounded-2xl">
           <ClipboardList className="text-primary size-6" />

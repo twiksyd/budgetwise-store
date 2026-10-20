@@ -23,7 +23,7 @@ export function MyOrdersHeaderLink() {
       aria-label={badge ? `My Orders (${messages?.totalUnread} unread messages)` : "My Orders"}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "hover:bg-muted active:bg-muted relative inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold transition-[background-color,transform] duration-75 active:scale-95 motion-reduce:active:scale-100 sm:hidden",
+        "hover:bg-muted active:bg-muted relative inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold transition-[background-color,transform] duration-75 active:scale-95 motion-reduce:active:scale-100 sm:hidden",
         active && "bg-muted",
       )}
     >

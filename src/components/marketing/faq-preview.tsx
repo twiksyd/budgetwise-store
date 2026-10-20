@@ -10,6 +10,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { faqs } from "@/config/faqs";
+import { RevealText } from "@/components/motion/reveal";
 
 export function FaqPreview() {
   const preview = faqs.slice(0, 4);
@@ -24,7 +25,7 @@ export function FaqPreview() {
         className="text-center"
       >
         <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
-          Common questions
+          <RevealText text="Common questions" />
         </h2>
       </motion.div>
 
@@ -50,10 +51,10 @@ export function FaqPreview() {
         <div className="mt-8 text-center">
           <Link
             href="/faq"
-            className="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline"
+            className="group text-primary inline-flex items-center gap-1 text-sm font-medium"
           >
-            View all FAQs
-            <ArrowRight className="size-3.5" />
+            <span className="bw-link">View all FAQs</span>
+            <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-1" />
           </Link>
         </div>
       </motion.div>

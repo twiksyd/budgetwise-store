@@ -12,7 +12,7 @@ function FacebookGlyph({ className }: { className?: string }) {
 
 export function ReviewCard({ review }: { review: Review }) {
   return (
-    <div className="bg-card/70 ring-foreground/10 flex h-full flex-col gap-4 rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_16px_40px_-12px_rgba(0,0,0,0.12)] ring-1 backdrop-blur-xl dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_16px_40px_-12px_rgba(0,0,0,0.5)]">
+    <div className="surface-premium surface-premium-hover flex h-full flex-col gap-4 overflow-hidden rounded-xl p-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-0.5">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -32,7 +32,7 @@ export function ReviewCard({ review }: { review: Review }) {
           {review.platform}
         </span>
       </div>
-      <p className="text-foreground/90 flex-1 text-sm leading-relaxed">
+      <p className="text-foreground/90 relative flex-1 text-sm leading-relaxed">
         “{review.text}”
       </p>
       <p className="font-heading text-sm font-semibold">{review.name}</p>

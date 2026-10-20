@@ -15,11 +15,15 @@ export function CartTrigger() {
       size="icon"
       aria-label={`Open cart${count > 0 ? ` (${count} items)` : ""}`}
       onClick={openCart}
+      data-cart-target
       className="relative"
     >
       <ShoppingBag className="size-4" />
       {count > 0 && (
-        <span className="bg-primary text-primary-foreground absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-[10px] font-medium">
+        <span
+          key={count}
+          className="bg-primary text-primary-foreground animate-in zoom-in-50 absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-[10px] font-medium duration-300 motion-reduce:animate-none"
+        >
           {count > 9 ? "9+" : count}
         </span>
       )}

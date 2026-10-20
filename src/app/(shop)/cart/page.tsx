@@ -39,7 +39,7 @@ export default function CartPage() {
       ) : (
         <div className="mt-10 flex flex-col gap-6">
           <CartItems items={items} />
-          <div className="surface-premium rounded-2xl p-6 sm:p-7">
+          <div className="surface-premium rounded-xl p-6 sm:p-7">
             <CartSummary subtotal={subtotal} />
           </div>
         </div>

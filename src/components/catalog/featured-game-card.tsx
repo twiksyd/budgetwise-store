@@ -103,7 +103,7 @@ export function FeaturedGameCard({
 
   if (isUnavailable) {
     return (
-      <div className={cn("surface-premium cursor-default overflow-hidden rounded-2xl", className)}>
+      <div className={cn("surface-premium cursor-default overflow-hidden rounded-xl", className)}>
         {artwork}
         {details}
       </div>
@@ -111,7 +111,7 @@ export function FeaturedGameCard({
   }
 
   const linkClassName = cn(
-    "surface-premium surface-premium-hover group block overflow-hidden rounded-2xl transition-transform active:scale-[0.98]",
+    "surface-premium surface-premium-hover group block overflow-hidden rounded-xl transition-transform active:scale-[0.98]",
     className,
   );
 

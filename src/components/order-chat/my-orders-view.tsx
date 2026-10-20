@@ -191,7 +191,7 @@ function LoadError({ onRetry }: { onRetry: () => void }) {
       <button
         type="button"
         onClick={onRetry}
-        className="border-border hover:bg-muted inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold"
+        className="border-border hover:bg-muted inline-flex min-h-10 items-center gap-1.5 rounded-lg border px-3.5 text-sm font-semibold"
       >
         <RotateCw className="size-3.5" />
         Try again

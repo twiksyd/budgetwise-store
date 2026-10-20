@@ -107,7 +107,7 @@ export function ReactionPicker({
       role="menu"
       aria-label="React or reply"
       className={cn(
-        "bg-popover border-border absolute bottom-full z-30 mb-1 flex max-w-[calc(100vw-1.5rem)] items-center gap-0.5 rounded-full border p-1 shadow-lg",
+        "bg-popover border-border absolute bottom-full z-30 mb-1 flex max-w-[calc(100vw-1.5rem)] items-center gap-0.5 rounded-xl border p-1 shadow-lg",
         align === "end" ? "right-0" : "left-0",
       )}
       data-testid="reaction-picker"
@@ -124,7 +124,7 @@ export function ReactionPicker({
             onClose();
           }}
           className={cn(
-            "inline-flex size-10 items-center justify-center rounded-full text-xl transition-transform motion-safe:hover:scale-110",
+            "inline-flex size-10 items-center justify-center rounded-lg text-xl transition-transform motion-safe:hover:scale-110",
             mine === reaction.key && "bg-primary/15",
           )}
         >
@@ -139,7 +139,7 @@ export function ReactionPicker({
           onReply();
           onClose();
         }}
-        className="text-muted-foreground hover:text-foreground inline-flex h-10 items-center gap-1 rounded-full px-2.5 text-xs font-semibold"
+        className="text-muted-foreground hover:text-foreground inline-flex h-10 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold"
       >
         <CornerUpLeft className="size-4" aria-hidden />
         Reply
@@ -173,7 +173,7 @@ export function ReactionChips({
             aria-pressed={mine}
             aria-label={`${reaction.label}: ${count}${mine ? ", including you. Tap to remove" : ". Tap to react"}`}
             className={cn(
-              "bg-background inline-flex h-7 min-w-9 items-center justify-center gap-1 rounded-full border px-2 text-xs font-semibold shadow-sm",
+              "bg-background inline-flex h-7 min-w-9 items-center justify-center gap-1 rounded-lg border px-2 text-xs font-semibold shadow-sm",
               mine ? "border-primary/50 text-primary" : "border-border text-muted-foreground",
             )}
           >
@@ -213,7 +213,7 @@ export function HoverActions({ onOpenPicker, onReply }: { onOpenPicker: () => vo
         type="button"
         onClick={onOpenPicker}
         aria-label="React"
-        className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex size-8 items-center justify-center rounded-full"
+        className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex size-8 items-center justify-center rounded-lg"
       >
         <SmilePlus className="size-4" />
       </button>
@@ -221,7 +221,7 @@ export function HoverActions({ onOpenPicker, onReply }: { onOpenPicker: () => vo
         type="button"
         onClick={onReply}
         aria-label="Reply"
-        className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex size-8 items-center justify-center rounded-full"
+        className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex size-8 items-center justify-center rounded-lg"
       >
         <CornerUpLeft className="size-4" />
       </button>

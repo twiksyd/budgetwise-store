@@ -8,7 +8,7 @@ export function OrderConfirmationSummary({
   order: OrderConfirmation;
 }) {
   return (
-    <aside className="surface-premium rounded-2xl p-4 sm:p-5 lg:sticky lg:top-24">
+    <aside className="surface-premium rounded-xl p-4 sm:p-5 lg:sticky lg:top-24">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 className="font-heading text-base font-semibold">

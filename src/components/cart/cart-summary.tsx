@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { SupportHelpLink } from "@/components/ordering/support-help-link";
 import { useStoreStatus } from "@/components/shared/store-status-provider";
 import { getTikTokSupportLink } from "@/lib/support-links";
-import { Price } from "@/components/shared/price";
 import { useCartStore, selectCartCount } from "@/stores/cart-store";
 import { useUIStore } from "@/stores/ui-store";
+import { AnimatedPrice } from "@/components/shared/animated-price";
 import { isRobuxPlusGame, robuxPlusPresentation } from "@/config/robux-products";
 
 export function CartSummary({ subtotal }: { subtotal: number }) {
@@ -36,7 +36,7 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
         <span className="text-muted-foreground text-sm">
           {count} item{count === 1 ? "" : "s"}
         </span>
-        <Price amount={subtotal} variant="cart" />
+        <AnimatedPrice amount={subtotal} variant="cart" />
       </div>
 
       <p className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 rounded-xl border px-3.5 py-2.5 text-center text-xs leading-relaxed">

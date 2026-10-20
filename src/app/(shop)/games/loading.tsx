@@ -20,11 +20,11 @@ export default function GamesLoading() {
       </div>
 
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Skeleton className="h-11 w-full rounded-full sm:max-w-xs" />
+        <Skeleton className="h-11 w-full rounded-lg sm:max-w-xs" />
         <div className="flex gap-2">
-          <Skeleton className="h-11 w-14 rounded-full sm:h-8" />
-          <Skeleton className="h-11 w-20 rounded-full sm:h-8" />
-          <Skeleton className="h-11 w-16 rounded-full sm:h-8" />
+          <Skeleton className="h-11 w-14 rounded-lg sm:h-8" />
+          <Skeleton className="h-11 w-20 rounded-lg sm:h-8" />
+          <Skeleton className="h-11 w-16 rounded-lg sm:h-8" />
         </div>
       </div>
 

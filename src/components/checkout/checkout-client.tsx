@@ -106,7 +106,7 @@ function CatalogChangesNotice({ changes, onDismiss }: { changes: CatalogChanges;
               <button
                 type="button"
                 onClick={() => unavailable.forEach((entry) => removeItem(entry.gamepassId))}
-                className="mt-2 inline-flex min-h-9 items-center rounded-full bg-amber-950/90 px-3.5 text-xs font-semibold text-amber-50 dark:bg-amber-100 dark:text-amber-950"
+                className="mt-2 inline-flex min-h-9 items-center rounded-lg bg-amber-950/90 px-3.5 text-xs font-semibold text-amber-50 dark:bg-amber-100 dark:text-amber-950"
               >
                 Remove {unavailable.length === 1 ? "it" : "them"} from my order
               </button>
@@ -114,7 +114,7 @@ function CatalogChangesNotice({ changes, onDismiss }: { changes: CatalogChanges;
           )}
           {changes.prices.length > 0 && <p className="mt-1.5 text-xs opacity-80">Your order total below uses the current prices.</p>}
         </div>
-        <button type="button" onClick={onDismiss} className="-m-1 rounded-full p-1.5 hover:bg-amber-500/15" aria-label="Dismiss">
+        <button type="button" onClick={onDismiss} className="-m-1 rounded-lg p-1.5 hover:bg-amber-500/15" aria-label="Dismiss">
           <X className="size-4" />
         </button>
       </div>
@@ -148,7 +148,7 @@ export function CheckoutClient({ defaultName }: { defaultName: string }) {
       </h1>
       {catalog.changes && <CatalogChangesNotice changes={catalog.changes} onDismiss={catalog.dismiss} />}
       <div className="mt-6 grid gap-5 sm:grid-cols-[minmax(0,1.05fr)_minmax(280px,0.95fr)] sm:gap-6">
-        <div className="surface-premium rounded-2xl p-5 sm:p-6">
+        <div className="surface-premium rounded-xl p-5 sm:p-6">
           <CheckoutForm defaultName={defaultName} />
         </div>
         <OrderSummary items={items} subtotal={subtotal} />

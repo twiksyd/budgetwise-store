@@ -29,10 +29,10 @@ export function CartItems({ items }: { items: CartItem[] }) {
           <motion.div
             key={item.gamepassId}
             layout
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+            initial={{ opacity: 0, height: 0, y: -6 }}
+            animate={{ opacity: 1, height: "auto", y: 0 }}
+            exit={{ opacity: 0, height: 0, x: 24, transition: { duration: 0.28, ease: [0.65, 0, 0.35, 1] } }}
+            transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
           >
             <CartLineItem item={item} />
           </motion.div>

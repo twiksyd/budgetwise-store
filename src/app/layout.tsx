@@ -7,6 +7,8 @@ import { ChunkLoadRecovery } from "@/components/shared/chunk-load-recovery";
 import { StoreStatusProvider } from "@/components/shared/store-status-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TrafficSourceCapture } from "@/components/shared/traffic-source-capture";
+import { SpotlightTracker } from "@/components/motion/spotlight-tracker";
+import { NavProgress } from "@/components/motion/nav-progress";
 import { siteConfig } from "@/config/site";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
 import "./globals.css";
@@ -72,6 +74,8 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <MotionProvider>
+            <NavProgress />
+            <SpotlightTracker />
             <StoreStatusProvider status={status}>
               <StorefrontChrome status={status} noticeMessage={noticeMessage}>
                 <TrafficSourceCapture />

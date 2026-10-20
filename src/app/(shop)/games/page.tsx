@@ -8,6 +8,7 @@ import {
 import { GamesExplorer } from "@/components/catalog/games-explorer";
 import { EmptyState } from "@/components/shared/empty-state";
 import { OrderingProgress } from "@/components/ordering/ordering-progress";
+import { RevealText } from "@/components/motion/reveal";
 import { SupportHelpLink } from "@/components/ordering/support-help-link";
 
 export const metadata: Metadata = {
@@ -29,7 +30,7 @@ export default async function GamesPage() {
       <OrderingProgress currentStep={1} />
 
       <h1 className="font-heading mt-6 text-3xl font-semibold tracking-tight sm:text-4xl">
-        Pumili ng Game
+        <RevealText text="Pumili ng Game" />
       </h1>
       <p className="text-muted-foreground mt-2 text-[15px]">
         Piliin po ang game para makita ang available items at gamepasses.
