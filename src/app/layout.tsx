@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Manrope } from "next/font/google";
+import { Geist_Mono, Inter, Inter_Tight } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { MotionProvider } from "@/components/motion-provider";
 import { StorefrontChrome } from "@/components/layout/storefront-chrome";
@@ -13,7 +13,8 @@ import { siteConfig } from "@/config/site";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
 import "./globals.css";
 
-const geistSans = Geist({
+// Body: Inter. Headings, prices and other display text: Inter Tight.
+const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
   display: "swap",
@@ -25,7 +26,7 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-const manrope = Manrope({
+const interTight = Inter_Tight({
   variable: "--font-heading",
   subsets: ["latin"],
   display: "swap",
@@ -64,7 +65,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} flex min-h-screen flex-col antialiased`}
+        className={`${inter.variable} ${geistMono.variable} ${interTight.variable} flex min-h-screen flex-col antialiased`}
       >
         <ChunkLoadRecovery />
         <ThemeProvider
