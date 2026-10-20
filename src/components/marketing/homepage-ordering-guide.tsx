@@ -25,14 +25,14 @@ export function HomepageOrderingGuide() {
   return (
     <section className="mx-auto max-w-6xl px-6 pb-12 sm:pb-16">
       <div className="relative">
-        <DrawLine className="bg-primary/25 absolute top-[1.85rem] right-6 left-6 hidden h-px sm:block" />
+        <DrawLine className="bg-border absolute top-[1.85rem] right-6 left-6 hidden h-px sm:block" />
         <Stagger className="relative grid gap-2.5 sm:grid-cols-4">
           {steps.map((step, index) => (
             <StaggerItem key={step.title} className="surface-premium group rounded-xl p-3.5 sm:p-4">
-              <div className="text-primary bg-background ring-primary/20 relative z-10 inline-flex size-8 items-center justify-center rounded-lg font-heading text-sm font-bold tabular-nums ring-1 transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+              <div className="text-primary bg-card relative z-10 inline-block pr-2 font-heading text-lg font-bold tabular-nums">
                 {index + 1}
               </div>
-              <h2 className="font-heading relative z-10 mt-2.5 text-sm font-semibold">
+              <h2 className="font-heading relative z-10 mt-2 text-sm font-semibold">
                 {step.title}
               </h2>
               <p className="text-muted-foreground relative z-10 mt-1.5 text-xs leading-relaxed">

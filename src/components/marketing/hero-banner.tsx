@@ -7,11 +7,9 @@ import bannerSrc from "../../../public/icons/budgetwise-logo.png";
 
 const BANNER_SRC = bannerSrc;
 
-// Hero backdrop, back to front:
-//   a fine dot grid that fades out toward the edges (structure, not fog);
-//   two brand-colour light fields that drift very slowly (CSS, transform-only);
-//   the BudgetWise mark as a large watermark that sinks and grows on scroll.
-// Everything is static for reduced motion.
+// The official BudgetWise mark as a soft watermark behind the hero (same
+// look as before: blurred, overlay, faint purple glow). It eases in on load
+// and sinks / grows / fades as the page scrolls. Static for reduced motion.
 export function HeroBanner() {
   const containerRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
@@ -21,18 +19,14 @@ export function HeroBanner() {
   });
   const y = useTransform(scrollYProgress, [0, 1], [0, reduce ? 0 : 140]);
   const scale = useTransform(scrollYProgress, [0, 1], [1, reduce ? 1 : 1.12]);
-  const fade = useTransform(scrollYProgress, [0, 0.9], [1, reduce ? 1 : 0.2]);
+  const fade = useTransform(scrollYProgress, [0, 0.9], [1, reduce ? 1 : 0.45]);
 
   return (
     <div
       ref={containerRef}
       aria-hidden
-      className="absolute inset-0 overflow-hidden [mask-image:linear-gradient(to_bottom,black_0%,black_72%,transparent_100%)]"
+      className="absolute inset-0 overflow-hidden [mask-image:linear-gradient(to_bottom,black_0%,black_70%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_0%,black_70%,transparent_100%)]"
     >
-      <div className="bw-hero-grid absolute inset-0" />
-      <div className="bw-hero-field bw-hero-field-a" />
-      <div className="bw-hero-field bw-hero-field-b" />
-
       <motion.div style={{ y, scale, opacity: fade }} className="absolute inset-x-0 -top-12 -bottom-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.94 }}
@@ -47,12 +41,13 @@ export function HeroBanner() {
             priority
             quality={90}
             sizes="100vw"
-            className="object-contain opacity-[0.22] blur-[3px] dark:opacity-[0.16]"
+            className="object-contain opacity-80 blur-[13px]"
           />
         </motion.div>
       </motion.div>
 
-      <div className="bg-background/40 absolute inset-0" />
+      <div className="bg-background/55 absolute inset-0" />
+      <div className="hero-glow absolute inset-0" />
     </div>
   );
 }

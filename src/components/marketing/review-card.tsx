@@ -13,9 +13,6 @@ function FacebookGlyph({ className }: { className?: string }) {
 export function ReviewCard({ review }: { review: Review }) {
   return (
     <div className="surface-premium surface-premium-hover flex h-full flex-col gap-4 overflow-hidden rounded-xl p-6">
-      <span aria-hidden className="font-heading text-primary/15 pointer-events-none absolute -top-3 right-4 text-[5.5rem] leading-none select-none">
-        &ldquo;
-      </span>
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-0.5">
           {Array.from({ length: 5 }).map((_, i) => (

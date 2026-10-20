@@ -56,9 +56,7 @@ export function TrustPoints() {
             variants={item}
             className="group py-5 sm:px-7 sm:pt-8 sm:pb-0 sm:first:pl-0 sm:last:pr-0"
           >
-            <span className="bg-primary/8 text-primary ring-primary/15 inline-flex size-10 items-center justify-center rounded-lg ring-1 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-y-0.5 group-hover:rotate-[-4deg]">
-              <Icon className="size-5" />
-            </span>
+            <Icon className="text-primary size-5 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-y-0.5 group-hover:rotate-[-6deg]" />
             <h3 className="font-heading mt-3 text-base font-semibold">
               {title}
             </h3>

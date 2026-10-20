@@ -125,7 +125,7 @@ export function FloatingMessageButton() {
         aria-label={total > 0 ? `Message Us Now (${total} unread)` : "Message Us Now"}
         data-testid="message-us-now"
         className={cn(
-          "bg-primary text-primary-foreground relative inline-flex h-12 items-center gap-2 rounded-lg pr-4 pl-3.5 text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_10px_24px_-10px_color-mix(in_oklch,var(--primary)_65%,transparent)] transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] motion-reduce:transform-none",
+          "bg-primary text-primary-foreground relative inline-flex h-12 items-center gap-2 rounded-lg pr-4 pl-3.5 text-sm font-semibold shadow-[0_10px_28px_-8px_color-mix(in_oklch,var(--primary)_55%,transparent)] transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] motion-reduce:transform-none",
           nudge > 0 && "animate-[bw-nudge_0.7s_ease-out_1] motion-reduce:animate-none",
         )}
       >

@@ -621,43 +621,7 @@
   background-size: 100% 1px;
 }
 
-/* Hero backdrop: dot grid + two slow brand light fields. */
-.bw-hero-grid {
-  background-image: radial-gradient(color-mix(in oklch, var(--foreground) 14%, transparent) 1px, transparent 1.2px);
-  background-size: 22px 22px;
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000 20%, transparent 75%);
-}
-.bw-hero-field {
-  position: absolute;
-  width: 46rem;
-  height: 46rem;
-  border-radius: 9999px;
-  filter: blur(90px);
-  opacity: 0.55;
-  will-change: transform;
-}
-.bw-hero-field-a {
-  top: -22rem;
-  left: 8%;
-  background: color-mix(in oklch, var(--primary) 32%, transparent);
-  animation: bw-drift-a 22s var(--ease-in-out) infinite alternate;
-}
-.bw-hero-field-b {
-  top: -16rem;
-  right: 4%;
-  background: color-mix(in oklch, var(--gold, #f5b544) 22%, transparent);
-  animation: bw-drift-b 26s var(--ease-in-out) infinite alternate;
-}
-.dark .bw-hero-field { opacity: 0.4; }
-@keyframes bw-drift-a {
-  to { transform: translate3d(14rem, 6rem, 0) scale(1.15); }
-}
-@keyframes bw-drift-b {
-  to { transform: translate3d(-12rem, 8rem, 0) scale(0.9); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .bw-hero-field { animation: none; }
   [data-slot="button"][data-variant="default"]::after,
   .bw-shimmer::after,
   .bw-ping::after {

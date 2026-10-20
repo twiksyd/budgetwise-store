@@ -112,9 +112,7 @@ export function AnimatedHero() {
           className="font-heading max-w-3xl text-4xl font-semibold tracking-[-0.03em] text-balance sm:text-7xl"
         >
           <MaskedHeadline text="Buy gamepasses." />{" "}
-          <span className="text-[color-mix(in_oklch,var(--primary)_78%,var(--foreground))]">
-            <MaskedHeadline text="Skip overpriced stores." />
-          </span>
+          <MaskedHeadline text="Skip overpriced stores." />
         </motion.h1>
 
         <motion.p
