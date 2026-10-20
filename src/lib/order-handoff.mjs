@@ -1,3 +1,5 @@
+import { buildOrderMessage, normalizeOrderMessageForMessenger } from "./order-message.mjs";
+
 // Where a customer continues an order after checkout.
 //
 //   "messenger"  the order-slip page, which opens the BudgetWise DGM page in
@@ -46,9 +48,33 @@ export function chooseOrderChannel(source, config) {
 }
 
 /** m.me link to the order page with a short, prefilled follow-up message. */
-export function orderMessengerLink(pageId, orderNumber) {
+export function orderMessengerLink(pageId, orderNumber, message) {
   if (!pageId || !/^[A-Za-z0-9.]+$/.test(String(pageId))) return null;
   const url = new URL(`https://m.me/${pageId}`);
-  if (orderNumber) url.searchParams.set("text", `Hi BudgetWise! I'm following up on my order ${orderNumber}.`);
+  if (message) url.searchParams.set("text", normalizeOrderMessageForMessenger(message));
+  else if (orderNumber) url.searchParams.set("text", `Hi BudgetWise! I'm following up on my order ${orderNumber}.`);
   return url.toString();
+}
+
+/** Rebuild the full slip from frozen order details, never today's catalog prices. */
+export function buildMessengerOrderSlip(details) {
+  const lines = details.groups.flatMap((group) => group.lines);
+  if (details.kind === "inquiry" || !lines.length) return null;
+  return normalizeOrderMessageForMessenger(buildOrderMessage({
+    orderNumber: details.order.orderNumber,
+    buyerName: details.customer.name,
+    buyerRobloxUsername: details.customer.robloxUsername,
+    total: details.order.total,
+    viaPlusAccount: details.viaPlus ? {
+      ...details.viaPlus,
+      viaPlusRobuxAmount: details.viaPlus.robuxAmount,
+    } : null,
+    lines: lines.map((line) => ({
+      gameName: line.gameName,
+      gamepassName: line.productName,
+      quantity: line.quantity,
+      robuxAmount: line.totalRobux,
+      sellingPrice: line.lineTotal,
+    })),
+  }, { nameLabel: "Name" }));
 }

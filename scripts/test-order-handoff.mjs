@@ -56,3 +56,46 @@ describe("Messenger link", () => {
     assert.equal(orderMessengerLink(null, "BW-1"), null);
   });
 });
+
+describe("full Messenger follow-up slip", () => {
+  const details = {
+    kind: "order",
+    order: { orderNumber: "BW-PAPGA3", total: 250 },
+    customer: { name: "Sample Customer", robloxUsername: "SampleRoblox", email: "private@example.test" },
+    viaPlus: null,
+    groups: [{ gameName: "Pa Deliber", lines: [{
+      gameName: "Pa Deliber", productName: "VIP Pass", quantity: 2,
+      robuxAmount: 349, totalRobux: 698, unitPrice: 125, lineTotal: 250,
+      your_cost: 101.21,
+    }] }],
+  };
+  test("uses frozen line totals, customer identity and quantities in the prefill", async () => {
+    const { buildMessengerOrderSlip } = await import("../src/lib/order-handoff.mjs");
+    const message = buildMessengerOrderSlip(details);
+    assert.match(message, /BUDGETWISE ORDER SLIP/);
+    assert.match(message, /Name: Sample Customer/);
+    assert.match(message, /Roblox Username: SampleRoblox/);
+    assert.match(message, /VIP Pass ×2 — 698 Robux — ₱250/);
+    assert.match(message, /TOTAL: ₱250/);
+    assert.ok(!message.includes("private@example.test"));
+    assert.ok(!message.includes("101.21"));
+    const link = new URL(orderMessengerLink("1472889109233950", details.order.orderNumber, message));
+    assert.equal(link.searchParams.get("text"), message);
+    assert.ok(!message.includes("following up on my order"));
+  });
+  test("does not produce an incomplete slip for missing lines or inquiry threads", async () => {
+    const { buildMessengerOrderSlip } = await import("../src/lib/order-handoff.mjs");
+    assert.equal(buildMessengerOrderSlip({ ...details, groups: [] }), null);
+    assert.equal(buildMessengerOrderSlip({ ...details, kind: "inquiry" }), null);
+  });
+  test("retains Via Plus display name and acknowledgement", async () => {
+    const { buildMessengerOrderSlip } = await import("../src/lib/order-handoff.mjs");
+    const message = buildMessengerOrderSlip({
+      ...details,
+      viaPlus: { robloxDisplayName: "Sample Display", robuxAmount: 698 },
+      groups: [{ lines: [{ ...details.groups[0].lines[0], gameName: "Robux Via Plus" }] }],
+    });
+    assert.match(message, /Display Name: Sample Display/);
+    assert.match(message, /VIA PLUS PRE-ORDER ACKNOWLEDGEMENT/);
+  });
+});

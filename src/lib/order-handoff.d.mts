@@ -1,3 +1,4 @@
+import type { OrderDetails } from "./chat/order-details.mjs";
 export type TrafficSource = "tiktok";
 export type OrderChannel = "messenger" | "site";
 export declare const TRAFFIC_SOURCES: readonly ["tiktok"];
@@ -7,4 +8,6 @@ export function chooseOrderChannel(
   source: unknown,
   config: { channel: OrderChannel; siteChatSources: readonly string[] } | null | undefined,
 ): OrderChannel;
-export function orderMessengerLink(pageId: string | null | undefined, orderNumber?: string | null): string | null;
+export function orderMessengerLink(pageId: string | null | undefined, orderNumber?: string | null, message?: string | null): string | null;
+
+export function buildMessengerOrderSlip(details: OrderDetails): string | null;

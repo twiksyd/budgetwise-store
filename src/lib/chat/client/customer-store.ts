@@ -50,6 +50,7 @@ export interface CustomerChatDetails {
   movedTo?: string;
   /** This order continues on Messenger (m.me link with the order number). */
   messenger?: string | null;
+  messengerMessage?: string;
   /** 0033 (the conversation): its orders, newest first. */
   orders?: ConversationOrder[];
   orderTotal?: number;

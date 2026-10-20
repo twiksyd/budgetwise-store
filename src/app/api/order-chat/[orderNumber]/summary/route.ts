@@ -4,11 +4,12 @@ import {
   loadConversationOrders,
   loadCustomerFulfillment,
   loadCustomerOrderSummary,
+  loadOrderDetails,
   isMessengerOrder,
   loadPublicAdminNames,
   resolveChatActor,
 } from "@/lib/queries/order-chat";
-import { orderMessengerLink } from "@/lib/order-handoff.mjs";
+import { orderMessengerLink, buildMessengerOrderSlip } from "@/lib/order-handoff.mjs";
 import { siteConfig } from "@/config/site";
 import { historicalHome, historySourceStatus } from "@/lib/queries/chat-history";
 import { getOrderHomeKey } from "@/lib/queries/customer-thread";
@@ -38,11 +39,17 @@ export async function GET(_request: Request, { params }: Context) {
       if (homeKey) return chatJson({ movedTo: homeKey });
       // An order that continues on Messenger has no on-site chat.
       if (await isMessengerOrder(orderNumber)) {
-        const summary = await loadCustomerOrderSummary(orderNumber);
-        if (!summary) return chatError("Order not found.", 404);
+        const [summary, orderDetails] = await Promise.all([
+          loadCustomerOrderSummary(orderNumber),
+          loadOrderDetails(orderNumber),
+        ]);
+        if (!summary || !orderDetails) return chatError("Order not found.", 404);
+        const messengerMessage = buildMessengerOrderSlip(orderDetails);
+        if (!messengerMessage) return chatError("Order slip unavailable. Please try again.", 503);
         return chatJson({
           summary,
-          messenger: orderMessengerLink(siteConfig.messengerPageId, orderNumber),
+          messenger: orderMessengerLink(siteConfig.messengerPageId, orderNumber, messengerMessage),
+          messengerMessage,
           adminRead: { at: null, messageId: null },
           ownRead: { at: null, messageId: null },
           slots: [],

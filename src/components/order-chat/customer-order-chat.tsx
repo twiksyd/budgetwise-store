@@ -1,4 +1,6 @@
 "use client";
+import { PreparedMessagePreview } from "@/components/checkout/messenger-handoff";
+import { copyPlainText } from "@/lib/plain-text-clipboard";
 import { toast } from "sonner";
 import { fetchJson } from "@/lib/chat/client/fetch-json";
 
@@ -347,7 +349,7 @@ export function CustomerOrderChat({ orderNumber }: { orderNumber: string }) {
           {summary && summary.lines.length > 0 && (
             <OrderSummaryStrip lines={summary.lines} itemCount={summary.itemCount} total={summary.totalAmount} />
           )}
-          <MessengerContinue orderNumber={orderNumber} link={messengerLink} />
+          <MessengerContinue orderNumber={orderNumber} link={messengerLink} message={details?.messengerMessage} />
         </>
       ) : (
         <>
@@ -477,27 +479,46 @@ function ReadOnlyNotice({ link }: { link: string | null }) {
 }
 
 /** This order is handled in the BudgetWise DGM Messenger page. */
-function MessengerContinue({ orderNumber, link }: { orderNumber: string; link: string | null }) {
+function MessengerContinue({ orderNumber, link, message }: { orderNumber: string; link: string | null; message?: string }) {
+  const [opening, setOpening] = useState(false);
+  async function openMessenger() {
+    if (!link || !message || opening) return;
+    setOpening(true);
+    try {
+      await copyPlainText(message);
+      toast.success("Order slip copied. Paste it in Messenger if the message is empty.");
+    } catch {
+      toast.info("If Messenger opens empty, return here to copy your order slip.");
+    }
+    window.location.assign(link);
+    setOpening(false);
+  }
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center" data-testid="messenger-continue">
+    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6" data-testid="messenger-continue">
+      <div className="mx-auto flex max-w-2xl flex-col items-center gap-3 text-center">
       <span className="bg-primary/10 text-primary flex size-14 items-center justify-center rounded-2xl">
         <MessageCircle className="size-7" aria-hidden />
       </span>
       <p className="font-heading text-base font-semibold">This order continues on Messenger</p>
       <p className="text-muted-foreground max-w-xs text-sm">
-        Message BudgetWise DGM with your order number{" "}
-        <span className="text-foreground font-semibold [font-variant-numeric:tabular-nums]">{orderNumber}</span> for payment
-        details and updates.
+        Continue with your full order slip for{" "}
+        <span className="text-foreground font-semibold [font-variant-numeric:tabular-nums]">{orderNumber}</span>.
+        Your items, quantities and total are included. Please press Send in Messenger.
       </p>
-      {link && (
-        <a
-          href={link}
+      {link && message && (
+        <button
+          type="button"
+          onClick={() => void openMessenger()}
+          disabled={opening}
           className="bg-primary text-primary-foreground mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg px-5 text-sm font-semibold"
         >
           <MessageCircle className="size-4" aria-hidden />
-          Continue on Messenger
-        </a>
+          {opening ? "Opening Messenger…" : "Continue on Messenger"}
+        </button>
       )}
+      {!message && <p role="alert" className="text-sm">Refresh this page to load your full order slip.</p>}
+      </div>
+      {message && <div className="mx-auto mt-6 max-w-2xl text-left"><PreparedMessagePreview message={message} /></div>}
     </div>
   );
 }
