@@ -219,10 +219,14 @@ export async function POST(request: Request) {
     );
   }
 
-  // Orders belong to a signed-in account: that is what lets the customer
-  // come back to this order's chat later. Checked before any order work.
+  // Messenger orders need no account (the order continues on Messenger).
+  // Only the on-site chat needs one, so the customer can come back to it.
   const customer = await getCustomerUser();
-  if (!customer) {
+  const channel = chooseOrderChannel(
+    (json as { source?: unknown } | null)?.source,
+    siteConfig.orderHandoff,
+  );
+  if (!customer && channel === "site") {
     return orderError(
       "UNAUTHENTICATED",
       "Please sign in to place your order.",
@@ -270,8 +274,8 @@ export async function POST(request: Request) {
     // on-site chat; the browser continues on the order-slip page, which
     // opens Messenger. The on-site conversation is kept for the sources in
     // siteConfig.orderHandoff.siteChatSources.
-    if (chooseOrderChannel(parsed.data.source, siteConfig.orderHandoff) === "messenger") {
-      if (!(await attachOrderOwner({ orderNumber, userId: customer.id }))) {
+    if (channel === "messenger" || !customer) {
+      if (customer && !(await attachOrderOwner({ orderNumber, userId: customer.id }))) {
         return orderError(
           "IDEMPOTENCY_CONFLICT",
           "This order request was already used. Please refresh and try again.",

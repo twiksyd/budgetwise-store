@@ -4,6 +4,7 @@ import { MessageCircle, HelpCircle, Clock, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Taglish } from "@/components/shared/taglish";
 import { getTikTokSupportLink } from "@/lib/support-links";
+import { getGeneralMessengerLink } from "@/lib/messenger";
 
 export const metadata: Metadata = {
   title: "Contact us",
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   const supportLink = getTikTokSupportLink();
+  const messengerLink = getGeneralMessengerLink();
 
   return (
     <div className="mx-auto max-w-lg px-6 py-20 sm:py-24">
@@ -45,12 +47,14 @@ export default function ContactPage() {
           updates — nasa Order Chat ng order mo. Totoong tao ang sasagot
           sa&apos;yo.
         </Taglish>
-        <Button asChild size="lg" className="mt-5 h-11 w-full">
-          <Link href="/account/orders">
-            <MessageCircle className="size-4" />
-            Open My Orders
-          </Link>
-        </Button>
+        {messengerLink && (
+          <Button asChild size="lg" className="mt-5 h-11 w-full">
+            <a href={messengerLink} target="_blank" rel="noopener noreferrer">
+              <MessageCircle className="size-4" />
+              Message us on Messenger
+            </a>
+          </Button>
+        )}
       </div>
 
       {supportLink && (
@@ -122,7 +126,7 @@ export default function ContactPage() {
               Write to us in that order&apos;s Order Chat
             </span>{" "}
             — your order number is already attached, so we can find it right
-            away. You can find the chat under My Orders. See our{" "}
+            away. See our{" "}
             <Link href="/faq" className="text-primary hover:underline">
               FAQ
             </Link>{" "}

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Taglish } from "@/components/shared/taglish";
 
@@ -106,11 +105,7 @@ export default function RefundPolicyPage() {
             Requesting a refund
           </h2>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-            Tell us in that order&apos;s Order Chat (find it under{" "}
-            <Link href="/account/orders" className="text-primary hover:underline">
-              My Orders
-            </Link>
-            ) what went wrong. We&apos;ll look into it and get back to you.
+            Tell us on Messenger, with your order number, what went wrong. We&apos;ll look into it and get back to you.
           </p>
           <Taglish>
             Sabihin mo lang sa Order Chat ng order mo kung anong nangyari.

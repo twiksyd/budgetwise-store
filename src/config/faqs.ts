@@ -2,23 +2,23 @@ export const faqs = [
   {
     question: "How does BudgetWise actually work?",
     answer:
-      "You browse games, add gamepasses or in-game currency to your cart, sign in with Google, and check out. Checkout creates your order and takes you straight to your Order Chat at /orders/<your order number>. Wait there for our reply — we send the official payment instructions in the chat, you upload your GCash receipt in the same chat, and we continue processing your order.",
+      "You browse games, add gamepasses or in-game currency to your cart, and check out — no sign-in needed. Checkout creates your order slip; tap the button to send it to BudgetWise DGM on Messenger. Wait there for our reply — we send the official payment instructions in the chat, you upload your GCash receipt in the same chat, and we continue processing your order.",
     taglish:
-      "Mamili ka lang ng items, mag-sign in gamit ang Google, tapos mag-checkout. Dadalhin ka agad sa Order Chat. Hintayin mo yung reply namin doon — sa chat din namin ibibigay ang payment instructions at doon mo rin ia-upload ang GCash receipt mo.",
+      "Mamili ka lang ng items tapos mag-checkout, walang sign-in. I-send ang order slip mo sa BudgetWise DGM sa Messenger. Hintayin mo yung reply namin doon — sa chat din namin ibibigay ang payment instructions at doon mo rin ia-upload ang GCash receipt mo.",
   },
   {
     question: "Do I need to sign in to order?",
     answer:
-      "Yes. You need to sign in with Google before checkout. Your order is saved to your account so your Order Chat and order history are always there when you come back. We only use Google to sign you in — we never see your Google password. Your cart is kept while you sign in.",
+      "No. Just fill in your name and Roblox username at checkout. Your order then continues on Messenger with BudgetWise DGM.",
     taglish:
-      "Oo, kailangan mag-sign in gamit ang Google bago mag-checkout. Naka-save sa account mo ang order at chat, kaya madali mo itong mababalikan. Hindi namin nakikita ang Google password mo, at hindi mawawala ang cart mo.",
+      "Hindi na. Ilagay lang ang pangalan at Roblox username mo sa checkout, tapos sa Messenger na tayo mag-uusap.",
   },
   {
-    question: "Where do I find my Order Chat?",
+    question: "Where do we talk about my order?",
     answer:
-      "Right after checkout you're taken to your order's chat page at /orders/<your order number>. To get back to it later, sign in and open My Orders (/account/orders), then tap the order. All order-related messages — payment instructions, your receipt, and updates — stay in that chat.",
+      "On Messenger, with the BudgetWise DGM page. After checkout, tap the Messenger button on your order slip to send it to us. All order-related messages — payment instructions, your receipt, and updates — stay in that Messenger chat.",
     taglish:
-      "Pagkatapos ng checkout, dadalhin ka agad sa chat ng order mo. Para balikan ito, mag-sign in at buksan ang My Orders (/account/orders), tapos piliin ang order. Lahat ng usapan tungkol sa order, nandoon lang sa chat.",
+      "Sa Messenger, sa BudgetWise DGM page. Pagkatapos ng checkout, i-tap ang Messenger button sa order slip mo para ma-send sa amin. Lahat ng usapan tungkol sa order, nandoon na.",
   },
   {
     question: "Should I pay right after checkout?",
@@ -37,9 +37,9 @@ export const faqs = [
   {
     question: "How do I see my previous orders?",
     answer:
-      "Sign in and open My Orders at /account/orders. It lists all your orders with their status and the latest message in each chat. A \"new\" badge on an order means we've sent a reply you haven't read yet — open the order to see it.",
+      "Your orders and their updates are in your Messenger chat with BudgetWise DGM. Each one has its order number, so just message us there if you need to follow up.",
     taglish:
-      "Mag-sign in at buksan ang My Orders (/account/orders) para makita lahat ng orders mo, ang status nila, at ang huling message sa bawat chat. Ang \"new\" badge ay ibig sabihin may reply kami na hindi mo pa nababasa.",
+      "Nasa Messenger chat mo kasama ang BudgetWise DGM ang mga order mo, kasama ang order number. I-message lang kami doon kung may follow-up ka.",
   },
   {
     question: "Is payment taken on the website?",

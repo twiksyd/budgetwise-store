@@ -10,12 +10,12 @@ const steps = [
     description: "Piliin at i-add sa cart ang items na gusto ninyo.",
   },
   {
-    title: "Mag-sign in at Checkout",
-    description: "Mag-sign in gamit ang Google, tapos ilagay ang Roblox Username ninyo.",
+    title: "Mag-checkout",
+    description: "Ilagay ang pangalan at Roblox Username ninyo. Walang sign-in.",
   },
   {
-    title: "Makipag-chat sa Amin",
-    description: "Hintayin ang reply namin sa Order Chat dito mismo sa website.",
+    title: "I-message Kami sa Messenger",
+    description: "I-send ang order slip ninyo sa BudgetWise DGM sa Messenger, tapos hintayin ang reply namin.",
   },
 ];
 

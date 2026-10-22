@@ -3,7 +3,6 @@ import { BrandMark } from "@/components/brand/brand-mark";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { CartTrigger } from "@/components/cart/cart-trigger";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { MyOrdersHeaderLink } from "@/components/customer-messages/my-orders-link";
 import { HeaderNavLinks, ScrollHeader } from "@/components/layout/header-chrome";
 
 export function SiteHeader() {
@@ -18,7 +17,6 @@ export function SiteHeader() {
         </div>
         <HeaderNavLinks />
         <div className="flex items-center gap-1 sm:gap-0.5">
-          <MyOrdersHeaderLink />
           <CartTrigger />
           <ThemeToggle />
         </div>
