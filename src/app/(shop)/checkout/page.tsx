@@ -1,7 +1,8 @@
 import { Construction, Lock } from "lucide-react";
 import { CheckoutClient } from "@/components/checkout/checkout-client";
 import { EmptyState } from "@/components/shared/empty-state";
-import { requireCustomer } from "@/lib/auth/customer";
+import { getCustomerUser, requireCustomer } from "@/lib/auth/customer";
+import { siteConfig } from "@/config/site";
 import { resolveStoreStatusSafe } from "@/lib/store-status";
 import { STORE_STATUS_DEFAULT_MESSAGES } from "@/types/store-operations";
 
@@ -25,9 +26,13 @@ export default async function CheckoutPage() {
     );
   }
 
-  // Orders belong to a signed-in account so the chat stays reachable later.
-  // The cart lives in the browser, so it survives the Google round trip.
-  const customer = await requireCustomer("/checkout");
+  // Messenger hand-off: no sign-in. The order continues on Messenger and the
+  // order-slip page opens with the attempt's viewing token. Only the on-site
+  // chat needs an account to come back to.
+  const customer =
+    siteConfig.orderHandoff.channel === "site"
+      ? await requireCustomer("/checkout")
+      : await getCustomerUser();
 
-  return <CheckoutClient defaultName={customer.name ?? ""} />;
+  return <CheckoutClient defaultName={customer?.name ?? ""} />;
 }

@@ -29,20 +29,20 @@ const steps = [
   },
   {
     icon: ClipboardList,
-    title: "Sign in & Checkout",
+    title: "Checkout",
     description:
-      "Sign in with Google (required before checkout — your cart is kept), then fill in the required information, including your Roblox username. The website automatically generates an Order Number and securely records your order.",
+      "No sign-in needed. Fill in the required information, including your Roblox username. The website automatically generates an Order Number and securely records your order.",
     note: "Creating an order does NOT mean it is already being processed.",
     taglish:
-      "Mag-sign in gamit ang Google, tapos ilagay yung tamang details at Roblox username mo. Magkakaroon ka agad ng Order Number, pero hindi pa nagsisimula yung order dito.",
+      "Walang sign-in. Ilagay lang yung tamang details at Roblox username mo. Magkakaroon ka agad ng Order Number, pero hindi pa nagsisimula yung order dito.",
   },
   {
     icon: MessageSquare,
-    title: "Open Your Order Chat",
+    title: "Message Us on Messenger",
     description:
-      "After checkout you're taken straight to your Order Chat (/orders/your-order-number). Your order slip is already posted there — there's nothing to copy or paste. You can come back anytime from My Orders (/account/orders); a \"new\" badge means we've replied.",
+      "After checkout you'll see your order slip with a button that opens BudgetWise DGM on Messenger, with the slip ready to send. Send it and wait for our reply there.",
     taglish:
-      "Pagkatapos mag-checkout, dadalhin ka agad sa Order Chat. Nandoon na yung order slip mo, wala nang kokopyahin. Pwede mo itong balikan sa My Orders — ang \"new\" badge ay ibig sabihing may reply kami.",
+      "Pagkatapos mag-checkout, makikita mo yung order slip mo. I-tap ang button para buksan ang BudgetWise DGM sa Messenger, i-send ang slip, tapos hintayin ang reply namin doon.",
   },
 ];
 

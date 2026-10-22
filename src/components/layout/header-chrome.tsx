@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { siteConfig } from "@/config/site";
-import { MyOrdersNavBadge } from "@/components/customer-messages/my-orders-link";
 import { cn } from "@/lib/utils";
 
 /**
@@ -50,7 +49,6 @@ export function HeaderNavLinks() {
             )}
           >
             {item.label}
-            {item.href === "/account/orders" && <MyOrdersNavBadge />}
             {active && (
               <motion.span
                 layoutId="header-nav-active"

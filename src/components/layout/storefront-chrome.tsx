@@ -8,7 +8,6 @@ import { FloatingCartButton } from "@/components/cart/floating-cart-button";
 import { RouteTransitionShell } from "@/components/layout/route-transition-shell";
 import { StoreStatusBanner } from "@/components/shared/store-status-banner";
 import { CustomerMessagesProvider } from "@/components/customer-messages/customer-messages-provider";
-import { FloatingMessageButton } from "@/components/customer-messages/floating-message-button";
 import type { StoreStatus } from "@/types/store-operations";
 
 // The /admin surface renders its own shell (see
@@ -38,13 +37,6 @@ export function StorefrontChrome({
   // Redundant while already looking at the cart or mid-checkout.
   const showFloatingCartButton =
     !isMessengerPage && !pathname?.startsWith("/cart") && !pathname?.startsWith("/checkout");
-  // Never over checkout or cart actions; not needed on the messenger itself.
-  const showFloatingMessages =
-    !isMessengerPage &&
-    !pathname?.startsWith("/cart") &&
-    !pathname?.startsWith("/checkout") &&
-    !pathname?.startsWith("/login") &&
-    !pathname?.startsWith("/auth");
 
   return (
     <CustomerMessagesProvider>
@@ -65,7 +57,6 @@ export function StorefrontChrome({
       {!isMessengerPage && <SiteFooter />}
       <CartDrawer />
       {showFloatingCartButton && <FloatingCartButton />}
-      {showFloatingMessages && <FloatingMessageButton />}
     </CustomerMessagesProvider>
   );
 }

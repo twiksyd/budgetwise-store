@@ -47,14 +47,12 @@ export const siteConfig = {
   nav: [
     { label: "Games", href: "/games" },
     { label: "How it works", href: "/how-ordering-works" },
-    { label: "My orders", href: "/account/orders" },
   ],
   footerNav: {
     Company: [
       { label: "How ordering works", href: "/how-ordering-works" },
       { label: "Gamepass setup guide", href: "/gamepass-tutorial" },
       { label: "FAQ", href: "/faq" },
-      { label: "My orders", href: "/account/orders" },
       { label: "Contact us", href: "/contact" },
     ],
     Legal: [
