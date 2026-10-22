@@ -258,22 +258,10 @@ export async function POST(request: Request) {
     const { orderNumber } = await createOrder(parsed.data);
     const recommendationId = parsed.data.recommendationId;
 
-    // Tie the order to this account and post its slip in the customer's one
-    // ongoing conversation (0033). Runs on replays too (every step is
-    // idempotent), so a retry after a lost response still ends with the
-    // order in the conversation.
-    const confirmation = await getOrderConfirmation(
-      orderNumber,
-      parsed.data.viewToken,
-    );
-    if (!confirmation) {
-      throw new Error("Order was created but its slip could not be read");
-    }
-
-    // Messenger (default): the order belongs to the account but gets no
-    // on-site chat; the browser continues on the order-slip page, which
-    // opens Messenger. The on-site conversation is kept for the sources in
-    // siteConfig.orderHandoff.siteChatSources.
+    // Messenger (default): the order gets no on-site chat; the browser
+    // continues on the order-slip page, which reads the slip itself and opens
+    // Messenger, so the slip is not read here. The on-site conversation is
+    // kept for the sources in siteConfig.orderHandoff.siteChatSources.
     if (channel === "messenger" || !customer) {
       if (customer && !(await attachOrderOwner({ orderNumber, userId: customer.id }))) {
         return orderError(
@@ -287,6 +275,18 @@ export async function POST(request: Request) {
         { orderNumber, handoff: "messenger", requestId },
         { status: 201, headers: { "X-Request-Id": requestId } },
       );
+    }
+
+    // Tie the order to this account and post its slip in the customer's one
+    // ongoing conversation (0033). Runs on replays too (every step is
+    // idempotent), so a retry after a lost response still ends with the
+    // order in the conversation.
+    const confirmation = await getOrderConfirmation(
+      orderNumber,
+      parsed.data.viewToken,
+    );
+    if (!confirmation) {
+      throw new Error("Order was created but its slip could not be read");
     }
 
     const slipText = buildChatSlipMessage(confirmation);
