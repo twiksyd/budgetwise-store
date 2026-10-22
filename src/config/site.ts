@@ -13,11 +13,11 @@ export const siteConfig = {
   // search snippets instead.
   ogDescription: "All about delivering value.",
   url: "https://budgetwiseshop.com",
-  // m.me accepts a numeric Facebook Page ID directly. Orders continue on the
-  // "BudgetWise DGM" page (facebook.com/messages/t/1472889109233950). The
-  // previous page was 61589047545427 ("BudgetWise Discounted Game Market").
-  messengerPageId: "1472889109233950",
-  // The same page's public Facebook profile ("Visit our page").
+  // Messenger destination requested for the website:
+  // https://www.facebook.com/messages/t/1016040068270030
+  // Use m.me so checkout links can retain their prefilled order messages.
+  messengerPageId: "1016040068270030",
+  // Public Facebook profile (separate from the Messenger destination).
   facebookPageUrl: "https://www.facebook.com/profile.php?id=61595426676262",
   // Where customers continue an order after checkout:
   //   channel "messenger"  the order-slip page opens Messenger (above) with
