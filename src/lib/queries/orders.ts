@@ -97,6 +97,29 @@ export async function createOrder(
 ): Promise<{ orderNumber: string; replayed: boolean }> {
   const supabase = createAdminClient();
   const requestFingerprint = fingerprintOrderRequest(input);
+  const gamepassIds = input.items.map((item) => item.gamepassId);
+
+  // None of these reads depends on another, so they go out together: each
+  // is a full round trip to the database. (`.then` starts a query builder,
+  // which otherwise waits until awaited.) A replay below never looks at the
+  // other three, so the store-status read's failure is only surfaced once
+  // it is awaited.
+  const storeStatusRead = resolveStoreStatus();
+  storeStatusRead.catch(() => undefined);
+  const gamepassesRead = supabase
+    .from("gamepasses")
+    .select(
+      "id, user_id, game_id, name, your_price, your_cost, robux_amount, is_active, availability_status",
+    )
+    .in("id", gamepassIds)
+    .then((result) => result);
+  // The display name shown on the slip is captured now, at order time — a
+  // later rename in the catalog must not rewrite what the customer ordered.
+  const displayNamesRead = supabase
+    .from("store_product_display_names")
+    .select("gamepass_id, display_name")
+    .in("gamepass_id", gamepassIds)
+    .then((result) => result);
 
   // Answered before any freshness check on purpose: a retry of a checkout
   // that already succeeded must return that order even if the store has
@@ -107,7 +130,7 @@ export async function createOrder(
   );
   if (replayed) return replayed;
 
-  const { status, noticeMessage } = await resolveStoreStatus();
+  const { status, noticeMessage } = await storeStatusRead;
   if (status !== "open") {
     throw new OrderCreationError(
       noticeMessage?.trim() || STORE_STATUS_DEFAULT_MESSAGES[status],
@@ -115,14 +138,7 @@ export async function createOrder(
     );
   }
 
-  const gamepassIds = input.items.map((item) => item.gamepassId);
-
-  const { data: gamepasses, error: fetchError } = await supabase
-    .from("gamepasses")
-    .select(
-      "id, user_id, game_id, name, your_price, your_cost, robux_amount, is_active, availability_status",
-    )
-    .in("id", gamepassIds);
+  const { data: gamepasses, error: fetchError } = await gamepassesRead;
 
   if (fetchError) throw fetchError;
 
@@ -189,12 +205,7 @@ export async function createOrder(
     );
   }
 
-  // The display name shown on the slip is captured now, at order time — a
-  // later rename in the catalog must not rewrite what the customer ordered.
-  const { data: displayNames, error: displayNameError } = await supabase
-    .from("store_product_display_names")
-    .select("gamepass_id, display_name")
-    .in("gamepass_id", gamepassIds);
+  const { data: displayNames, error: displayNameError } = await displayNamesRead;
 
   if (
     displayNameError &&
@@ -390,28 +401,32 @@ export async function getOrderConfirmation(
       return null;
     }
 
-    const { data: lines, error: linesError } = await supabase
-      .from("store_order_line_snapshots")
-      .select(
-        "line_index, gamepass_id, game_id, product_name, game_name, robux_amount, quantity, unit_price, line_total, is_via_plus",
-      )
-      .eq("order_number", orderNumber)
-      .order("line_index", { ascending: true });
+    // Independent reads, so one round trip to the database instead of three.
+    const [
+      { data: lines, error: linesError },
+      viaPlusDetails,
+      // Fulfilment state is meant to move over time, so it is read live from
+      // the order's own row rather than frozen with the contents.
+      { data: orderStatus, error: statusError },
+    ] = await Promise.all([
+      supabase
+        .from("store_order_line_snapshots")
+        .select(
+          "line_index, gamepass_id, game_id, product_name, game_name, robux_amount, quantity, unit_price, line_total, is_via_plus",
+        )
+        .eq("order_number", orderNumber)
+        .order("line_index", { ascending: true }),
+      getOrderViaPlusDetails(supabase, orderNumber),
+      supabase
+        .from("orders")
+        .select("status")
+        .eq("order_number", orderNumber)
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
     if (linesError) throw linesError;
     if (!lines || lines.length === 0) return null;
-
-    const viaPlusDetails = await getOrderViaPlusDetails(supabase, orderNumber);
-
-    // Fulfilment state is meant to move over time, so it is read live from
-    // the order's own row rather than frozen with the contents.
-    const { data: orderStatus, error: statusError } = await supabase
-      .from("orders")
-      .select("status")
-      .eq("order_number", orderNumber)
-      .limit(1)
-      .maybeSingle();
-
     if (statusError) throw statusError;
 
     return buildOrderConfirmationFromSnapshot({
