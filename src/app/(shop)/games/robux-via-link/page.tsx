@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   ChevronRight,
   ShieldCheck,
@@ -16,7 +17,10 @@ import {
   getProductArtworkUrlMap,
 } from "@/lib/queries/product-artwork";
 import { getProductCardBackgroundUrlMapSafe } from "@/lib/queries/product-card-backgrounds";
-import { resolveStoreStatusSafe } from "@/lib/store-status";
+import {
+  isRobuxViaLinkEnabled,
+  resolveStoreStatusSafe,
+} from "@/lib/store-status";
 
 export const revalidate = 60;
 
@@ -31,6 +35,10 @@ export const metadata: Metadata = {
 // sections, so customers pick a tax option once instead of finding two
 // near-identical game cards in the catalog. See config/robux-via-link.ts.
 export default async function RobuxViaLinkPage() {
+  // Switched off in Store Operations — old links and bookmarks land on the
+  // catalog instead of an orderable page.
+  if (!(await isRobuxViaLinkEnabled())) redirect("/games");
+
   const [coveredTax, notCoveredTax, { status: storeStatus }] = await Promise.all([
     getGamepassesByGameId(robuxViaLinkGameIds.coveredTax),
     getGamepassesByGameId(robuxViaLinkGameIds.notCoveredTax),
