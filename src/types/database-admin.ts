@@ -53,6 +53,8 @@ type StoreSettingsRow = {
   scheduled_at: string | null;
   scheduled_reopen_at: string | null;
   updated_at: string;
+  // Migration 0037.
+  robux_via_link_enabled?: boolean;
 };
 
 type StoreGamePresentationRow = {
@@ -139,6 +141,7 @@ export type StoreSettingsUpdate = {
   scheduled_at?: string | null;
   scheduled_reopen_at?: string | null;
   updated_at?: string;
+  robux_via_link_enabled?: boolean;
 };
 
 type AdminUserRow = {

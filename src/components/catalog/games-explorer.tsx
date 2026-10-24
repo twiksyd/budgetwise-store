@@ -32,10 +32,12 @@ export function GamesExplorer({
   games,
   featuredGames,
   productCounts,
+  robuxViaLinkEnabled = true,
 }: {
   games: StoreGame[];
   featuredGames: StoreGame[];
   productCounts: Record<string, number>;
+  robuxViaLinkEnabled?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
@@ -61,11 +63,13 @@ export function GamesExplorer({
   const robuxProductCounts = useMemo(
     () => ({
       ...productCounts,
-      [robuxViaLinkGame.id]:
-        (productCounts[robuxViaLinkGameIds.coveredTax] ?? 0) +
-        (productCounts[robuxViaLinkGameIds.notCoveredTax] ?? 0),
+      // Switched off in Store Operations: a zero count hides the card.
+      [robuxViaLinkGame.id]: robuxViaLinkEnabled
+        ? (productCounts[robuxViaLinkGameIds.coveredTax] ?? 0) +
+          (productCounts[robuxViaLinkGameIds.notCoveredTax] ?? 0)
+        : 0,
     }),
-    [productCounts],
+    [productCounts, robuxViaLinkEnabled],
   );
 
   const catalogGames = useMemo(

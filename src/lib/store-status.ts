@@ -14,6 +14,7 @@ export interface StoreSettings {
   scheduledStatus: StoreStatus | null;
   scheduledAt: string | null;
   scheduledReopenAt: string | null;
+  robuxViaLinkEnabled: boolean;
 }
 
 // Admin-facing: the raw row, so the Store Operations form can show exactly
@@ -38,6 +39,8 @@ export async function getStoreSettingsForAdmin(): Promise<StoreSettings> {
     scheduledStatus: data.scheduled_status,
     scheduledAt: data.scheduled_at,
     scheduledReopenAt: data.scheduled_reopen_at,
+    // Absent until migration 0037 is applied — treat as on.
+    robuxViaLinkEnabled: data.robux_via_link_enabled !== false,
   };
 }
 
@@ -110,5 +113,28 @@ export async function resolveStoreStatusSafe(): Promise<ResolvedStoreStatus> {
   } catch (error) {
     console.error("Failed to resolve store status", error);
     return { status: "open", noticeMessage: null };
+  }
+}
+
+// Whether the merged "Robux (Via Link)" option is offered at all (admin
+// switch in Store Operations). The storefront fails open — a read failure,
+// or 0037 not applied yet, keeps today's behaviour — while createOrder()
+// passes `failClosed` so a Via Link order is never accepted when the
+// setting can't be confirmed.
+export async function isRobuxViaLinkEnabled({
+  failClosed = false,
+}: { failClosed?: boolean } = {}): Promise<boolean> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("store_settings")
+      .select("*")
+      .eq("id", true)
+      .single();
+    if (error) throw error;
+    return data.robux_via_link_enabled !== false;
+  } catch (error) {
+    console.error("Failed to read Robux Via Link setting", error);
+    return !failClosed;
   }
 }

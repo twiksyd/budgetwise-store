@@ -1,7 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateOrderNumber } from "@/lib/orders";
-import { resolveStoreStatus } from "@/lib/store-status";
+import { isRobuxViaLinkEnabled, resolveStoreStatus } from "@/lib/store-status";
 import { STORE_STATUS_DEFAULT_MESSAGES } from "@/types/store-operations";
 import { isRobuxViaLinkSourceGame } from "@/config/robux-via-link";
 import { isRobuxPlusGame, robuxPlusPresentation } from "@/config/robux-products";
@@ -140,6 +140,12 @@ export async function createOrder(
 
   const gameById = new Map((games ?? []).map((g) => [g.id, g]));
 
+  const hasRobuxViaLinkItem = (gamepasses ?? []).some((gamepass) =>
+    isRobuxViaLinkSourceGame(gamepass.game_id),
+  );
+  const robuxViaLinkEnabled =
+    !hasRobuxViaLinkItem || (await isRobuxViaLinkEnabled({ failClosed: true }));
+
   const unavailable = input.items
     .filter((item) => {
       const gamepass = gamepassById.get(item.gamepassId);
@@ -151,7 +157,8 @@ export async function createOrder(
       const parentGameIsAcceptable =
         game.availability_status === "available" ||
         (game.availability_status === "hidden" &&
-          isRobuxViaLinkSourceGame(gamepass.game_id));
+          isRobuxViaLinkSourceGame(gamepass.game_id) &&
+          robuxViaLinkEnabled);
       if (!parentGameIsAcceptable) return true;
       return false;
     })

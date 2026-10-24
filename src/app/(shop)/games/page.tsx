@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { OrderingProgress } from "@/components/ordering/ordering-progress";
 import { RevealText } from "@/components/motion/reveal";
 import { SupportHelpLink } from "@/components/ordering/support-help-link";
+import { isRobuxViaLinkEnabled } from "@/lib/store-status";
 
 export const metadata: Metadata = {
   title: "Browse games",
@@ -19,10 +20,12 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function GamesPage() {
-  const [{ games, presentation }, productCounts] = await Promise.all([
-    getGamesAndPresentation(),
-    getGameProductCounts(),
-  ]);
+  const [{ games, presentation }, productCounts, robuxViaLinkEnabled] =
+    await Promise.all([
+      getGamesAndPresentation(),
+      getGameProductCounts(),
+      isRobuxViaLinkEnabled(),
+    ]);
   const featuredGames = getFeaturedStoreGames(games, presentation);
 
   return (
@@ -53,6 +56,7 @@ export default async function GamesPage() {
             games={games}
             featuredGames={featuredGames}
             productCounts={productCounts}
+            robuxViaLinkEnabled={robuxViaLinkEnabled}
           />
         </div>
       )}

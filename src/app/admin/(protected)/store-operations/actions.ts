@@ -97,6 +97,37 @@ export async function scheduleStoreChangeAction(input: {
   return { success: true };
 }
 
+export async function updateRobuxViaLinkEnabledAction(
+  enabled: boolean,
+): Promise<ActionResult> {
+  await requireAdmin();
+
+  if (typeof enabled !== "boolean") {
+    return { success: false, error: "Invalid Robux Via Link setting." };
+  }
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("store_settings")
+    .update({
+      robux_via_link_enabled: enabled,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", true);
+
+  if (error) {
+    return {
+      success: false,
+      error: error.message.includes("robux_via_link_enabled")
+        ? "Database migration 0037 hasn't been applied yet."
+        : error.message,
+    };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
 export async function updateGameAvailabilityAction(
   gameId: string,
   status: string,

@@ -7,6 +7,7 @@ import {
 } from "@/lib/queries/admin-catalog";
 import { StoreStatusSection } from "@/components/admin/store-status-section";
 import { ScheduleSection } from "@/components/admin/schedule-section";
+import { RobuxViaLinkSection } from "@/components/admin/robux-via-link-section";
 import { GameAvailabilityTable } from "@/components/admin/game-availability-table";
 import { ProductAvailabilityAccordion } from "@/components/admin/product-availability-accordion";
 
@@ -47,6 +48,8 @@ export default async function StoreOperationsPage() {
         initialScheduledAt={settings.scheduledAt}
         initialScheduledReopenAt={settings.scheduledReopenAt}
       />
+
+      <RobuxViaLinkSection initialEnabled={settings.robuxViaLinkEnabled} />
 
       <div>
         <h2 className="font-heading text-lg font-semibold tracking-tight">
