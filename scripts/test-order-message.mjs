@@ -46,10 +46,30 @@ test("one item message uses separate contact and item lines", () => {
 
   assert.match(
     message,
-    /Facebook Name: Maria Dela Cruz\nRoblox Username: grdqtt\nOrder Number: BW-Y23ZWC\n\nORDER ITEMS\n\nDrag Drive Simulator\n• Rp 500,000,000 — 399 Robux — ₱140/,
+    /Facebook Name: Maria Dela Cruz\nRoblox Username: grdqtt\n\nDrag Drive Simulator\n• Rp 500,000,000 — 399 Robux — ₱140/,
   );
   assert.equal(message.includes("grdqttDrag Drive Simulator"), false);
   assertPlainTextOnly(message);
+});
+
+test("slip stays short: no order number, header, or website footer", () => {
+  const message = buildOrderMessage(order());
+
+  assert.equal(
+    message,
+    [
+      "Hello po! Ito po order ko from the BudgetWise website:",
+      "",
+      "Facebook Name: Maria Dela Cruz",
+      "Roblox Username: grdqtt",
+      "",
+      "Drag Drive Simulator",
+      "• Rp 500,000,000 — 399 Robux — ₱140",
+      "",
+      "TOTAL: ₱180",
+    ].join("\n"),
+  );
+  assert.equal(message.includes("BW-Y23ZWC"), false);
 });
 
 test("five items remain grouped under one game", () => {
@@ -134,7 +154,7 @@ test("long Facebook name and long Roblox username stay on separate lines", () =>
 
   assert.match(
     message,
-    /Facebook Name: María-Louise O'Connor-Santos ✨ BudgetWise Customer\nRoblox Username: This Username Has Spaces And Symbols__123\nOrder Number:/,
+    /Facebook Name: María-Louise O'Connor-Santos ✨ BudgetWise Customer\nRoblox Username: This Username Has Spaces And Symbols__123\n\nDrag/,
   );
   assert.equal(
     message.includes("This Username Has Spaces And Symbols__123Drag"),
@@ -197,21 +217,17 @@ test("Robux Via Plus adds one pre-order acknowledgement", () => {
   );
 
   assert.equal(
-    (message.match(/VIA PLUS PRE-ORDER ACKNOWLEDGEMENT/g) ?? []).length,
+    (message.match(/VIA PLUS PRE-ORDER/g) ?? []).length,
     1,
   );
-  assert.equal((message.match(/🟣 VIA PLUS PRE-ORDER/g) ?? []).length, 1);
+  assert.equal((message.match(/Display Name:/g) ?? []).length, 1);
   assert.match(
     message,
-    /🟣 VIA PLUS PRE-ORDER\n\nAccount Requirements:\n✓ Age 16\+\n✓ Verified Account\n\nOrder Amount: 1,000 Robux\nUsername: grdqtt\nDisplay Name: ExampleDisplay/,
+    /VIA PLUS PRE-ORDER\nOrder Amount: 1,000 Robux\nUsername: grdqtt\nDisplay Name: ExampleDisplay\n✓ Age 16\+ and verified account\n/,
   );
   assert.match(
     message,
-    /I acknowledge that Robux Via Plus is a pre-order and may take 1–8 hours to receive after my payment has been confirmed\./,
-  );
-  assert.match(
-    message,
-    /if my Via Plus Robux is not delivered within 8 hours after confirmed payment, BudgetWise will issue a refund for the affected Via Plus order\./,
+    /✓ I understand it takes 1–8 hours after confirmed payment, and I get a refund if it's not delivered within 8 hours\./,
   );
   assertPlainTextOnly(message);
 });
@@ -256,12 +272,12 @@ test("mixed cart with multiple Robux Via Plus items adds acknowledgement once", 
   );
 
   assert.equal(
-    (message.match(/VIA PLUS PRE-ORDER ACKNOWLEDGEMENT/g) ?? []).length,
+    (message.match(/VIA PLUS PRE-ORDER/g) ?? []).length,
     1,
   );
-  assert.equal((message.match(/🟣 VIA PLUS PRE-ORDER/g) ?? []).length, 1);
-  assert.match(message, /Order Amount: 3,000 Robux/);
-  assert.match(message, /Username: grdqtt\nDisplay Name: PlusBuyer/);
+  assert.equal((message.match(/Display Name:/g) ?? []).length, 1);
+  assert.match(message, /TOTAL: ₱850/);
+  assert.match(message, /VIA PLUS PRE-ORDER\nOrder Amount: 3,000 Robux\nUsername: grdqtt\nDisplay Name: PlusBuyer/);
   assert.match(message, /\n\nBlox Fruits\n• 2x Mastery/);
   assert.match(message, /\n\nRobux Via Plus\n• 1,000 Robux/);
   assert.match(message, /\n\nROBUX PLUS\n• 2,000 Robux/);
@@ -285,16 +301,16 @@ test("Robux Via Link alone does not add Via Plus acknowledgement", () => {
     }),
   );
 
-  assert.equal(message.includes("VIA PLUS PRE-ORDER ACKNOWLEDGEMENT"), false);
-  assert.equal(message.includes("🟣 VIA PLUS PRE-ORDER"), false);
+  assert.equal(message.includes("VIA PLUS PRE-ORDER"), false);
+  assert.equal(message.includes("Display Name:"), false);
   assertPlainTextOnly(message);
 });
 
 test("normal gamepasses do not add Via Plus acknowledgement", () => {
   const message = buildOrderMessage(order());
 
-  assert.equal(message.includes("VIA PLUS PRE-ORDER ACKNOWLEDGEMENT"), false);
-  assert.equal(message.includes("🟣 VIA PLUS PRE-ORDER"), false);
+  assert.equal(message.includes("VIA PLUS PRE-ORDER"), false);
+  assert.equal(message.includes("Display Name:"), false);
   assertPlainTextOnly(message);
 });
 
@@ -399,7 +415,7 @@ test("decoded Messenger text keeps username, order number, and items separated",
   assert.equal(decoded.includes("toyotabDrag Drive Simulator"), false);
   assert.match(
     decoded,
-    /Facebook Name: José Toyotab ✨\nRoblox Username: toyotab\nOrder Number: BW-XXXXXX\n\nORDER ITEMS\n\nDrag Drive Simulator\n• Product ×2 — 123 Robux — ₱111/,
+    /Facebook Name: José Toyotab ✨\nRoblox Username: toyotab\n\nDrag Drive Simulator\n• Product ×2 — 123 Robux — ₱111/,
   );
   assert.match(decoded, /\n\nRobux Sell - Covered Tax\n• 1,000 Robux/);
   assert.match(decoded, /\n\nRobux Sell - No Tax\n• 600 Robux/);
