@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import {
   Check,
   CheckCircle2,
@@ -11,6 +11,28 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { copyPlainText } from "@/lib/plain-text-clipboard";
+
+// Messenger on iOS opens the chat from m.me but ignores the `text` pre-fill,
+// so iPhone customers always have to paste. iPadOS reports itself as a Mac,
+// hence the touch-point check.
+function detectIOS() {
+  return (
+    /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+const subscribeNever = () => () => {};
+
+function useIsIOS() {
+  return useSyncExternalStore(subscribeNever, detectIOS, () => false);
+}
+
+const IOS_STEPS = [
+  "I-tap ang button sa ibaba — kokopyahin namin ang order mo at bubuksan ang Messenger.",
+  "Sa Messenger, i-long-press ang message box, tapos piliin ang Paste.",
+  "I-tap ang Send.",
+];
 
 export function MessengerHandoff({
   message,
@@ -23,6 +45,10 @@ export function MessengerHandoff({
 }) {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
+  const isIOS = useIsIOS();
+  const buttonLabel = isIOS
+    ? "Copy Order & Open Messenger"
+    : "Click Here to Open Messenger and Send Your Order";
 
   async function copyMessage() {
     await copyPlainText(message);
@@ -40,10 +66,14 @@ export function MessengerHandoff({
   function handleOpenMessenger() {
     copyMessage().catch(() => setCopyFailed(true));
 
-    toast.success("Binubuksan ang Messenger.", {
-      description:
-        "Kung walang lumabas na message, i-paste lang po — naka-copy na ito.",
-    });
+    toast.success(
+      isIOS ? "Nakopya na ang order mo." : "Binubuksan ang Messenger.",
+      {
+        description: isIOS
+          ? "Sa Messenger: long-press ang message box → Paste → Send."
+          : "Kung walang lumabas na message, i-paste lang po — naka-copy na ito.",
+      },
+    );
   }
 
   return (
@@ -73,6 +103,19 @@ export function MessengerHandoff({
           </div>
         </div>
 
+        {isIOS ? (
+          <ol className="mt-4 space-y-2.5">
+            {IOS_STEPS.map((step, index) => (
+              <li key={step} className="flex gap-3 text-sm leading-relaxed">
+                <span className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
+                  {index + 1}
+                </span>
+                <span className="pt-0.5">{step}</span>
+              </li>
+            ))}
+          </ol>
+        ) : null}
+
         {messengerLink ? (
           <Button
             asChild
@@ -80,10 +123,8 @@ export function MessengerHandoff({
             className="messenger-handoff-cta mt-4 h-auto min-h-12 w-full py-3 text-base leading-snug font-semibold whitespace-normal active:scale-[0.98] active:translate-y-0"
           >
             <a href={messengerLink} onClick={handleOpenMessenger}>
-              <Send className="size-5" />
-              <span className="min-w-0">
-                Click Here to Open Messenger and Send Your Order
-              </span>
+              {isIOS ? <Copy className="size-5" /> : <Send className="size-5" />}
+              <span className="min-w-0">{buttonLabel}</span>
             </a>
           </Button>
         ) : (
@@ -93,16 +134,14 @@ export function MessengerHandoff({
             disabled
           >
             <Send className="size-5" />
-            <span className="min-w-0">
-              Click Here to Open Messenger and Send Your Order
-            </span>
+            <span className="min-w-0">{buttonLabel}</span>
           </Button>
         )}
 
         <p className="text-muted-foreground mt-2 text-center text-xs leading-relaxed">
-          Kung walang lumabas na message sa Messenger, i-paste lang po
-          (long-press → Paste) — automatic na itong naka-copy. Huwag lang po
-          i-screenshot, kailangan talaga i-send.
+          {isIOS
+            ? "Huwag lang po i-screenshot — kailangan talaga i-paste at i-send."
+            : "Kung walang lumabas na message sa Messenger, i-paste lang po (long-press → Paste) — automatic na itong naka-copy. Huwag lang po i-screenshot, kailangan talaga i-send."}
         </p>
 
         {copyFailed ? (
