@@ -136,7 +136,7 @@ test("a normal multi-product order keeps every line and the stored total", () =>
   assert.match(message, /\n\nBloxburg\n• Excellent Employee ×2/);
   assert.match(message, /\n\nBlox Fruits\n• 2x Mastery — 450 Robux — ₱350/);
   assert.match(message, /TOTAL: ₱550/);
-  assert.equal(message.includes("VIA PLUS PRE-ORDER ACKNOWLEDGEMENT"), false);
+  assert.equal(message.includes("VIA PLUS PRE-ORDER"), false);
 });
 
 test("a Via Plus order keeps its presentation game name and acknowledgement", () => {
@@ -169,16 +169,9 @@ test("a Via Plus order keeps its presentation game name and acknowledgement", ()
   const message = buildOrderMessage(slip);
 
   assert.equal(slip.viaPlusAccount.robloxDisplayName, "ExampleDisplay");
-  assert.equal(
-    (message.match(/VIA PLUS PRE-ORDER ACKNOWLEDGEMENT/g) ?? []).length,
-    1,
-  );
-  assert.match(message, /Order Amount: 1,000 Robux/);
+  assert.equal((message.match(/VIA PLUS PRE-ORDER/g) ?? []).length, 1);
   assert.match(message, /Display Name: ExampleDisplay/);
-  assert.match(
-    message,
-    /I will wait for your reply before sending any payment\./,
-  );
+  assert.match(message, /1–8 hours after confirmed payment/);
 });
 
 test("a mixed order keeps both sections and one acknowledgement", () => {
@@ -218,10 +211,13 @@ test("a mixed order keeps both sections and one acknowledgement", () => {
   assert.match(message, /\n\nBlox Fruits\n• 2x Mastery — 450 Robux — ₱350/);
   assert.match(message, /\n\nRobux Via Plus\n• 1,000 Robux ×2 — 2,000 Robux — ₱500/);
   assert.equal(
-    (message.match(/VIA PLUS PRE-ORDER ACKNOWLEDGEMENT/g) ?? []).length,
+    (message.match(/VIA PLUS PRE-ORDER/g) ?? []).length,
     1,
   );
-  assert.match(message, /Order Amount: 2,000 Robux/);
+  assert.match(
+    message,
+    /Order Amount: 2,000 Robux\nUsername: .+\nDisplay Name: PlusBuyer/,
+  );
 });
 
 test("lines are rendered in their stored order regardless of row order", () => {

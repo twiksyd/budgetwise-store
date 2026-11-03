@@ -1,5 +1,3 @@
-const OFFICIAL_WEBSITE = "https://budgetwiseshop.com";
-
 const priceFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
@@ -28,8 +26,10 @@ export function normalizeOrderMessageForMessenger(message) {
   return normalizePlainTextMessage(message).replace(/\t/g, "");
 }
 
-// `nameLabel` defaults to the original Messenger wording; the on-site chat
-// passes "Name" because customers no longer give a Facebook name.
+// Kept short on purpose: Messenger's m.me pre-fill drops long text more
+// often, and the team works from the items, not the order number.
+// `nameLabel` defaults to the Messenger wording; the on-site chat passes
+// "Name" because customers no longer give a Facebook name.
 export function buildOrderMessage(order, { nameLabel = "Facebook Name" } = {}) {
   const groups = new Map();
   const hasRobuxViaPlus = order.lines.some(isRobuxViaPlusLine);
@@ -45,15 +45,10 @@ export function buildOrderMessage(order, { nameLabel = "Facebook Name" } = {}) {
   }
 
   const lines = [
-    "Hello po! Nakapag-checkout na po ako through the BudgetWise website. Kindly review my order below. Thank you po!",
-    "",
-    "BUDGETWISE ORDER SLIP",
+    "Hello po! Ito po order ko from the BudgetWise website:",
     "",
     `${nameLabel}: ${order.buyerName}`,
     `Roblox Username: ${order.buyerRobloxUsername}`,
-    `Order Number: ${order.orderNumber}`,
-    "",
-    "ORDER ITEMS",
   ];
 
   for (const [gameName, gameLines] of groups.entries()) {
@@ -67,43 +62,24 @@ export function buildOrderMessage(order, { nameLabel = "Facebook Name" } = {}) {
     }
   }
 
-  lines.push(
-    "",
-    `TOTAL: ${formatPrice(order.total)}`,
-  );
+  lines.push("", `TOTAL: ${formatPrice(order.total)}`);
 
   if (hasRobuxViaPlus) {
+    lines.push("", "VIA PLUS PRE-ORDER");
+
     if (order.viaPlusAccount) {
       lines.push(
-        "",
-        "🟣 VIA PLUS PRE-ORDER",
-        "",
-        "Account Requirements:",
-        "✓ Age 16+",
-        "✓ Verified Account",
-        "",
         `Order Amount: ${formatRobuxAmount(viaPlusRobuxAmount)}`,
         `Username: ${order.buyerRobloxUsername}`,
         `Display Name: ${order.viaPlusAccount.robloxDisplayName}`,
+        "✓ Age 16+ and verified account",
       );
     }
 
     lines.push(
-      "",
-      "⚠️ VIA PLUS PRE-ORDER ACKNOWLEDGEMENT",
-      "",
-      "I acknowledge that Robux Via Plus is a pre-order and may take 1–8 hours to receive after my payment has been confirmed.",
-      "",
-      "I understand that if my Via Plus Robux is not delivered within 8 hours after confirmed payment, BudgetWise will issue a refund for the affected Via Plus order.",
+      "✓ I understand it takes 1–8 hours after confirmed payment, and I get a refund if it's not delivered within 8 hours.",
     );
   }
-
-  lines.push(
-    "",
-    "Please send the official payment instructions once the order has been reviewed. I will wait for your reply before sending any payment.",
-    "",
-    `Website: ${OFFICIAL_WEBSITE}`,
-  );
 
   return normalizePlainTextMessage(lines.join("\n"));
 }

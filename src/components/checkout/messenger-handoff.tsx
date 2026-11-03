@@ -31,27 +31,19 @@ export function MessengerHandoff({
     window.setTimeout(() => setCopied(false), 2200);
   }
 
-  async function handleCopyAndOpenMessenger() {
-    let copiedBackup = false;
-
-    try {
-      await copyMessage();
-      copiedBackup = true;
-    } catch {
-      setCopyFailed(true);
-    }
+  // The button is a real link so the browser follows it inside the tap.
+  // Navigating later (after awaiting the copy, or from a timer) makes iOS and
+  // the Facebook in-app browser treat it as script-initiated: they load m.me
+  // as a web page instead of handing off to the Messenger app, and the
+  // pre-filled text is lost. The clipboard write starts in the same tap, so
+  // the message is still there to paste when Messenger drops the pre-fill.
+  function handleOpenMessenger() {
+    copyMessage().catch(() => setCopyFailed(true));
 
     toast.success("Binubuksan ang Messenger.", {
-      description: copiedBackup
-        ? "Naka-ready na ang order message. Pindutin lang po ang Send."
-        : "Kung walang message, gamitin ang preview bilang backup.",
+      description:
+        "Kung walang lumabas na message, i-paste lang po — naka-copy na ito.",
     });
-
-    if (messengerLink) {
-      window.setTimeout(() => {
-        window.location.href = messengerLink;
-      }, 250);
-    }
   }
 
   return (
@@ -81,20 +73,36 @@ export function MessengerHandoff({
           </div>
         </div>
 
-        <Button
-          size="lg"
-          onClick={handleCopyAndOpenMessenger}
-          className="messenger-handoff-cta mt-4 h-auto min-h-12 w-full py-3 text-base leading-snug font-semibold whitespace-normal active:scale-[0.98] active:translate-y-0"
-          disabled={!messengerLink}
-        >
-          <Send className="size-5" />
-          <span className="min-w-0">
-            Click Here to Open Messenger and Send Your Order
-          </span>
-        </Button>
+        {messengerLink ? (
+          <Button
+            asChild
+            size="lg"
+            className="messenger-handoff-cta mt-4 h-auto min-h-12 w-full py-3 text-base leading-snug font-semibold whitespace-normal active:scale-[0.98] active:translate-y-0"
+          >
+            <a href={messengerLink} onClick={handleOpenMessenger}>
+              <Send className="size-5" />
+              <span className="min-w-0">
+                Click Here to Open Messenger and Send Your Order
+              </span>
+            </a>
+          </Button>
+        ) : (
+          <Button
+            size="lg"
+            className="mt-4 h-auto min-h-12 w-full py-3 text-base leading-snug font-semibold whitespace-normal"
+            disabled
+          >
+            <Send className="size-5" />
+            <span className="min-w-0">
+              Click Here to Open Messenger and Send Your Order
+            </span>
+          </Button>
+        )}
 
         <p className="text-muted-foreground mt-2 text-center text-xs leading-relaxed">
-          Huwag lang po ito i-screenshot — kailangan talaga i-send.
+          Kung walang lumabas na message sa Messenger, i-paste lang po
+          (long-press → Paste) — automatic na itong naka-copy. Huwag lang po
+          i-screenshot, kailangan talaga i-send.
         </p>
 
         {copyFailed ? (
