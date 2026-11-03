@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { selectInChunks } from "@/lib/supabase/in-chunks";
 import type {
   GameAvailabilityStatus,
   ProductAvailabilityStatus,
@@ -61,12 +62,14 @@ export async function getAllGamepassesForAdmin(): Promise<AdminGamepass[]> {
   if (error) throw error;
 
   const gamepassIds = (data ?? []).map((gamepass) => gamepass.id);
-  const { data: displayNames, error: displayNameError } = gamepassIds.length
-    ? await supabase
+  const { data: displayNames, error: displayNameError } = await selectInChunks(
+    gamepassIds,
+    (chunk) =>
+      supabase
         .from("store_product_display_names")
         .select("gamepass_id, display_name")
-        .in("gamepass_id", gamepassIds)
-    : { data: [], error: null };
+        .in("gamepass_id", chunk),
+  );
 
   if (displayNameError && !isMissingDisplayNameTableError(displayNameError)) {
     throw displayNameError;

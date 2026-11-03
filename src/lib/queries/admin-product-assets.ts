@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { selectInChunks } from "@/lib/supabase/in-chunks";
 import type { ProductAvailabilityStatus } from "@/types/store-operations";
 
 export type AdminArtworkSource =
@@ -94,34 +95,34 @@ export async function getProductAssetsForAdmin(): Promise<AdminProductAsset[]> {
             .select("id, name, category, sort_order, availability_status")
             .in("id", gameIds)
         : Promise.resolve({ data: [], error: null }),
-      gamepassIds.length > 0
-        ? supabase
-            .from("product_artwork_overrides")
-            .select(
-              "gamepass_id, source, manual_kind, icon_url, storage_path, original_url, updated_at",
-            )
-            .in("gamepass_id", gamepassIds)
-        : Promise.resolve({ data: [], error: null }),
-      gamepassIds.length > 0
-        ? supabase
-            .from("roblox_gamepass_icon_cache")
-            .select(
-              "gamepass_id, status, icon_url, matched_name, candidate_count, last_verified_at",
-            )
-            .in("gamepass_id", gamepassIds)
-        : Promise.resolve({ data: [], error: null }),
-      gamepassIds.length > 0
-        ? supabase
-            .from("store_product_display_names")
-            .select("gamepass_id, display_name")
-            .in("gamepass_id", gamepassIds)
-        : Promise.resolve({ data: [], error: null }),
-      gamepassIds.length > 0
-        ? supabase
-            .from("store_product_card_backgrounds")
-            .select("gamepass_id, image_url, storage_path, updated_at")
-            .in("gamepass_id", gamepassIds)
-        : Promise.resolve({ data: [], error: null }),
+      selectInChunks(gamepassIds, (chunk) =>
+        supabase
+          .from("product_artwork_overrides")
+          .select(
+            "gamepass_id, source, manual_kind, icon_url, storage_path, original_url, updated_at",
+          )
+          .in("gamepass_id", chunk),
+      ),
+      selectInChunks(gamepassIds, (chunk) =>
+        supabase
+          .from("roblox_gamepass_icon_cache")
+          .select(
+            "gamepass_id, status, icon_url, matched_name, candidate_count, last_verified_at",
+          )
+          .in("gamepass_id", chunk),
+      ),
+      selectInChunks(gamepassIds, (chunk) =>
+        supabase
+          .from("store_product_display_names")
+          .select("gamepass_id, display_name")
+          .in("gamepass_id", chunk),
+      ),
+      selectInChunks(gamepassIds, (chunk) =>
+        supabase
+          .from("store_product_card_backgrounds")
+          .select("gamepass_id, image_url, storage_path, updated_at")
+          .in("gamepass_id", chunk),
+      ),
     ]);
 
   if (gamesResult.error) throw gamesResult.error;
