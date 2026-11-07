@@ -14,6 +14,9 @@ export function FloatingCartButton() {
   const count = useCartStore(selectCartCount);
   const openCart = useUIStore((state) => state.openCart);
   const pathname = usePathname();
+  // Hidden while the footer is on screen so it never covers footer links;
+  // the header cart is a scroll away.
+  const footerInView = useUIStore((state) => state.footerInView);
 
   // Product pages already have a persistent header cart. Hiding the floating
   // shortcut there prevents it from covering price or Add to Cart controls
@@ -30,7 +33,7 @@ export function FloatingCartButton() {
       style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
     >
       <AnimatePresence>
-        {count > 0 && (
+        {count > 0 && !footerInView && (
           <motion.button
             type="button"
             onClick={openCart}

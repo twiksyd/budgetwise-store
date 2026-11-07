@@ -65,7 +65,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${geistMono.variable} ${interTight.variable} flex min-h-screen flex-col antialiased`}
+        className={`${inter.variable} ${geistMono.variable} ${interTight.variable} flex min-h-dvh flex-col antialiased`}
       >
         <ChunkLoadRecovery />
         <ThemeProvider

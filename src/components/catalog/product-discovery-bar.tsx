@@ -5,6 +5,7 @@ import { ArrowUp, Search, SearchX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useUIStore } from "@/stores/ui-store";
 import { motion } from "framer-motion";
 
 export type CategoryShortcut = {
@@ -173,7 +174,9 @@ export function BackToCategoriesButton({
   targetId: string;
   show: boolean;
 }) {
-  if (!show) return null;
+  // Steps aside at the end of the page so it never covers footer links.
+  const footerInView = useUIStore((state) => state.footerInView);
+  if (!show || footerInView) return null;
 
   return (
     <button
