@@ -41,8 +41,8 @@ export default async function LandingPage() {
     <div>
       <AnimatedHero />
       <PopularGames games={featuredGames} productCounts={productCounts} />
-      <HomepageOrderingGuide />
       <CustomerReviews />
+      <HomepageOrderingGuide />
       <TrustPoints />
       <FaqPreview />
     </div>
