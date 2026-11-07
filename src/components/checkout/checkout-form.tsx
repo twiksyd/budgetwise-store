@@ -290,7 +290,7 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
         <Input
           id="name"
           ref={nameInputRef}
-          className="h-11"
+          className="h-11 sm:h-11"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
@@ -306,7 +306,7 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
         <Label htmlFor="robloxUsername">Roblox Username</Label>
         <Input
           id="robloxUsername"
-          className="h-11"
+          className="h-11 sm:h-11"
           value={robloxUsername}
           onChange={(e) => setRobloxUsername(e.target.value)}
           placeholder="Exact Roblox Username"
@@ -349,7 +349,7 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
             <Input
               id="robloxDisplayName"
               ref={robloxDisplayNameRef}
-              className="h-11"
+              className="h-11 sm:h-11"
               value={robloxDisplayName}
               onChange={(e) => setRobloxDisplayName(e.target.value)}
               placeholder="Exact Roblox Display Name"
@@ -528,7 +528,7 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
       <Button
         type="submit"
         size="lg"
-        className="h-11"
+        className="h-11 sm:h-11"
         disabled={
           isSubmitting || items.length === 0 || cartLimitViolations.hasViolations
         }

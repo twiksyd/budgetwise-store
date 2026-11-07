@@ -165,14 +165,14 @@ export function MessengerHandoff({
         className="mt-5"
       >
         {messengerLink ? (
-          <Button asChild size="lg" className="h-12 w-full text-base font-semibold active:scale-[0.98]">
+          <Button asChild size="lg" className="h-12 w-full text-base font-semibold active:scale-[0.98] sm:h-12">
             <a href={messengerLink} onClick={handleOpenMessenger}>
               <Send className="size-4.5" />
               Send on Messenger
             </a>
           </Button>
         ) : (
-          <Button size="lg" className="h-12 w-full text-base font-semibold" disabled>
+          <Button size="lg" className="h-12 w-full text-base font-semibold sm:h-12" disabled>
             <Send className="size-4.5" />
             Send on Messenger
           </Button>
