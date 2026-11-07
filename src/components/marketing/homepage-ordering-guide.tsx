@@ -1,47 +1,53 @@
-import { DrawLine, Stagger, StaggerItem } from "@/components/motion/reveal";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const steps = [
-  {
-    title: "Pumili ng Game",
-    description: "Hanapin ang game na gusto ninyong bilhan.",
-  },
-  {
-    title: "I-add sa Cart",
-    description: "Piliin at i-add sa cart ang items na gusto ninyo.",
-  },
-  {
-    title: "Mag-checkout",
-    description: "Ilagay ang pangalan at Roblox Username ninyo. Walang sign-in.",
-  },
-  {
-    title: "I-message Kami sa Messenger",
-    description: "I-send ang order slip ninyo sa BudgetWise DGM sa Messenger, tapos hintayin ang reply namin.",
-  },
+  { title: "Pumili ng game", description: "at i-add sa cart ang items na gusto ninyo." },
+  { title: "Mag-checkout", description: "gamit ang pangalan at Roblox username. Walang sign-in." },
+  { title: "I-send ang order slip", description: "sa BudgetWise DGM sa Messenger." },
+  { title: "Hintayin ang payment details", description: "namin sa Messenger bago magbayad." },
 ];
 
-// Four steps that read as one sequence: they cascade in left to right while
-// a hairline draws across behind their numbers.
+// Collapsed by default: customers can start shopping right away, and the
+// four steps are one tap away for anyone who wants them first.
 export function HomepageOrderingGuide() {
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-12 sm:pb-16">
-      <div className="relative">
-        <DrawLine className="bg-border absolute top-[1.85rem] right-6 left-6 hidden h-px sm:block" />
-        <Stagger className="relative grid gap-2.5 sm:grid-cols-4">
-          {steps.map((step, index) => (
-            <StaggerItem key={step.title} className="surface-premium group rounded-xl p-3.5 sm:p-4">
-              <div className="text-primary bg-card relative z-10 inline-block pr-2 font-heading text-lg font-bold tabular-nums">
-                {index + 1}
-              </div>
-              <h2 className="font-heading relative z-10 mt-2 text-sm font-semibold">
-                {step.title}
-              </h2>
-              <p className="text-muted-foreground relative z-10 mt-1.5 text-xs leading-relaxed">
-                {step.description}
-              </p>
-            </StaggerItem>
-          ))}
-        </Stagger>
-      </div>
+    <section className="mx-auto max-w-6xl px-5 pb-12 sm:px-6 sm:pb-20">
+      <Accordion type="single" collapsible className="surface-premium rounded-xl px-4 sm:px-6">
+        <AccordionItem value="paano-umorder" className="border-b-0">
+          <AccordionTrigger className="font-heading py-4 text-[15px] font-semibold hover:no-underline">
+            Paano Umorder
+          </AccordionTrigger>
+          <AccordionContent>
+            <ol className="grid gap-3 sm:grid-cols-4 sm:gap-5">
+              {steps.map((step, index) => (
+                <li key={step.title} className="flex gap-3 sm:flex-col sm:gap-1.5">
+                  <span className="text-primary font-heading w-4 shrink-0 text-sm font-bold tabular-nums">
+                    {index + 1}
+                  </span>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    <span className="text-foreground font-medium">{step.title}</span>{" "}
+                    {step.description}
+                  </p>
+                </li>
+              ))}
+            </ol>
+            <Link
+              href="/how-ordering-works"
+              className="text-primary group mt-4 inline-flex items-center gap-1 text-sm font-medium"
+            >
+              <span className="bw-link">Buong ordering guide</span>
+              <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+            </Link>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </section>
   );
 }

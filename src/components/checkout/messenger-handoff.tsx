@@ -1,211 +1,213 @@
 "use client";
 
-import { useRef, useState } from "react";
-import {
-  Check,
-  CheckCircle2,
-  Copy,
-  Send,
-  ShieldCheck,
-} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { Check, Copy, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { formatPrice } from "@/lib/pricing";
 import { copyPlainText } from "@/lib/plain-text-clipboard";
+import { cn } from "@/lib/utils";
+import type { OrderConfirmation } from "@/lib/queries/orders";
 
+const EASE = [0.16, 1, 0.3, 1] as const;
+const COPIED_MS = 2000;
+
+// The completed order: one receipt, a copy action in its header, and the
+// Messenger hand-off right under it. Everything the customer sends is the
+// formatted `message` (the same text the Messenger link pre-fills).
 export function MessengerHandoff({
+  order,
   message,
   messengerLink,
-  orderNumber,
 }: {
+  order: OrderConfirmation;
   message: string;
   messengerLink: string | null;
-  orderNumber: string;
 }) {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fallbackRef = useRef<HTMLTextAreaElement>(null);
 
-  async function copyMessage() {
-    await copyPlainText(message);
+  useEffect(() => {
+    return () => {
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    };
+  }, []);
+
+  function markCopied() {
     setCopied(true);
     setCopyFailed(false);
-    window.setTimeout(() => setCopied(false), 2200);
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setCopied(false), COPIED_MS);
   }
 
-  // The button is a real link so the browser follows it inside the tap.
-  // Navigating later (after awaiting the copy, or from a timer) makes iOS and
-  // the Facebook in-app browser treat it as script-initiated: they load m.me
-  // as a web page instead of handing off to the Messenger app, and the
-  // pre-filled text is lost. The clipboard write starts in the same tap, so
-  // the message is still there to paste when Messenger drops the pre-fill.
-  function handleOpenMessenger() {
-    copyMessage().catch(() => setCopyFailed(true));
-
-    toast.success("Binubuksan ang Messenger.", {
-      description:
-        "Kung walang lumabas na message, i-paste lang po — naka-copy na ito.",
+  function showFallback() {
+    setCopyFailed(true);
+    // Let the textarea render, then select it so a long-press copies it all.
+    requestAnimationFrame(() => {
+      fallbackRef.current?.focus();
+      fallbackRef.current?.select();
     });
   }
-
-  return (
-    <div className="space-y-4 sm:space-y-5">
-      <section className="bg-primary/5 border-primary/10 rounded-2xl border p-4 sm:p-5">
-        <div className="flex items-start gap-3">
-          <div className="bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-full">
-            <CheckCircle2 className="text-primary size-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-primary text-xs font-semibold tracking-wide uppercase">
-              Order slip ready
-            </p>
-            <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-              I-send na ang Inyong Order
-            </h1>
-            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-              Hindi pa po namin mare-review ang order hangga&apos;t hindi ninyo
-              ito naipapadala sa Messenger.
-            </p>
-            <p className="text-muted-foreground mt-3 text-xs font-medium [font-variant-numeric:tabular-nums]">
-              Order No.:{" "}
-              <span className="text-foreground font-semibold">
-                {orderNumber}
-              </span>
-            </p>
-          </div>
-        </div>
-
-        {messengerLink ? (
-          <Button
-            asChild
-            size="lg"
-            className="messenger-handoff-cta mt-4 h-auto min-h-12 w-full py-3 text-base leading-snug font-semibold whitespace-normal active:scale-[0.98] active:translate-y-0"
-          >
-            <a href={messengerLink} onClick={handleOpenMessenger}>
-              <Send className="size-5" />
-              <span className="min-w-0">
-                Click Here to Open Messenger and Send Your Order
-              </span>
-            </a>
-          </Button>
-        ) : (
-          <Button
-            size="lg"
-            className="mt-4 h-auto min-h-12 w-full py-3 text-base leading-snug font-semibold whitespace-normal"
-            disabled
-          >
-            <Send className="size-5" />
-            <span className="min-w-0">
-              Click Here to Open Messenger and Send Your Order
-            </span>
-          </Button>
-        )}
-
-        <p className="text-muted-foreground mt-2 text-center text-xs leading-relaxed">
-          Kung walang lumabas na message sa Messenger, i-paste lang po
-          (long-press → Paste) — automatic na itong naka-copy. Huwag lang po
-          i-screenshot, kailangan talaga i-send.
-        </p>
-
-        {copyFailed ? (
-          <p className="text-destructive mt-3 text-sm leading-relaxed">
-            Na-block ng browser ang copy. Piliin ang buong message sa ibaba,
-            tapos i-paste sa Messenger.
-          </p>
-        ) : copied ? (
-          <p className="text-primary mt-3 text-sm font-medium leading-relaxed">
-            Nakopya na rin bilang backup.
-          </p>
-        ) : null}
-      </section>
-
-      <div className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 rounded-2xl border p-4">
-        <div className="flex gap-2.5">
-          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" />
-          <div>
-            <p className="text-xs font-semibold tracking-wide uppercase">
-              Wait for our reply
-            </p>
-            <p className="mt-1 text-sm font-semibold leading-relaxed">
-              Hintayin muna ang reply at official payment instructions namin
-              bago magsend ng payment.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <PreparedMessagePreview message={message} />
-    </div>
-  );
-}
-
-export function PreparedMessagePreview({ message }: { message: string }) {
-  const previewRef = useRef<HTMLDivElement>(null);
-  const messageRef = useRef<HTMLPreElement>(null);
-  const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
     try {
       await copyPlainText(message);
-      setCopied(true);
-      toast.success("Nakopya ang buong order message.", {
-        description: "I-paste at i-send ito sa Messenger.",
-      });
-      setTimeout(() => setCopied(false), 2000);
+      markCopied();
     } catch {
-      toast.error("Hindi nakopya. Piliin ang message preview manually.");
-      selectMessageText();
+      showFallback();
     }
   }
 
-  function selectMessageText() {
-    const node = messageRef.current;
-    if (!node) return;
-    const selection = window.getSelection();
-    if (!selection) return;
-    const range = document.createRange();
-    range.selectNodeContents(node);
-    selection.removeAllRanges();
-    selection.addRange(range);
+  // A real link, followed inside the tap: navigating after an await makes
+  // iOS and the Facebook in-app browser open m.me as a web page instead of
+  // the Messenger app (and drop the pre-filled text). The clipboard write
+  // starts in the same tap, so the slip is ready to paste either way.
+  function handleOpenMessenger() {
+    copyPlainText(message)
+      .then(() => {
+        markCopied();
+        toast.success("Order slip copied. I-paste sa Messenger.");
+      })
+      .catch(showFallback);
   }
 
   return (
-    <section ref={previewRef} className="scroll-mt-36">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="font-heading text-base font-semibold tracking-tight">
-            ITO ANG BUONG I-SEND SA MESSENGER
-          </h2>
-          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-            Kopyahin at i-send po ang buong message sa ibaba. Kung walang
-            lumabas sa Messenger, gamitin ang Select All.
-          </p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={selectMessageText}
-            className="border-border bg-background hover:bg-muted text-foreground inline-flex min-h-10 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition-colors"
-          >
-            Select All
-          </button>
+    <div className="mx-auto w-full max-w-md">
+      <motion.article
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.55, ease: EASE }}
+        className="bg-card overflow-hidden rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.05),0_18px_40px_-20px_rgba(0,0,0,0.22)] ring-1 ring-black/5 dark:ring-white/10"
+        aria-label={`Order slip ${order.orderNumber}`}
+      >
+        <div className="bg-primary h-1" aria-hidden />
+
+        <header className="flex items-start justify-between gap-4 px-5 pt-5 sm:px-6">
+          <div className="min-w-0">
+            <h1 className="font-heading text-lg font-semibold tracking-tight">
+              Order Slip
+            </h1>
+            <p className="text-muted-foreground mt-0.5 text-sm tabular-nums">
+              {order.orderNumber}
+            </p>
+          </div>
           <button
             type="button"
             onClick={handleCopy}
-            className="border-border bg-background hover:bg-muted text-foreground inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-semibold transition-colors"
+            aria-live="polite"
+            className={cn(
+              "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors",
+              copied
+                ? "text-emerald-700 dark:text-emerald-400"
+                : "text-primary hover:bg-primary/5 active:bg-primary/10",
+            )}
           >
             {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-            Copy Order Message
+            {copied ? "Copied!" : "Copy Order Slip"}
           </button>
-        </div>
-      </div>
+        </header>
 
-      <div className="bg-primary/5 border-primary/10 text-foreground mt-3 max-w-full overflow-hidden rounded-2xl border p-4">
-        <pre
-          ref={messageRef}
-          className="font-sans text-[13px] leading-relaxed break-words whitespace-pre-wrap"
-        >
-          {message}
-        </pre>
-      </div>
-    </section>
+        <dl className="mt-5 space-y-2 px-5 text-sm sm:px-6">
+          <SlipRow label="Name" value={order.buyerName} />
+          <SlipRow label="Roblox Username" value={order.buyerRobloxUsername} />
+          {order.viaPlusAccount && (
+            <SlipRow
+              label="Display Name"
+              value={order.viaPlusAccount.robloxDisplayName}
+            />
+          )}
+        </dl>
+
+        <div className="border-border mx-5 mt-5 border-t border-dashed sm:mx-6" aria-hidden />
+
+        <ul className="space-y-3.5 px-5 pt-5 sm:px-6">
+          {order.lines.map((line, index) => (
+            <motion.li
+              key={`${line.gamepassId}-${index}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: EASE, delay: 0.15 + Math.min(index, 6) * 0.05 }}
+              className="flex items-start justify-between gap-4 text-sm"
+            >
+              <div className="min-w-0">
+                <p className="font-medium break-words">
+                  {line.gamepassName}
+                  {line.quantity > 1 && (
+                    <span className="text-muted-foreground font-normal"> × {line.quantity}</span>
+                  )}
+                </p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  {line.gameName} · {line.robuxAmount.toLocaleString()} Robux
+                </p>
+              </div>
+              <span className="shrink-0 font-medium tabular-nums">
+                {formatPrice(line.sellingPrice)}
+              </span>
+            </motion.li>
+          ))}
+        </ul>
+
+        <div className="bg-muted/50 mt-5 flex items-baseline justify-between px-5 py-4 sm:px-6">
+          <span className="text-sm font-medium">Total</span>
+          <span className="font-heading text-primary text-2xl font-bold tracking-tight tabular-nums">
+            {formatPrice(order.total)}
+          </span>
+        </div>
+      </motion.article>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: EASE, delay: 0.2 }}
+        className="mt-5"
+      >
+        {messengerLink ? (
+          <Button asChild size="lg" className="h-12 w-full text-base font-semibold active:scale-[0.98]">
+            <a href={messengerLink} onClick={handleOpenMessenger}>
+              <Send className="size-4.5" />
+              Send on Messenger
+            </a>
+          </Button>
+        ) : (
+          <Button size="lg" className="h-12 w-full text-base font-semibold" disabled>
+            <Send className="size-4.5" />
+            Send on Messenger
+          </Button>
+        )}
+
+        <p className="text-muted-foreground mt-3 text-center text-xs leading-relaxed">
+          Hintayin ang reply at payment instructions bago magbayad.
+        </p>
+      </motion.div>
+
+      {copyFailed && (
+        <div className="mt-6" role="alert">
+          <p className="text-sm font-medium">
+            Hindi na-copy. Piliin ang buong text sa baba at i-copy.
+          </p>
+          <textarea
+            ref={fallbackRef}
+            readOnly
+            value={message}
+            rows={8}
+            onFocus={(event) => event.currentTarget.select()}
+            className="border-border bg-muted/40 mt-2 w-full resize-none rounded-xl border p-3 font-sans text-[13px] leading-relaxed"
+            aria-label="Buong order slip"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SlipRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="text-muted-foreground shrink-0">{label}</dt>
+      <dd className="min-w-0 truncate text-right font-medium">{value}</dd>
+    </div>
   );
 }

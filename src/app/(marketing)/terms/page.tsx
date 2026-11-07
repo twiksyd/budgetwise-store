@@ -20,13 +20,13 @@ const sections = [
   },
   {
     title: "Payment",
-    body: `Payment is not collected on this website. After checkout, you'll confirm your order and receive payment instructions from us in your Order Chat on this website. An order is not fulfilled until payment is confirmed.`,
-    taglish: `Sa Order Chat lang kami nagbibigay ng payment details. Hindi kami tumatanggap ng payment dito sa website.`,
+    body: `Payment is not collected on this website. After checkout, you'll send your order slip to the BudgetWise DGM page on Messenger and receive payment instructions from us there. An order is not fulfilled until payment is confirmed.`,
+    taglish: `Sa Messenger lang kami nagbibigay ng payment details. Hindi kami tumatanggap ng payment dito sa website.`,
   },
   {
     title: "Delivery",
     body: `We aim to fulfill confirmed orders promptly, but delivery times can vary with order volume and item availability. If there's a delay on our end, we'll tell you directly rather than leave you waiting without an update.`,
-    taglish: `Ginagawa namin ang best namin na ma-deliver agad ang orders. Kung may delay, mag-u-update kami sa Order Chat.`,
+    taglish: `Ginagawa namin ang best namin na ma-deliver agad ang orders. Kung may delay, mag-u-update kami sa Messenger.`,
   },
   {
     title: "Refunds",

@@ -56,10 +56,10 @@ export default async function RobuxViaLinkPage() {
   const productArtworkUrls = getProductArtworkUrlMap(productArtwork);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-6 sm:py-14">
+    <div className="mx-auto max-w-5xl px-6 pt-4 pb-10 sm:pt-10 sm:pb-14">
       <OrderingProgress currentStep={2} />
 
-      <nav className="text-muted-foreground mt-5 flex items-center gap-1.5 text-xs sm:text-sm">
+      <nav className="text-muted-foreground mt-4 sm:mt-6 flex items-center gap-1.5 text-xs sm:text-sm">
         <Link href="/games" className="hover:text-foreground transition-colors">
           Games
         </Link>
@@ -87,22 +87,13 @@ export default async function RobuxViaLinkPage() {
           <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight text-balance sm:text-5xl">
             {robuxViaLinkTile.name}
           </h1>
-          <p className="text-muted-foreground mt-1.5 max-w-2xl text-sm leading-relaxed sm:text-base">
-            Piliin ang Robux pack sa baba, tapos i-add sa cart.
-          </p>
         </div>
       </div>
 
-      <div className="bg-muted/70 text-muted-foreground mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl px-3 py-2 text-xs font-medium">
-        <span className="inline-flex items-center gap-1.5">
-          <ShieldCheck className="size-3.5" />
-          No payment on-site
-        </span>
-        <span aria-hidden>·</span>
-        <span>Order Chat confirmation</span>
-        <span aria-hidden>·</span>
-        <span>Delivered to your Roblox username</span>
-      </div>
+      <p className="text-muted-foreground mt-3 flex items-center gap-1.5 text-xs">
+        <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
+        Walang bayad dito. Payment details sa Messenger.
+      </p>
 
       {/* Explains the two sections before the customer has to guess which
           one applies to them — the whole point of merging these into one

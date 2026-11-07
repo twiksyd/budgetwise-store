@@ -12,18 +12,34 @@ import type { StoreGame } from "@/types/database";
 export function GameCard({
   game,
   productCount,
+  priority = false,
+  showCategory = true,
+  layout = "grid",
 }: {
   game: StoreGame;
   productCount?: number;
+  /** First-screen cards: load the artwork eagerly. */
+  priority?: boolean;
+  /** Off on the homepage shelf, where only the product count is shown. */
+  showCategory?: boolean;
+  /** "shelf": the homepage carousel — 4:3 artwork, roomier type. */
+  layout?: "grid" | "shelf";
 }) {
+  const isShelf = layout === "shelf";
   const isComingSoon = game.availability_status === "coming_soon";
   const isUnavailable = game.availability_status === "temporarily_unavailable";
   const isRobuxPlus = isRobuxPlusGame(game.id);
   const displayName = isRobuxPlus ? robuxPlusPresentation.displayName : game.name;
+  // Secondary line: product count always; the category (or Robux Plus
+  // processing time) only where the shelf has room for it.
+  const meta = !showCategory ? null : isRobuxPlus ? "1-8 hrs" : game.category;
 
   const artwork = (
     <div
-      className="bg-muted relative flex aspect-square items-center justify-center overflow-hidden"
+      className={cn(
+        "bg-muted relative flex shrink-0 items-center justify-center overflow-hidden",
+        isShelf ? "aspect-[4/3]" : "aspect-square",
+      )}
       style={game.color ? { backgroundColor: `${game.color}1a` } : undefined}
     >
       {game.icon_url ? (
@@ -31,7 +47,12 @@ export function GameCard({
           src={game.icon_url}
           alt={displayName}
           fill
-          sizes="(min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"
+          priority={priority}
+          sizes={
+            isShelf
+              ? "(min-width: 640px) 240px, 64vw"
+              : "(min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"
+          }
           className={cn(
             "object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
             isUnavailable
@@ -73,23 +94,39 @@ export function GameCard({
   );
 
   const details = (
-    <div className="relative px-4 pt-3.5 pb-4">
+    <div
+      className={cn(
+        "relative flex-1",
+        isShelf ? "px-4 pt-3.5 pb-4" : "px-3.5 pt-3 pb-3.5 sm:px-4 sm:pt-3.5 sm:pb-4",
+      )}
+    >
       {!isUnavailable && (
         <ArrowUpRight
           aria-hidden
           className="text-primary absolute top-3.5 right-3.5 size-4 -translate-x-1 translate-y-1 opacity-0 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100"
         />
       )}
-      <h3 className="font-heading truncate pr-5 text-[13.5px] font-semibold">
+      {/* Up to two lines, so long names ("Run a Sari Sari store") read in
+          full. The count sits right under the title; cards in a row still
+          share one height (the card stretches), with any spare space at
+          the bottom rather than between title and count. */}
+      <h3
+        title={displayName}
+        className={cn(
+          "font-heading line-clamp-2 leading-[1.3] font-semibold break-words sm:pr-5",
+          isShelf ? "text-[15px]" : "text-sm",
+        )}
+      >
         {displayName}
       </h3>
-      <div className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
-        {isRobuxPlus ? (
-          <span className="truncate">Processing 1-8 hrs</span>
-        ) : (
-          game.category && <span className="truncate">{game.category}</span>
+      <div
+        className={cn(
+          "text-muted-foreground mt-1 flex items-center gap-1",
+          isShelf ? "text-[13px]" : "text-xs",
         )}
-        {(isRobuxPlus || game.category) && productCount !== undefined && <span>·</span>}
+      >
+        {meta && <span className="truncate">{meta}</span>}
+        {meta && productCount !== undefined && <span aria-hidden>·</span>}
         {productCount !== undefined && (
           <span className="shrink-0">
             {productCount} product{productCount === 1 ? "" : "s"}
@@ -104,7 +141,7 @@ export function GameCard({
   // there is to say without opening the game page.
   if (isUnavailable) {
     return (
-      <div className="surface-premium cursor-default overflow-hidden rounded-xl">
+      <div className="surface-premium flex h-full cursor-default flex-col overflow-hidden rounded-xl">
         {artwork}
         {details}
       </div>
@@ -112,7 +149,7 @@ export function GameCard({
   }
 
   const className = cn(
-    "surface-premium surface-premium-hover group block overflow-hidden rounded-xl transition-transform active:scale-[0.97]",
+    "surface-premium surface-premium-hover group flex h-full flex-col overflow-hidden rounded-xl transition-transform active:scale-[0.97]",
     isComingSoon && "opacity-80",
   );
 

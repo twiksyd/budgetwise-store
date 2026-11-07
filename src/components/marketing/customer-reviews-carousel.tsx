@@ -72,7 +72,7 @@ export function CustomerReviewsCarousel({
   if (visibleReviews.length === 0) return null;
 
   return (
-    <section className="mx-auto min-w-0 max-w-6xl px-6 pb-16 sm:pb-28">
+    <section className="mx-auto min-w-0 max-w-6xl px-5 pb-12 sm:px-6 sm:pb-24">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -80,10 +80,7 @@ export function CustomerReviewsCarousel({
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="mx-auto max-w-xl text-center"
       >
-        <p className="text-primary text-sm font-medium">
-          Trusted by our customers
-        </p>
-        <h2 className="font-heading mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+        <h2 className="font-heading text-2xl font-semibold tracking-tight text-balance sm:text-4xl">
           Real people. Real orders. Real reviews.
         </h2>
       </motion.div>

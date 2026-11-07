@@ -8,6 +8,8 @@ import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { OrderSlipCreating } from "@/components/checkout/order-slip-creating";
 import { isRobuxPlusGame } from "@/config/robux-products";
 import { useCartStore } from "@/stores/cart-store";
 import { writePendingOrderClear } from "@/lib/pending-order-clear";
@@ -60,6 +62,9 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
     useState(false);
   const [viaPlusErrors, setViaPlusErrors] = useState<ViaPlusErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Set only once the server has confirmed the order (its 201), so the
+  // loading panel never shows success early.
+  const [orderCreated, setOrderCreated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unavailableGamepassIds, setUnavailableGamepassIds] = useState<
     string[] | null
@@ -248,6 +253,7 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
       // no secret in the URL.
       // Messenger hand-off: the order-slip page (its viewing token is this
       // attempt's), which opens BudgetWise on Messenger.
+      setOrderCreated(true);
       if (handoff === "messenger") {
         router.push(`/checkout/success/${encodeURIComponent(orderNumber)}?t=${encodeURIComponent(attempt.viewToken)}`);
         return;
@@ -272,7 +278,11 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit} className="relative" aria-busy={isSubmitting}>
+      {/* While the order request runs, the fields stay mounted (keeping the
+          form's size and the customer's entries) but hidden under the
+          receipt panel. */}
+      <div className={cn("flex flex-col gap-6", isSubmitting && "invisible")}>
       <h2 className="font-heading text-sm font-semibold">Details</h2>
 
       <div className="flex flex-col gap-2">
@@ -490,21 +500,29 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
         </div>
       ) : (
         error && (
-          <p
+          <div
             ref={errorRegionRef}
             tabIndex={-1}
             role="alert"
             aria-live="assertive"
-            className="text-destructive text-sm outline-none"
+            className="border-destructive/25 bg-destructive/5 rounded-xl border p-3.5 text-sm outline-none"
           >
-            {error}
-          </p>
+            <p className="text-destructive font-semibold">
+              Hindi nagawa ang order slip.
+            </p>
+            <p className="text-destructive/90 mt-1 leading-relaxed">{error}</p>
+            <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">
+              Naka-save pa ang details ninyo. Pindutin lang ulit ang button sa
+              baba.
+            </p>
+          </div>
         )
       )}
 
+
       <p className="text-muted-foreground flex items-center gap-1.5 text-xs leading-relaxed">
         <ShieldAlert className="size-3.5 shrink-0" />
-        Susunod: makikipag-chat kayo sa amin dito mismo sa website.
+        Susunod: i-send ang order slip sa BudgetWise DGM sa Messenger.
       </p>
 
       <Button
@@ -515,13 +533,22 @@ export function CheckoutForm({ defaultName = "" }: { defaultName?: string }) {
           isSubmitting || items.length === 0 || cartLimitViolations.hasViolations
         }
       >
-        {isSubmitting ? "Gumagawa ng Order Slip..." : "Gumawa ng Order Slip"}
+        {isSubmitting
+          ? "Ginagawa ang order slip…"
+          : error
+            ? "Subukan Ulit"
+            : "Gumawa ng Order Slip"}
       </Button>
       <div className="-mt-3">
         <p className="text-muted-foreground text-center text-xs">
           Wala pa pong kailangang bayaran dito.
         </p>
       </div>
+      </div>
+
+      {isSubmitting && (
+        <OrderSlipCreating phase={orderCreated ? "success" : "creating"} />
+      )}
     </form>
   );
 }

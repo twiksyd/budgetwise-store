@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MessageCircle, HelpCircle, Clock, Timer } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Taglish } from "@/components/shared/taglish";
 import { getTikTokSupportLink } from "@/lib/support-links";
@@ -9,7 +9,7 @@ import { getGeneralMessengerLink } from "@/lib/messenger";
 export const metadata: Metadata = {
   title: "Contact us",
   description:
-    "Order questions go through your Order Chat; general questions can reach us on TikTok.",
+    "Message BudgetWise DGM on Messenger for orders, payment, receipts and questions.",
 };
 
 export default function ContactPage() {
@@ -17,127 +17,68 @@ export default function ContactPage() {
   const messengerLink = getGeneralMessengerLink();
 
   return (
-    <div className="mx-auto max-w-lg px-6 py-20 sm:py-24">
+    <div className="mx-auto max-w-lg px-6 py-10 sm:py-20">
       <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
         Contact us
       </h1>
       <p className="text-muted-foreground mt-3 text-[15px] leading-relaxed">
-        Need help with an order? Use that order&apos;s Order Chat. Have a
-        general question? You can reach us on TikTok.
+        Orders, payment instructions, receipts and questions all go through
+        the BudgetWise DGM page on Messenger. A real person replies.
       </p>
       <Taglish size="md">
-        May tanong sa order? Sa Order Chat ng order mo kami kausapin. May
-        general na tanong? Pwede kaming i-message sa TikTok.
+        Lahat ng tungkol sa order — payment instructions, GCash receipt, at
+        updates — sa Messenger chat natin.
       </Taglish>
 
-      <div className="surface-premium mt-10 rounded-xl p-6 sm:p-7">
-        <div className="bg-primary/10 flex size-11 items-center justify-center rounded-xl">
-          <MessageCircle className="text-primary size-5" />
-        </div>
-        <h2 className="font-heading mt-5 text-base font-semibold">
-          Questions about an order? Use your Order Chat
-        </h2>
-        <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-          Payment instructions, your GCash receipt, and every update about an
-          order stay in that order&apos;s chat on this website — real answers
-          from a real person, not an autoresponder.
-        </p>
-        <Taglish>
-          Lahat ng tungkol sa order — payment instructions, GCash receipt, at
-          updates — nasa Order Chat ng order mo. Totoong tao ang sasagot
-          sa&apos;yo.
-        </Taglish>
-        {messengerLink && (
-          <Button asChild size="lg" className="mt-5 h-11 w-full">
-            <a href={messengerLink} target="_blank" rel="noopener noreferrer">
-              <MessageCircle className="size-4" />
-              Message us on Messenger
-            </a>
-          </Button>
-        )}
-      </div>
-
-      {supportLink && (
-        <div className="surface-premium mt-6 rounded-xl p-6 sm:p-7">
-          <h2 className="font-heading text-base font-semibold">
-            General questions? Message us on TikTok
-          </h2>
-          <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-            For questions that aren&apos;t about a specific order. Please
-            don&apos;t send your order number, receipt, or payment
-            confirmation on TikTok — use your Order Chat so we can match it to
-            your order.
-          </p>
-          <Taglish>
-            Para sa general na tanong lang. Huwag ipadala sa TikTok ang order
-            number, receipt, o payment confirmation — sa Order Chat lang
-            para ma-match namin sa order mo.
-          </Taglish>
-          <Button asChild variant="outline" size="lg" className="mt-5 h-11 w-full">
-            <a href={supportLink} target="_blank" rel="noopener noreferrer">
-              <MessageCircle className="size-4" />
-              Open TikTok
-            </a>
-          </Button>
-        </div>
+      {messengerLink && (
+        <Button asChild size="lg" className="mt-6 h-11 w-full">
+          <a href={messengerLink} target="_blank" rel="noopener noreferrer">
+            <MessageCircle className="size-4" />
+            Message us on Messenger
+          </a>
+        </Button>
       )}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <div className="surface-premium rounded-xl p-5">
-          <div className="bg-primary/10 flex size-9 items-center justify-center rounded-lg">
-            <Timer className="text-primary size-4" />
-          </div>
-          <p className="font-heading mt-3.5 text-sm font-semibold">
-            Response time
-          </p>
-          <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">
-            We&apos;re a small team, so replies aren&apos;t instant — but every
-            message gets read and answered by a real person.
-          </p>
-          <Taglish>
-            Maliit lang team namin, kaya minsan may konting hintayan. Pero
-            lahat ng messages binabasa at sinasagot namin.
-          </Taglish>
+      <dl className="divide-border/70 border-border/70 mt-10 divide-y border-y text-sm">
+        <div className="py-4">
+          <dt className="font-heading font-semibold">Already ordered?</dt>
+          <dd className="text-muted-foreground mt-1 leading-relaxed">
+            Include your order number so we can find it right away.
+          </dd>
         </div>
-        <div className="surface-premium rounded-xl p-5">
-          <div className="bg-primary/10 flex size-9 items-center justify-center rounded-lg">
-            <Clock className="text-primary size-4" />
-          </div>
-          <p className="font-heading mt-3.5 text-sm font-semibold">
-            Business hours
-          </p>
-          <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">
-            We don&apos;t keep a fixed schedule — messages are checked
-            throughout the day.
-          </p>
-          <Taglish>
-            Wala kaming fixed business hours. Chine-check namin yung
-            Order Chat throughout the day.
-          </Taglish>
+        <div className="py-4">
+          <dt className="font-heading font-semibold">Response time</dt>
+          <dd className="text-muted-foreground mt-1 leading-relaxed">
+            We&apos;re a small team with no fixed hours. Messages are checked
+            throughout the day and every one gets an answer.
+          </dd>
         </div>
-      </div>
+        {supportLink && (
+          <div className="py-4">
+            <dt className="font-heading font-semibold">TikTok</dt>
+            <dd className="text-muted-foreground mt-1 leading-relaxed">
+              For general questions only. Please keep order numbers and
+              receipts on Messenger.{" "}
+              <a
+                href={supportLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Open TikTok
+              </a>
+            </dd>
+          </div>
+        )}
+      </dl>
 
-      <div className="mt-8 flex gap-4">
-        <HelpCircle className="text-muted-foreground mt-0.5 size-5 shrink-0" />
-        <div>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            Already have an order?{" "}
-            <span className="text-foreground font-medium">
-              Write to us in that order&apos;s Order Chat
-            </span>{" "}
-            — your order number is already attached, so we can find it right
-            away. See our{" "}
-            <Link href="/faq" className="text-primary hover:underline">
-              FAQ
-            </Link>{" "}
-            for quick answers to common questions.
-          </p>
-          <Taglish>
-            May order ka na? Sa Order Chat nito kami i-message — nakakabit na
-            agad ang Order Number kaya mabilis naming mahahanap.
-          </Taglish>
-        </div>
-      </div>
+      <p className="text-muted-foreground mt-6 text-sm">
+        Quick answers are in the{" "}
+        <Link href="/faq" className="text-primary hover:underline">
+          FAQ
+        </Link>
+        .
+      </p>
     </div>
   );
 }

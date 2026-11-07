@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { toast } from "sonner";
+import { CART_ADDED_TOAST_ID } from "@/components/cart/add-to-cart-button";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
@@ -25,6 +28,13 @@ export function StorefrontChrome({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+
+  // "Na-add na sa cart" toasts belong to the page they were raised on: once
+  // the customer opens the cart or checkout they're obsolete, and left up
+  // they cover the step indicator at the top of the next page.
+  useEffect(() => {
+    toast.dismiss(CART_ADDED_TOAST_ID);
+  }, [pathname]);
 
   if (pathname?.startsWith("/admin")) {
     return <>{children}</>;

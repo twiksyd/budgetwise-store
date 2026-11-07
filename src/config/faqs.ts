@@ -23,16 +23,16 @@ export const faqs = [
   {
     question: "Should I pay right after checkout?",
     answer:
-      "No. Please wait for our reply in your Order Chat first. A BudgetWise team member reviews your order and sends the official payment instructions there. Only send payment after you receive those instructions — this keeps your payment from going to the wrong place or being sent too early.",
+      "No. Please wait for our reply on Messenger first. A BudgetWise team member reviews your order and sends the official payment instructions there. Only send payment after you receive those instructions — this keeps your payment from going to the wrong place or being sent too early.",
     taglish:
-      "Huwag muna magbayad. Hintayin muna ang reply namin sa Order Chat. Pagkatapos naming ma-review ang order mo, doon namin ibibigay ang official payment instructions. Saka ka lang magbayad.",
+      "Huwag muna magbayad. Hintayin muna ang reply namin sa Messenger. Pagkatapos naming ma-review ang order mo, doon namin ibibigay ang official payment instructions. Saka ka lang magbayad.",
   },
   {
     question: "How do I send my GCash receipt?",
     answer:
-      "After you've paid following our instructions, upload a screenshot or photo of your GCash receipt in your Order Chat using the image button next to the message box. JPG, PNG, and WebP images are supported, up to 4 MB each. Please don't send receipts anywhere else — the chat is how we match payment to your order.",
+      "After you've paid following our instructions, send a screenshot or photo of your GCash receipt in the same Messenger chat with BudgetWise DGM. Please don't send receipts anywhere else — that chat is how we match payment to your order.",
     taglish:
-      "Pagkatapos magbayad ayon sa instructions namin, i-upload ang screenshot o litrato ng GCash receipt sa Order Chat gamit ang image button sa tabi ng message box. Pwede ang JPG, PNG, at WebP na hanggang 4 MB. Sa chat lang po ipadala para ma-match namin sa order mo.",
+      "Pagkatapos magbayad ayon sa instructions namin, i-send ang screenshot o litrato ng GCash receipt sa parehong Messenger chat. Doon lang po ipadala para ma-match namin sa order mo.",
   },
   {
     question: "How do I see my previous orders?",
@@ -44,30 +44,30 @@ export const faqs = [
   {
     question: "Is payment taken on the website?",
     answer:
-      "No. The website never asks for payment details. Placing an order creates your order number and opens your Order Chat; the official payment instructions are sent to you in that chat after we review your order.",
+      "No. The website never asks for payment details. Placing an order creates your order number and order slip; the official payment instructions are sent to you on Messenger after we review your order.",
     taglish:
-      "Hindi. Sa Order Chat namin isi-send yung payment details pagkatapos naming ma-review yung order mo.",
+      "Hindi. Sa Messenger namin isi-send yung payment details pagkatapos naming ma-review yung order mo.",
   },
   {
     question: "How do you deliver Robux or gamepasses?",
     answer:
-      "Delivery happens through Roblox's own gamepass system, using the Roblox username you provide at checkout. If we need anything else from you, we'll ask in your Order Chat.",
+      "Delivery happens through Roblox's own gamepass system, using the Roblox username you provide at checkout. If we need anything else from you, we'll ask on Messenger.",
     taglish:
-      "Sa Roblox mismo namin ipapadala gamit yung username na nilagay mo sa checkout. Kung may kailangan pa kami, sa Order Chat ka namin kakausapin.",
+      "Sa Roblox mismo namin ipapadala gamit yung username na nilagay mo sa checkout. Kung may kailangan pa kami, sa Messenger ka namin kakausapin.",
   },
   {
     question: "How long does an order take?",
     answer:
-      "It depends on order volume and how quickly payment is confirmed. Most orders are picked up and processed shortly after your payment is confirmed in your Order Chat — if anything is delayed, we'll tell you directly rather than leave you guessing.",
+      "It depends on order volume and how quickly payment is confirmed. Most orders are picked up and processed shortly after your payment is confirmed — if anything is delayed, we'll tell you directly rather than leave you guessing.",
     taglish:
       "Depende sa dami ng orders at kung gaano kabilis ma-confirm yung payment. Kung may delay, sasabihan ka namin agad.",
   },
   {
     question: "What if something goes wrong with my order?",
     answer:
-      "Tell us in your Order Chat and we'll sort it out — everything about your order stays in that one thread. For general questions that aren't about a specific order, see our Contact page. See our Refund & Order Policy for when refunds apply.",
+      "Tell us in your Messenger chat with BudgetWise DGM and we'll sort it out — everything about your order stays in that one thread. For general questions that aren't about a specific order, see our Contact page. See our Refund & Order Policy for when refunds apply.",
     taglish:
-      "Sabihin mo lang sa Order Chat ng order mo at aayusin namin agad. Para sa general na tanong na hindi tungkol sa isang order, tingnan ang Contact page.",
+      "Sabihin mo lang sa Messenger chat mo at aayusin namin agad. Para sa general na tanong na hindi tungkol sa isang order, tingnan ang Contact page.",
   },
   {
     question: "Do I need a Roblox account to order?",

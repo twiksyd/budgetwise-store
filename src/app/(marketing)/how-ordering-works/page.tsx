@@ -61,7 +61,7 @@ const whyWait = [
 
 const deliverySteps = [
   "Customer sends payment using our instructions.",
-  "Customer uploads the GCash receipt in the Order Chat (JPG, PNG, or WebP, up to 4 MB).",
+  "Customer sends a screenshot of the GCash receipt in the same Messenger chat.",
   "We verify the payment.",
   "If needed, we add the customer's Roblox account.",
   "We send the purchased gamepass or gift while the customer is available.",
@@ -73,22 +73,20 @@ const highlightCard =
 
 export default function HowOrderingWorksPage() {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-20 sm:py-24">
+    <div className="mx-auto max-w-2xl px-6 py-10 sm:py-20">
       <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
         How ordering works
       </h1>
       <p className="text-muted-foreground mt-3 text-[15px] leading-relaxed">
-        Here&apos;s exactly how an order moves from checkout to delivery —
-        including the one step most customers miss: waiting for our payment
-        instructions before sending any payment.
+        From cart to delivery in five steps. The one that matters most: wait
+        for our payment instructions before you pay.
       </p>
       <Taglish size="md">
-        Sundan mo lang yung steps sa baba. Ang pinaka-importante: huwag muna
-        magbayad hangga&apos;t wala pa kaming payment instructions sa
-        Order Chat.
+        Ang pinaka-importante: huwag muna magbayad hangga&apos;t wala pa
+        kaming payment instructions sa Messenger.
       </Taglish>
 
-      <div className="mt-12 flex flex-col gap-8">
+      <div className="mt-10 flex flex-col gap-8">
         {steps.map((step, i) => (
           <div key={step.title} className="flex gap-5">
             <div className="flex flex-col items-center">
@@ -140,7 +138,7 @@ export default function HowOrderingWorksPage() {
               <p className="text-foreground mt-3 text-sm leading-relaxed">
                 After reviewing your order, a BudgetWise representative will
                 send you the official payment instructions in your
-                Order Chat. This message includes:
+                Messenger chat with BudgetWise DGM. This message includes:
               </p>
               <ul className="text-muted-foreground mt-3 flex flex-col gap-1.5 text-sm leading-relaxed">
                 {paymentIncludes.map((line) => (
@@ -166,9 +164,9 @@ export default function HowOrderingWorksPage() {
                 ))}
               </ul>
               <Taglish className="border-primary/15 mt-4 border-t pt-3">
-                Hintayin mo muna yung payment instructions namin sa Order
-                Chat. Pag na-send na namin yung payment details, saka ka lang
-                magbayad.
+                Hintayin mo muna yung payment instructions namin sa
+                Messenger. Pag na-send na namin yung payment details, saka ka
+                lang magbayad.
               </Taglish>
             </div>
           </div>
@@ -199,7 +197,7 @@ export default function HowOrderingWorksPage() {
               ))}
             </ul>
             <Taglish>
-              Pagkabayad, i-upload ang GCash receipt sa Order Chat. Pag
+              Pagkabayad, i-send ang GCash receipt sa Messenger chat. Pag
               na-confirm na yung payment mo, aasikasuhin na namin yung
               order hanggang ma-deliver. Kung kailangan ka naming i-add sa
               Roblox, sasabihan ka namin.
@@ -220,7 +218,7 @@ export default function HowOrderingWorksPage() {
             Need to set up a Roblox gamepass?
           </p>
           <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
-            Follow our step-by-step gamepass setup guide before sending your gamepass link in your Order Chat.
+            Follow our step-by-step gamepass setup guide before sending your gamepass link on Messenger.
           </p>
         </div>
         <ChevronRight className="text-muted-foreground size-4 shrink-0" />
@@ -228,16 +226,10 @@ export default function HowOrderingWorksPage() {
 
       <div className="surface-premium mt-8 rounded-xl p-6 text-center sm:p-7">
         <p className="font-heading text-base font-semibold">
-          Ready to browse?
+          Ready to order?
         </p>
-        <p className="text-muted-foreground mt-1.5 text-sm">
-          Pick a game and see what&apos;s available.
-        </p>
-        <Taglish className="text-center">
-          Pumili ng game at tingnan kung ano ang available.
-        </Taglish>
-        <Button asChild size="lg" className="mt-5 h-11">
-          <Link href="/games">Browse games</Link>
+        <Button asChild size="lg" className="mt-4 h-11">
+          <Link href="/games">Umorder Na</Link>
         </Button>
       </div>
     </div>

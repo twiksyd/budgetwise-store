@@ -124,12 +124,12 @@ export default async function GameDetailPage({ params }: Props) {
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-6 sm:py-14">
+    <div className="mx-auto max-w-5xl px-6 pt-4 pb-10 sm:pt-10 sm:pb-14">
       {isRobuxPlus && <RobuxPlusPageGate />}
       <OrderingProgress currentStep={2} />
       <ChatPricelistBanner gameId={game.id} />
 
-      <nav className="text-muted-foreground mt-5 flex items-center gap-1.5 text-xs sm:text-sm">
+      <nav className="text-muted-foreground mt-4 flex items-center gap-1.5 text-xs sm:mt-6 sm:text-sm">
         <Link href="/games" className="hover:text-foreground transition-colors">
           Games
         </Link>
@@ -173,22 +173,13 @@ export default async function GameDetailPage({ params }: Props) {
           <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight text-balance sm:text-5xl">
             <RevealText text={displayGameName} />
           </h1>
-          <p className="text-muted-foreground mt-1.5 max-w-2xl text-sm leading-relaxed sm:text-base">
-            Piliin ang items sa baba, tapos i-add sa cart.
-          </p>
         </div>
       </section>
 
-      <div className="bg-muted/70 text-muted-foreground mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl px-3 py-2 text-xs font-medium">
-        <span className="inline-flex items-center gap-1.5">
-          <ShieldCheck className="size-3.5" />
-          No payment on-site
-        </span>
-        <span aria-hidden>·</span>
-        <span>Order Chat confirmation</span>
-        <span aria-hidden>·</span>
-        <span>Delivered to your Roblox username</span>
-      </div>
+      <p className="text-muted-foreground mt-3 flex items-center gap-1.5 text-xs">
+        <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
+        Walang bayad dito. Payment details sa Messenger.
+      </p>
 
       {isRobuxPlus && <RobuxPlusPreorderReminder className="mt-4" />}
 

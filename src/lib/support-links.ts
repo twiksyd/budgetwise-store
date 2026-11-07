@@ -2,7 +2,7 @@ import { siteConfig } from "@/config/site";
 
 // Fallback channel for general questions and support only. Never point
 // customers here for anything order-related — orders, order numbers, payment
-// instructions and receipts live in the on-site Order Chat.
+// instructions and receipts live on Messenger.
 export function getTikTokSupportLink(): string | null {
   return siteConfig.tiktokUrl;
 }

@@ -136,14 +136,10 @@ export function CheckoutClient({ defaultName }: { defaultName: string }) {
   if (!hydrated || items.length === 0) return null;
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-6 sm:py-14">
-      <OrderingProgress
-        currentStep={3}
-        compact
-        description="Gagamitin namin ito para mahanap ang inyong order at makausap kayo dito mismo sa website."
-      />
+    <div className="mx-auto max-w-4xl px-6 pt-4 pb-10 sm:pt-10 sm:pb-14">
+      <OrderingProgress currentStep={3} className="sm:max-w-sm" />
 
-      <h1 className="font-heading mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
+      <h1 className="font-heading mt-4 text-2xl font-semibold tracking-tight sm:mt-6 sm:text-4xl">
         Ilagay ang Tamang Details
       </h1>
       {catalog.changes && <CatalogChangesNotice changes={catalog.changes} onDismiss={catalog.dismiss} />}

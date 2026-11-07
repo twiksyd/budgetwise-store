@@ -229,19 +229,15 @@
     transition-duration: var(--dur-instant);
   }
 
-  /* Soft, low-opacity radial glow for hero backgrounds — glassmorphism
-     used as ambience, not as a loud gradient. */
+  /* Localized lavender glow behind the hero headline: strongest just
+     behind the text, gone well before the section edges. */
   .hero-glow {
     background-image: radial-gradient(
-        ellipse 60% 50% at 50% 0%,
-        color-mix(in oklch, var(--primary) 14%, transparent),
-        transparent
-      ),
-      radial-gradient(
-        ellipse 40% 35% at 85% 15%,
-        color-mix(in oklch, var(--primary) 8%, transparent),
-        transparent
-      );
+      ellipse 64% 48% at 50% 46%,
+      color-mix(in oklch, var(--primary) 16%, transparent) 0%,
+      color-mix(in oklch, var(--primary) 7%, transparent) 45%,
+      transparent 72%
+    );
   }
 
   .via-plus-preorder-badge {
@@ -637,5 +633,60 @@
   }
   [data-slot="button"]:hover > svg:last-child:not(:first-child) {
     transform: none;
+  }
+}
+
+/* Order-slip creation (checkout): a receipt prints from a small slot while
+   POST /api/orders is in flight. Transforms and opacity only; every
+   animation stops with the element when the panel unmounts. */
+.slip-paper {
+  animation: slip-print 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+.slip-line {
+  animation:
+    slip-line-in 0.3s ease-out var(--slip-delay, 0.6s) both,
+    slip-line-pulse 1.8s ease-in-out calc(var(--slip-delay, 0.6s) + 0.9s) infinite;
+}
+.slip-check {
+  animation: slip-check-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes slip-print {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+@keyframes slip-line-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slip-line-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+@keyframes slip-check-in {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slip-paper,
+  .slip-line,
+  .slip-check {
+    animation: none;
+  }
+}
+
+/* Cart: the item subtotal lifts briefly when its quantity changes. */
+.bw-subtotal-flash {
+  animation: bw-subtotal-flash 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes bw-subtotal-flash {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bw-subtotal-flash {
+    animation: none;
   }
 }

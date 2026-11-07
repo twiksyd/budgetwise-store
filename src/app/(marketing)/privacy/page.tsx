@@ -19,9 +19,9 @@ const sections = [
     taglish: `Ginagamit lang namin yung info mo para sa order mo. Hindi namin ito binebenta o ginagamit sa advertising.`,
   },
   {
-    title: "Sign-in and Order Chat",
-    body: `You sign in with Google, and we store the name and email Google shares so your orders and chats are tied to your account. We never see your Google password. Messages and receipt images you send in an Order Chat are stored with your order, are visible only to you and the BudgetWise team, and are used only to process that order.`,
-    taglish: `Google ang gamit sa sign in at hindi namin nakikita ang password mo. Ang mga message at receipt na ipinadala mo sa Order Chat ay nakikita lang ng team at ikaw, at ginagamit lang para sa order mo.`,
+    title: "Checkout, Messenger and earlier chats",
+    body: `Checkout doesn't require a sign-in. After checkout, your order continues on Messenger with the BudgetWise DGM page, where Meta's own privacy policy also applies. If you signed in with Google in the past, we keep the name and email Google shared so your earlier orders and on-site chats stay tied to your account; we never see your Google password. Messages and receipt images are visible only to you and the BudgetWise team and are used only to process your order.`,
+    taglish: `Walang sign-in sa checkout, at sa Messenger na tuloy ang order mo. Ang mga message at receipt mo ay nakikita lang ng team at ikaw, at ginagamit lang para sa order mo.`,
   },
   {
     title: "Who we share it with",

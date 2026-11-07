@@ -32,9 +32,9 @@ const word: Variants = {
   show: { y: "0%", rotate: 0, transition: { duration: 0.9, ease: EASE } },
 };
 
-function MaskedHeadline({ text }: { text: string }) {
+function MaskedHeadline({ text, className }: { text: string; className?: string }) {
   return (
-    <motion.span variants={words} className="inline">
+    <motion.span variants={words} className={cn("inline", className)}>
       {text.split(" ").map((part, index) => (
         <span key={index} className="inline-block overflow-hidden pb-[0.12em] align-bottom">
           <motion.span variants={word} className="inline-block origin-bottom-left will-change-transform">
@@ -53,28 +53,21 @@ function MaskedHeadline({ text }: { text: string }) {
 // original hardcoded "LIVE" badge caused.
 const badgeConfig = {
   open: {
-    label: "Now Accepting Orders",
-    eyebrow: "Live",
+    label: "Open for orders",
     dotClassName: "bg-emerald-500",
-    className:
-      "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_24px_-12px_rgba(16,185,129,0.35)] dark:text-emerald-400",
-    eyebrowClassName: "text-emerald-600 dark:text-emerald-400",
+    className: "border-emerald-500/25 bg-emerald-500/[0.08] text-emerald-700 dark:text-emerald-400",
     pulse: true,
   },
   maintenance: {
-    label: "Ordering Paused for Maintenance",
-    eyebrow: "Paused",
+    label: "Paused for maintenance",
     dotClassName: "bg-amber-500",
     className: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
-    eyebrowClassName: "text-amber-600 dark:text-amber-400",
     pulse: false,
   },
   closed: {
-    label: "Temporarily Closed",
-    eyebrow: "Closed",
+    label: "Temporarily closed",
     dotClassName: "bg-destructive",
     className: "border-destructive/30 bg-destructive/10 text-destructive",
-    eyebrowClassName: "text-destructive",
     pulse: false,
   },
 } as const;
@@ -90,57 +83,57 @@ export function AnimatedHero() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 pt-8 pb-6 text-center sm:pt-32 sm:pb-20"
+        className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-5 pt-14 pb-8 text-center sm:px-6 sm:pt-24 sm:pb-16"
       >
         <motion.div
           variants={item}
           className={cn(
-            "mb-5 flex items-center gap-2.5 rounded-lg border px-3.5 py-2 text-xs font-semibold sm:mb-8 sm:text-sm",
+            "mb-4 flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium sm:mb-7 sm:text-sm",
             badge.className,
           )}
         >
-          <span className={cn("relative size-2 shrink-0 rounded-full", badge.dotClassName, badge.pulse && "bw-ping")} />
-          <span className={cn("font-bold tracking-wide uppercase", badge.eyebrowClassName)}>
-            {badge.eyebrow}
-          </span>
-          <span className="opacity-40">•</span>
+          <span className={cn("relative size-1.5 shrink-0 rounded-full", badge.dotClassName, badge.pulse && "bw-ping")} />
           {badge.label}
         </motion.div>
 
         <motion.h1
           variants={words}
-          className="font-heading max-w-3xl text-4xl font-semibold tracking-[-0.03em] text-balance sm:text-7xl"
+          // ≈38px at 360, 41px at 390, 46px at 430 (≈13% up from before),
+          // capped so "Buy gamepasses." always fits its own line; the second
+          // phrase then wraps naturally into "Skip overpriced / stores."
+          className="font-heading max-w-[17ch] text-[clamp(2.25rem,10.6vw,2.875rem)] leading-[1.1] font-semibold tracking-[-0.03em] text-balance sm:max-w-3xl sm:text-7xl sm:leading-[1.05]"
         >
-          <MaskedHeadline text="Buy gamepasses." />{" "}
-          <MaskedHeadline text="Skip overpriced stores." />
+          {/* Each word carries its own trailing space; each phrase starts
+              its own line, so "Skip" never strands at the end of the first. */}
+          <MaskedHeadline text="Buy gamepasses." />
+          <br />
+          {/* Same deep purple as the "Umorder Na" button it sits above. */}
+          <MaskedHeadline text="Skip overpriced stores." className="text-primary" />
         </motion.h1>
-
-        <motion.p
-          variants={item}
-          className="text-muted-foreground mt-3 max-w-lg text-base text-balance sm:mt-7 sm:text-xl"
-        >
-          Pumili ng game at items na gusto ninyo. Pagkatapos mag-checkout,
-          makikipag-chat kayo sa amin sa Order Chat dito mismo sa website.
-        </motion.p>
 
         <motion.div
           variants={item}
-          className="mt-5 flex flex-col gap-2 sm:mt-11 sm:flex-row sm:gap-3"
+          // Phones: one centered stack — the purple action, then the guide
+          // as a quiet link right under it. Wider screens: side by side.
+          className="mt-6 flex flex-col items-center gap-1 sm:mt-10 sm:flex-row sm:gap-3"
         >
-          <Button size="lg" asChild className="h-11 px-7 text-[15px] sm:h-12">
+          <Button
+            asChild
+            // Restrained depth: a soft purple shadow that tightens and a
+            // 1px press when tapped.
+            className="h-11 w-[188px] text-[15px] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.08),0_8px_20px_-8px_color-mix(in_oklch,var(--primary)_60%,transparent)] transition-[transform,box-shadow,background-color] duration-150 active:translate-y-px active:scale-[0.98] active:shadow-[0_1px_2px_rgba(0,0,0,0.1),0_3px_8px_-4px_color-mix(in_oklch,var(--primary)_55%,transparent)] sm:w-auto sm:px-6"
+          >
             <Link href="/games">
               {status === "open" ? "Umorder Na" : "Tingnan ang Games"}
               <ArrowRight className="size-4" />
             </Link>
           </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            asChild
-            className="h-11 px-7 text-[15px] sm:h-12"
+          <Link
+            href="/how-ordering-works"
+            className="text-muted-foreground hover:text-foreground inline-flex h-11 items-center px-4 text-sm font-medium transition-colors"
           >
-            <Link href="/how-ordering-works">Paano Umorder</Link>
-          </Button>
+            Paano Umorder
+          </Link>
         </motion.div>
       </motion.div>
     </section>

@@ -25,7 +25,9 @@ export function FloatingCartButton() {
   return (
     <div
       className="fixed right-4 z-40 sm:hidden"
-      style={{ bottom: "calc(8rem + env(safe-area-inset-bottom))" }}
+      // Low in the thumb corner: up in the middle of the screen it sat on
+      // top of game titles in the homepage carousel.
+      style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
     >
       <AnimatePresence>
         {count > 0 && (
@@ -38,7 +40,7 @@ export function FloatingCartButton() {
             exit={{ scale: 0, opacity: 0 }}
             whileTap={{ scale: 0.92 }}
             transition={{ type: "spring", stiffness: 400, damping: 22 }}
-            className="bg-primary text-primary-foreground relative flex size-14 items-center justify-center rounded-lg shadow-[0_10px_28px_-8px_color-mix(in_oklch,var(--primary)_55%,transparent)]"
+            className="bg-primary text-primary-foreground relative flex size-13 items-center justify-center rounded-full shadow-[0_10px_28px_-8px_color-mix(in_oklch,var(--primary)_55%,transparent)]"
           >
             <ShoppingBag className="size-5" />
             <AnimatePresence mode="popLayout">
