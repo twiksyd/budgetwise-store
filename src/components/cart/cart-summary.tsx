@@ -64,7 +64,7 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
         <Button
           size="lg"
           // Same restrained depth and press as the homepage "Umorder Na".
-          className="h-12 w-full text-[15px] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.08),0_8px_20px_-8px_color-mix(in_oklch,var(--primary)_60%,transparent)] transition-[transform,box-shadow,background-color] duration-150 active:translate-y-px active:scale-[0.99] active:shadow-[0_1px_2px_rgba(0,0,0,0.1),0_3px_8px_-4px_color-mix(in_oklch,var(--primary)_55%,transparent)]"
+          className="h-12 w-full text-[15px] font-semibold sm:h-12 shadow-[0_1px_2px_rgba(0,0,0,0.08),0_8px_20px_-8px_color-mix(in_oklch,var(--primary)_60%,transparent)] transition-[transform,box-shadow,background-color] duration-150 active:translate-y-px active:scale-[0.99] active:shadow-[0_1px_2px_rgba(0,0,0,0.1),0_3px_8px_-4px_color-mix(in_oklch,var(--primary)_55%,transparent)]"
           onClick={handleCheckout}
         >
           Mag-checkout
@@ -78,14 +78,14 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
             Paused po muna ang ordering. Saved pa rin ang cart ninyo.
           </p>
           {supportLink ? (
-            <Button asChild size="lg" className="h-12 w-full text-[15px]">
+            <Button asChild size="lg" className="h-12 w-full text-[15px] sm:h-12">
               <a href={supportLink} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="size-4" />
                 May tanong? Message sa TikTok
               </a>
             </Button>
           ) : (
-            <Button disabled size="lg" className="h-12 w-full text-[15px]">
+            <Button disabled size="lg" className="h-12 w-full text-[15px] sm:h-12">
               Paused ang Ordering
             </Button>
           )}

@@ -23,7 +23,7 @@ export function HeroBanner() {
         height={340}
         priority
         unoptimized
-        className="absolute top-[45%] left-1/2 w-[min(135%,46rem)] max-w-none -translate-x-1/2 -translate-y-1/2 opacity-[0.34] select-none sm:w-[min(110%,60rem)] dark:opacity-[0.15]"
+        className="absolute top-[45%] left-1/2 w-[min(135%,46rem)] max-w-none -translate-x-1/2 -translate-y-1/2 opacity-[0.34] select-none sm:w-[min(92%,52rem)] dark:opacity-[0.15]"
       />
       <div className="hero-glow absolute inset-0" />
     </div>

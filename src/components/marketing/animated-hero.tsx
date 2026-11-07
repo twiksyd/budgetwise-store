@@ -115,13 +115,13 @@ export function AnimatedHero() {
           variants={item}
           // Phones: one centered stack — the purple action, then the guide
           // as a quiet link right under it. Wider screens: side by side.
-          className="mt-6 flex flex-col items-center gap-1 sm:mt-10 sm:flex-row sm:gap-3"
+          className="mt-6 flex flex-col items-center gap-1 sm:mt-8 sm:flex-row sm:gap-6"
         >
           <Button
             asChild
             // Restrained depth: a soft purple shadow that tightens and a
             // 1px press when tapped.
-            className="h-11 w-[188px] text-[15px] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.08),0_8px_20px_-8px_color-mix(in_oklch,var(--primary)_60%,transparent)] transition-[transform,box-shadow,background-color] duration-150 active:translate-y-px active:scale-[0.98] active:shadow-[0_1px_2px_rgba(0,0,0,0.1),0_3px_8px_-4px_color-mix(in_oklch,var(--primary)_55%,transparent)] sm:w-auto sm:px-6"
+            className="h-11 w-[188px] text-[15px] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.08),0_8px_20px_-8px_color-mix(in_oklch,var(--primary)_60%,transparent)] transition-[transform,box-shadow,background-color] duration-150 active:translate-y-px active:scale-[0.98] active:shadow-[0_1px_2px_rgba(0,0,0,0.1),0_3px_8px_-4px_color-mix(in_oklch,var(--primary)_55%,transparent)] sm:h-12 sm:w-[192px] sm:text-base"
           >
             <Link href="/games">
               {status === "open" ? "Umorder Na" : "Tingnan ang Games"}
@@ -130,7 +130,7 @@ export function AnimatedHero() {
           </Button>
           <Link
             href="/how-ordering-works"
-            className="text-muted-foreground hover:text-foreground inline-flex h-11 items-center px-4 text-sm font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground sm:hover:bg-foreground/[0.04] inline-flex h-11 items-center rounded-lg px-4 text-sm font-medium transition-colors sm:h-12 sm:px-5 sm:text-base"
           >
             Paano Umorder
           </Link>

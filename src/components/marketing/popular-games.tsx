@@ -164,11 +164,19 @@ export function PopularGames({
     };
 
     // A resize/rotation re-snaps the row; that's not the customer scrolling.
+    // The window's resize event runs before the browser's scroll events in
+    // the same frame (a ResizeObserver only runs after them), so it opens
+    // the ignore window in time; the observer then re-bases the position.
+    const ignoreResizeScroll = () => {
+      ignoreScrollUntilRef.current = performance.now() + 600;
+    };
     const resize = new ResizeObserver(() => {
-      ignoreScrollUntilRef.current = performance.now() + 400;
+      ignoreResizeScroll();
+      lastLeftRef.current = el.scrollLeft;
       updateEdges();
     });
     resize.observe(el);
+    window.addEventListener("resize", ignoreResizeScroll, { passive: true });
 
     const visibility = new IntersectionObserver(
       ([entry]) => {
@@ -218,6 +226,7 @@ export function PopularGames({
     return () => {
       clearTimer();
       resize.disconnect();
+      window.removeEventListener("resize", ignoreResizeScroll);
       visibility.disconnect();
       el.removeEventListener("scroll", onScroll);
       document.removeEventListener("visibilitychange", onVisibility);
@@ -232,14 +241,34 @@ export function PopularGames({
     };
   }, [changeState, clearTimer, schedule, stopByUser, updateEdges]);
 
+  // Desktop arrows page by whole cards, always landing on a real card edge:
+  //   next — the first card that isn't fully visible becomes the first one;
+  //   prev — the current first card ends up as the last fully visible one.
+  // Positions are measured at click time, so they follow any resize.
   function scrollByPage(direction: 1 | -1) {
     const el = scrollerRef.current;
     if (!el) return;
     stopByUser();
-    el.scrollBy({
-      left: direction * el.clientWidth * 0.8,
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-    });
+    const stops = cardStops();
+    const cards = Array.from(el.children as HTMLCollectionOf<HTMLElement>);
+    const pad = parseFloat(getComputedStyle(el).scrollPaddingLeft) || 0;
+    const current = el.scrollLeft;
+    const viewRight = current + el.clientWidth - pad;
+    let target: number;
+    if (direction > 0) {
+      const index = cards.findIndex((card) => card.offsetLeft + card.offsetWidth > viewRight + 1);
+      target = index < 0 ? stops[stops.length - 1] : stops[index];
+      if (target <= current + 4) target = stops.find((stop) => stop > current + 4) ?? target;
+    } else {
+      const first = cards.findIndex((card, i) => stops[i] >= current - 4);
+      const firstCard = cards[Math.max(first, 0)];
+      const wanted = firstCard.offsetLeft + firstCard.offsetWidth - (el.clientWidth - pad);
+      target = stops.find((stop) => stop >= wanted - 1) ?? 0;
+      if (target >= current - 4) {
+        target = [...stops].reverse().find((stop) => stop < current - 4) ?? 0;
+      }
+    }
+    el.scrollTo({ left: target, behavior: prefersReducedMotion() ? "auto" : "smooth" });
   }
 
   // Play moves right away (no 5s wait), then continues on the timer.
@@ -324,22 +353,25 @@ export function PopularGames({
         </div>
       </div>
 
-      {/* Bleeds to the section edges so later cards run off the screen,
-          while scroll padding keeps the first card on the margin. Only
-          this row scrolls sideways; vertical swipes pass to the page.
-          `relative` makes each card's offsetLeft relative to the row. */}
+      {/* Phones: bleeds to the screen edges so later cards run off it,
+          while scroll padding keeps the first card on the margin.
+          Desktop: the viewport matches the content container (4px of room
+          for focus rings), so the first card lines up with the heading and
+          the last ends on the container's right edge. Only this row
+          scrolls sideways; vertical swipes pass to the page. `relative`
+          makes each card's offsetLeft relative to the row. */}
       <div
         ref={scrollerRef}
         role="region"
         aria-roledescription="carousel"
         aria-label="Mga game"
         tabIndex={0}
-        className="focus-visible:ring-ring/50 relative -mx-5 mt-3 flex snap-x snap-mandatory scroll-px-5 gap-3.5 overflow-x-auto overscroll-x-contain rounded-xl px-5 pt-1 pb-3 outline-none [-ms-overflow-style:none] [scrollbar-width:none] focus-visible:ring-2 sm:-mx-6 sm:mt-5 sm:scroll-px-6 sm:gap-4 sm:px-6 [&::-webkit-scrollbar]:hidden"
+        className="focus-visible:ring-ring/50 relative -mx-5 mt-3 flex snap-x snap-mandatory scroll-px-5 gap-3.5 overflow-x-auto overscroll-x-contain rounded-xl px-5 pt-1 pb-3 outline-none [-ms-overflow-style:none] [scrollbar-width:none] focus-visible:ring-2 sm:-mx-1 sm:mt-5 sm:scroll-px-1 sm:gap-5 sm:px-1 [&::-webkit-scrollbar]:hidden"
       >
         {games.map((game, index) => (
           <div
             key={game.id}
-            className="w-[62vw] max-w-[16rem] shrink-0 snap-start sm:w-60 [&_a]:rounded-xl [&_a]:outline-none [&_a:focus-visible]:ring-2 [&_a:focus-visible]:ring-primary [&_a:focus-visible]:ring-offset-2 [&_a:focus-visible]:ring-offset-background"
+            className="w-[62vw] max-w-[16rem] shrink-0 snap-start sm:w-[248px] sm:max-w-none [&_a]:rounded-xl [&_a]:outline-none [&_a:focus-visible]:ring-2 [&_a:focus-visible]:ring-primary [&_a:focus-visible]:ring-offset-2 [&_a:focus-visible]:ring-offset-background"
           >
             <GameCard
               game={game}
