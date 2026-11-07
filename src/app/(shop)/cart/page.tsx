@@ -20,9 +20,9 @@ export default function CartPage() {
   const count = useCartStore(selectCartCount);
 
   return (
-    // A barely-there neutral page tone so the white item surfaces read as
-    // surfaces without heavy borders or shadows.
-    <div className="bg-[color-mix(in_oklch,var(--muted)_55%,var(--background))] min-h-[calc(100dvh-4rem)] sm:min-h-[calc(100dvh-5rem)]">
+    // The barely-there neutral page tone is applied to <main> by
+    // RouteTransitionShell, so it fills down to the footer without a spacer.
+    <div>
       <div className="mx-auto max-w-2xl px-5 pt-4 pb-10 sm:px-6 sm:pt-10 sm:pb-20">
         <OrderingProgress currentStep={2} title="I-check ang Cart" className="sm:max-w-sm" />
 

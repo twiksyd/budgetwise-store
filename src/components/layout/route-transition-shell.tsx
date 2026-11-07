@@ -89,8 +89,16 @@ export function RouteTransitionShell({
     previousPathnameRef.current = pathname;
   }, [pathname]);
 
+  // The cart sits on a barely-there neutral tone so its white item surfaces
+  // read as surfaces. It lives here (not on the page) so it fills down to
+  // the footer on short carts without a viewport-height spacer.
+  const pageTone =
+    pathname === "/cart"
+      ? "bg-[color-mix(in_oklch,var(--muted)_55%,var(--background))]"
+      : "bg-background";
+
   return (
-    <main className="relative flex-1 overflow-x-clip bg-background">
+    <main className={`relative flex-1 overflow-x-clip ${pageTone}`}>
       <AnimatePresence initial={false} mode="popLayout">
         <motion.div
           key={pathname}
@@ -101,7 +109,10 @@ export function RouteTransitionShell({
             duration: reduceMotion ? 0.08 : kind === "cart" ? 0.24 : 0.2,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="min-h-[calc(100dvh-4rem)] bg-background will-change-transform sm:min-h-[calc(100dvh-5rem)]"
+          // No viewport-height spacer: <main> is flex-1 in the body's
+          // min-h-screen column, so short pages push the footer to the
+          // bottom of the viewport on their own.
+          className={`${pageTone} will-change-transform`}
         >
           {children}
         </motion.div>
