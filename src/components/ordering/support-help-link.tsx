@@ -1,7 +1,7 @@
 import { MessageCircle } from "lucide-react";
 import { getTikTokSupportLink } from "@/lib/support-links";
 
-// General (non-order) questions only; order questions go through Order Chat.
+// General (non-order) questions only; order questions go to Messenger.
 export function SupportHelpLink({ className = "" }: { className?: string }) {
   const supportLink = getTikTokSupportLink();
 

@@ -89,8 +89,8 @@ export default function RefundPolicyPage() {
             How order processing works
           </h2>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-            Orders are reviewed and confirmed manually in your
-            Order Chat — there&apos;s a real person on the other end, not an
+            Orders are reviewed and confirmed manually on Messenger —
+            there&apos;s a real person on the other end, not an
             automated queue. If your order is going to take longer than
             usual, we&apos;ll tell you directly rather than leave you without an
             update.
@@ -108,7 +108,8 @@ export default function RefundPolicyPage() {
             Tell us on Messenger, with your order number, what went wrong. We&apos;ll look into it and get back to you.
           </p>
           <Taglish>
-            Sabihin mo lang sa Order Chat ng order mo kung anong nangyari.
+            Sabihin mo lang sa Messenger, kasama ang order number, kung anong
+            nangyari.
           </Taglish>
         </div>
       </div>

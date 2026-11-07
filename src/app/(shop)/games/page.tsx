@@ -1,14 +1,9 @@
 import type { Metadata } from "next";
 import { Gamepad2 } from "lucide-react";
-import {
-  getFeaturedStoreGames,
-  getGameProductCounts,
-  getGamesAndPresentation,
-} from "@/lib/queries/catalog";
+import { getGameProductCounts, getGamesAndPresentation } from "@/lib/queries/catalog";
 import { GamesExplorer } from "@/components/catalog/games-explorer";
 import { EmptyState } from "@/components/shared/empty-state";
 import { OrderingProgress } from "@/components/ordering/ordering-progress";
-import { RevealText } from "@/components/motion/reveal";
 import { SupportHelpLink } from "@/components/ordering/support-help-link";
 import { isRobuxViaLinkEnabled } from "@/lib/store-status";
 
@@ -20,27 +15,19 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function GamesPage() {
-  const [{ games, presentation }, productCounts, robuxViaLinkEnabled] =
-    await Promise.all([
-      getGamesAndPresentation(),
-      getGameProductCounts(),
-      isRobuxViaLinkEnabled(),
-    ]);
-  const featuredGames = getFeaturedStoreGames(games, presentation);
+  const [{ games }, productCounts, robuxViaLinkEnabled] = await Promise.all([
+    getGamesAndPresentation(),
+    getGameProductCounts(),
+    isRobuxViaLinkEnabled(),
+  ]);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10 sm:py-16">
-      <OrderingProgress currentStep={1} />
+    <div className="mx-auto max-w-6xl px-6 pt-4 pb-12 sm:pt-10 sm:pb-16">
+      <OrderingProgress currentStep={1} className="sm:max-w-sm" />
 
-      <h1 className="font-heading mt-6 text-3xl font-semibold tracking-tight sm:text-4xl">
-        <RevealText text="Pumili ng Game" />
+      <h1 className="font-heading mt-4 text-2xl font-semibold tracking-tight sm:mt-6 sm:text-4xl">
+        Pumili ng Game
       </h1>
-      <p className="text-muted-foreground mt-2 text-[15px]">
-        Piliin po ang game para makita ang available items at gamepasses.
-      </p>
-      <div className="mt-3">
-        <SupportHelpLink />
-      </div>
 
       {games.length === 0 ? (
         <div className="mt-16">
@@ -51,15 +38,18 @@ export default async function GamesPage() {
           />
         </div>
       ) : (
-        <div className="mt-6">
+        <div className="mt-2 sm:mt-5">
           <GamesExplorer
             games={games}
-            featuredGames={featuredGames}
             productCounts={productCounts}
             robuxViaLinkEnabled={robuxViaLinkEnabled}
           />
         </div>
       )}
+
+      <div className="mt-4">
+        <SupportHelpLink />
+      </div>
     </div>
   );
 }

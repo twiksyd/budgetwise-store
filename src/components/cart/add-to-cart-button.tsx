@@ -18,6 +18,7 @@ import {
 import type { StoreGamepass } from "@/types/database";
 
 const ADDED_STATE_MS = 1400;
+export const CART_ADDED_TOAST_ID = "cart-added";
 
 export function AddToCartButton({
   gamepass,
@@ -110,8 +111,12 @@ export function AddToCartButton({
           // Adding an item shouldn't interrupt browsing — a quiet toast
           // with a "View Cart" escape hatch instead of yanking the sheet
           // open, so the customer decides when they're ready to look.
-          toast.success("Na-add na sa cart.", {
-            description: "Pwede pa kayong magdagdag ng ibang item.",
+          // One id: rapid adds update a single toast instead of stacking,
+          // and RouteToastDismisser clears it once the customer moves on.
+          toast.success("Na-add na sa cart", {
+            id: CART_ADDED_TOAST_ID,
+            description: productName,
+            duration: 2600,
             action: {
               label: "Tingnan ang Cart",
               onClick: () => {

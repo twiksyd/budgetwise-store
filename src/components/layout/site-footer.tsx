@@ -9,16 +9,15 @@ export function SiteFooter() {
 
   return (
     <footer className="border-border/60 border-t">
-      <div className="mx-auto max-w-6xl px-6 py-16">
+      <div className="mx-auto max-w-6xl px-6 py-12 sm:py-16">
         <div className="grid gap-12 sm:grid-cols-[1.3fr_1fr_1fr]">
           <div>
             <div className="flex flex-col items-start gap-2">
               <BrandMark className="h-16" />
             </div>
             <p className="text-muted-foreground mt-4 max-w-xs text-sm leading-relaxed">
-              A digital marketplace for discounted in-game currency,
-              gamepasses, and subscriptions. Every order is placed on the
-              site and handled in your Order Chat by a real person.
+              Discounted Roblox gamepasses and Robux. Order on the site,
+              then a real person takes it from there on Messenger.
             </p>
             {supportLink && (
               <a

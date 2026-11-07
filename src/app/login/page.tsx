@@ -48,7 +48,7 @@ export default async function LoginPage({
       <div className="text-muted-foreground mt-3 flex items-start gap-2 text-xs leading-relaxed" data-testid="google-signin-reassurance">
         <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
         <p>
-          <span className="text-foreground font-medium">We only use Google to keep your order chat private.</span>
+          <span className="text-foreground font-medium">We only use Google to keep your earlier order chats private.</span>
           <br />
           We never see your password or post anything.
         </p>

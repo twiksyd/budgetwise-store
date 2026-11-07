@@ -16,7 +16,7 @@ export function FaqPreview() {
   const preview = faqs.slice(0, 4);
 
   return (
-    <section className="mx-auto max-w-2xl px-6 pb-16 sm:pb-28">
+    <section className="mx-auto max-w-2xl px-5 pb-14 sm:px-6 sm:pb-24">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -24,7 +24,7 @@ export function FaqPreview() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="text-center"
       >
-        <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-4xl">
           <RevealText text="Common questions" />
         </h2>
       </motion.div>

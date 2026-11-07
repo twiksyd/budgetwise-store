@@ -3,12 +3,11 @@ import { notFound } from "next/navigation";
 import { getOrderConfirmation } from "@/lib/queries/orders";
 import { getMessengerLink, buildOrderMessage } from "@/lib/messenger";
 import { MessengerHandoff } from "@/components/checkout/messenger-handoff";
-import { OrderConfirmationSummary } from "@/components/checkout/order-confirmation-summary";
 import { ClearCartOnSuccess } from "@/components/checkout/clear-cart-on-success";
 import { OrderingProgress } from "@/components/ordering/ordering-progress";
 
 export const metadata: Metadata = {
-  title: "Order Slip Ready",
+  title: "Order Slip",
   // This page shows a customer's own details and its URL carries their
   // viewing token — it should never end up in a search index.
   robots: { index: false, follow: false },
@@ -40,17 +39,16 @@ export default async function CheckoutSuccessPage({
   const messengerLink = getMessengerLink(order.orderNumber, message);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-5 sm:py-12">
+    <div className="mx-auto max-w-md px-6 pt-4 pb-12 sm:pt-10 sm:pb-16">
       <ClearCartOnSuccess orderNumber={order.orderNumber} />
-      <OrderingProgress currentStep={4} compact />
+      <OrderingProgress currentStep={4} />
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+      <div className="mt-6">
         <MessengerHandoff
+          order={order}
           message={message}
           messengerLink={messengerLink}
-          orderNumber={order.orderNumber}
         />
-        <OrderConfirmationSummary order={order} />
       </div>
     </div>
   );

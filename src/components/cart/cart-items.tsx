@@ -31,8 +31,19 @@ export function CartItems({ items }: { items: CartItem[] }) {
             layout
             initial={{ opacity: 0, height: 0, y: -6 }}
             animate={{ opacity: 1, height: "auto", y: 0 }}
-            exit={{ opacity: 0, height: 0, x: 24, transition: { duration: 0.28, ease: [0.65, 0, 0.35, 1] } }}
-            transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+            // Removed rows fade and collapse quickly; they stop taking taps
+            // at once so the rest of the cart stays usable meanwhile.
+            exit={{
+              opacity: 0,
+              height: 0,
+              scale: 0.98,
+              pointerEvents: "none",
+              transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] },
+            }}
+            transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
+            // 1px of room so the clip (needed for the collapse) never cuts
+            // the row's hairline ring.
+            className="-m-px overflow-hidden p-px"
           >
             <CartLineItem item={item} />
           </motion.div>

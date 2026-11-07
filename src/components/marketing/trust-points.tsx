@@ -7,21 +7,21 @@ import { DrawLine, RevealText } from "@/components/motion/reveal";
 const trustPoints = [
   {
     icon: ShieldCheck,
-    title: "Trustworthy",
+    title: "Trusted",
     description:
-      "Every order is tracked from checkout to delivery — no guesswork, no back-alley deals.",
+      "Every order gets an order number and a real person on Messenger.",
   },
   {
     icon: Zap,
     title: "Fast",
     description:
-      "Orders are picked up and fulfilled quickly, with clear status every step of the way.",
+      "Orders are picked up quickly once your payment is confirmed.",
   },
   {
     icon: Sparkles,
-    title: "Premium prices",
+    title: "Discounted prices",
     description:
-      "Discounted rates on the currencies, gamepasses, and subscriptions you already play for.",
+      "Lower prices on the gamepasses and Robux you already buy.",
   },
 ];
 
@@ -37,11 +37,11 @@ const item: Variants = {
 
 export function TrustPoints() {
   return (
-    <section className="mx-auto max-w-6xl px-6 pt-4 pb-16 sm:pb-28">
-      <h2 className="font-heading max-w-sm text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-        <RevealText text="Built like a real storefront, not a middleman." />
+    <section className="mx-auto max-w-6xl px-5 pb-12 sm:px-6 sm:pb-24">
+      <h2 className="font-heading max-w-sm text-2xl font-semibold tracking-tight text-balance sm:text-4xl">
+        <RevealText text="Why BudgetWise" />
       </h2>
-      <DrawLine className="bg-border mt-8 block h-px w-full sm:mt-12" />
+      <DrawLine className="bg-border mt-6 block h-px w-full sm:mt-10" />
 
       <motion.div
         variants={container}

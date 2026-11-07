@@ -20,6 +20,10 @@ import { Taglish } from "@/components/shared/taglish";
 import { ScreenshotLightbox } from "@/components/gamepass-tutorial/screenshot-lightbox";
 import { gamepassTutorialStages, isTallScreenshot } from "@/config/gamepass-tutorial";
 import { cn } from "@/lib/utils";
+import { getGeneralMessengerLink } from "@/lib/messenger";
+
+// Orders continue on Messenger; questions about a gamepass go there too.
+const MESSENGER_HREF = getGeneralMessengerLink() ?? "/contact";
 
 type LightboxImage = { src: string; alt: string; width: number; height: number };
 
@@ -222,10 +226,10 @@ export function GamepassTutorialClient({
           </Taglish>
 
           <Button asChild size="lg" className="mt-6 h-11 w-full">
-            <Link href="/account/orders">
+            <a href={MESSENGER_HREF} target="_blank" rel="noopener noreferrer">
               <MessageCircle className="size-4" />
-              Send your link in Order Chat
-            </Link>
+              Send your link on Messenger
+            </a>
           </Button>
           <Button asChild variant="outline" size="lg" className="mt-2.5 h-11 w-full">
             <Link href="/games">Back to Store</Link>
@@ -251,21 +255,23 @@ export function GamepassTutorialClient({
             How to Set Up Your Roblox Gamepass
           </h1>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-            Follow these steps before sending your gamepass link in your
-            Order Chat.
+            Follow these steps before sending your gamepass link on
+            Messenger.
           </p>
         </div>
-        <Link
-          href="/account/orders"
+        <a
+          href={MESSENGER_HREF}
+          target="_blank"
+          rel="noopener noreferrer"
           className="text-muted-foreground hover:text-primary hidden shrink-0 items-center gap-1 text-xs font-medium transition-colors sm:inline-flex"
         >
           <MessageCircle className="size-3.5" />
-          Need help? Open Order Chat
-        </Link>
+          Need help? Message us
+        </a>
       </div>
       <Taglish size="md">
         Sundan ang mga hakbang na ito bago mo ipadala ang link ng gamepass mo
-        sa Order Chat.
+        sa Messenger.
       </Taglish>
 
       {/* Stage stepper */}
@@ -471,13 +477,15 @@ export function GamepassTutorialClient({
           <RotateCcw className="size-3.5" />
           Restart tutorial
         </button>
-        <Link
-          href="/account/orders"
+        <a
+          href={MESSENGER_HREF}
+          target="_blank"
+          rel="noopener noreferrer"
           className="text-muted-foreground hover:text-primary inline-flex items-center gap-1.5 text-xs font-medium transition-colors sm:hidden"
         >
           <MessageCircle className="size-3.5" />
-          Need help? Open Order Chat
-        </Link>
+          Need help? Message us
+        </a>
       </div>
 
       <ScreenshotLightbox

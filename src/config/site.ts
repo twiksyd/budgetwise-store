@@ -7,7 +7,7 @@ export const siteConfig = {
   // footer, not a rotating marketing headline (that's the hero copy).
   slogan: "All about delivering value.",
   description:
-    "Premium gamepasses and in-game currencies at competitive prices with a transparent and trusted ordering experience.",
+    "Discounted Roblox gamepasses and Robux with a simple, trusted ordering experience.",
   // Shorter, slogan-led variant specifically for social share cards
   // (Open Graph / Twitter) — the main description above is tuned for
   // search snippets instead.

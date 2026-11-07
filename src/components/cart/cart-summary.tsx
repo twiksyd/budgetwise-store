@@ -31,17 +31,16 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
   const supportLink = getTikTokSupportLink();
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className="text-muted-foreground text-sm">
-          {count} item{count === 1 ? "" : "s"}
-        </span>
-        <AnimatedPrice amount={subtotal} variant="cart" />
+    <div className="flex flex-col gap-3.5">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="font-heading text-[15px] font-semibold">Total</p>
+          <p className="text-muted-foreground text-xs tabular-nums">
+            {count} item{count === 1 ? "" : "s"}
+          </p>
+        </div>
+        <AnimatedPrice amount={subtotal} variant="summary" className="text-[1.75rem]/[1]" />
       </div>
-
-      <p className="bg-amber-500/10 text-amber-950 dark:text-amber-100 border-amber-500/20 rounded-xl border px-3.5 py-2.5 text-center text-xs leading-relaxed">
-        Wala pa pong kailangang bayaran. Walang sign-in, diretso checkout na.
-      </p>
 
       {hasRobuxPlus && (
         <div className="border-red-500/25 bg-red-500/10 text-red-950 dark:text-red-100 rounded-2xl border px-3.5 py-3 text-xs leading-relaxed">
@@ -64,10 +63,11 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
       {status === "open" ? (
         <Button
           size="lg"
-          className="h-12 w-full text-[15px]"
+          // Same restrained depth and press as the homepage "Umorder Na".
+          className="h-12 w-full text-[15px] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.08),0_8px_20px_-8px_color-mix(in_oklch,var(--primary)_60%,transparent)] transition-[transform,box-shadow,background-color] duration-150 active:translate-y-px active:scale-[0.99] active:shadow-[0_1px_2px_rgba(0,0,0,0.1),0_3px_8px_-4px_color-mix(in_oklch,var(--primary)_55%,transparent)]"
           onClick={handleCheckout}
         >
-          Magpatuloy sa Checkout
+          Mag-checkout
           <ArrowRight className="size-4" />
         </Button>
       ) : (
@@ -92,9 +92,11 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
         </>
       )}
 
-      <div className="flex justify-center pt-1">
-        <SupportHelpLink />
-      </div>
+      {supportLink && (
+        <div className="flex justify-center">
+          <SupportHelpLink />
+        </div>
+      )}
     </div>
   );
 }
