@@ -7,6 +7,16 @@
     "nodejs_compat",
     "nodejs_compat_populate_process_env"
   ],
+  "base_dir": ".open-next/server-functions/default",
+  "find_additional_modules": true,
+  "preserve_file_names": true,
+  "rules": [
+    {
+      "type": "Data",
+      "globs": ["public/icons/NOBGbanner.png"],
+      "fallthrough": true
+    }
+  ],
   "workers_dev": true,
   "vars": {
     "ROBLOX_IDENTITY_SOURCE": "db"

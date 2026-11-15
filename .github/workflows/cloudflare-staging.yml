@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - codex/cloudflare-open-next-current
-    paths-ignore:
-      - .github/workflows/cloudflare-worker-diagnose.yml
   workflow_dispatch:
 
 permissions:
@@ -173,40 +171,3 @@ jobs:
           printf '%s' "$NEXT_PUBLIC_SUPABASE_URL" | pnpm exec wrangler secret put NEXT_PUBLIC_SUPABASE_URL --name budgetwise-store-staging
           printf '%s' "$PREVIEW_SUPABASE_ANON_KEY" | pnpm exec wrangler secret put NEXT_PUBLIC_SUPABASE_ANON_KEY --name budgetwise-store-staging
           printf '%s' "$SUPABASE_SERVICE_ROLE_KEY" | pnpm exec wrangler secret put SUPABASE_SERVICE_ROLE_KEY --name budgetwise-store-staging
-
-      - name: Read-only temporary Worker smoke checks
-        if: steps.credentials.outputs.ready == 'true'
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CF_STAGING_URL: ${{ steps.deploy.outputs.url }}
-        shell: bash
-        run: |
-          pnpm exec wrangler tail budgetwise-store-staging --format json > "$RUNNER_TEMP/worker-tail.jsonl" 2>&1 &
-          tail_pid=$!
-          trap 'kill "$tail_pid" 2>/dev/null || true' EXIT
-          sleep 4
-          for path in / /games /checkout /admin/login /api/reviews /api/catalog/items /api/admin/inbox; do
-            status=$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 30 "$CF_STAGING_URL$path")
-            printf '%s %s\n' "$status" "$path"
-          done
-          sleep 3
-          kill "$tail_pid" 2>/dev/null || true
-          wait "$tail_pid" 2>/dev/null || true
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          const lines = fs.readFileSync(process.env.RUNNER_TEMP + '/worker-tail.jsonl', 'utf8').split(/\r?\n/);
-          for (const line of lines) {
-            try {
-              const event = JSON.parse(line);
-              const path = event.event?.request?.url ? new URL(event.event.request.url).pathname : 'unknown';
-              const errors = (event.logs ?? []).filter((item) => item.level === 'error')
-                .map((item) => String(item.message ?? '').replace(/eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[redacted-token]'));
-              const exceptions = (event.exceptions ?? []).map((item) => `${item.name}: ${item.message}`
-                .replace(/eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[redacted-token]'));
-              if (event.cpuTime !== undefined || errors.length || exceptions.length) {
-                console.log(JSON.stringify({ path, cpuTime: event.cpuTime, outcome: event.outcome, errors, exceptions }));
-              }
-            } catch {}
-          }
-          NODE
