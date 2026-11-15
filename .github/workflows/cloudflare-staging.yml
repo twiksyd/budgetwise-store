@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - codex/cloudflare-open-next-current
+    paths-ignore:
+      - .github/workflows/cloudflare-worker-diagnose.yml
   workflow_dispatch:
 
 permissions:
