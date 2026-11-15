@@ -1,4 +1,4 @@
-name: Cloudflare staging smoke
+name: Cloudflare staging
 
 on:
   push:
@@ -14,11 +14,49 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-and-smoke:
+  linux-build-test:
+    name: Linux build and unit tests (no credentials)
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - name: Check staging-only credentials
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run order and chat unit tests
+        run: |
+          pnpm test:chat
+          pnpm test:order-integrity
+          pnpm test:order-message
+
+      - name: Build OpenNext with inert local-only Supabase placeholders
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://build-only.invalid
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-only-placeholder
+          SUPABASE_SERVICE_ROLE_KEY: build-only-placeholder
+          ROBLOX_IDENTITY_SOURCE: json
+        run: pnpm build:cloudflare
+
+  deploy-preview:
+    name: Deploy temporary Worker (staging credentials)
+    needs: linux-build-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    outputs:
+      ready: ${{ steps.credentials.outputs.ready }}
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Check deployment-only credentials
         id: credentials
         shell: bash
         env:
@@ -27,24 +65,20 @@ jobs:
           STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           STAGING_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
           STAGING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-          STAGING_ADMIN_EMAIL: ${{ secrets.STAGING_ADMIN_EMAIL }}
-          STAGING_ADMIN_PASSWORD: ${{ secrets.STAGING_ADMIN_PASSWORD }}
-          STAGING_SMOKE_ORDER_NUMBER: ${{ secrets.STAGING_SMOKE_ORDER_NUMBER }}
         run: |
           missing=()
           for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID \
             STAGING_SUPABASE_URL STAGING_SUPABASE_ANON_KEY \
-            STAGING_SUPABASE_SERVICE_ROLE_KEY STAGING_ADMIN_EMAIL \
-            STAGING_ADMIN_PASSWORD STAGING_SMOKE_ORDER_NUMBER; do
+            STAGING_SUPABASE_SERVICE_ROLE_KEY; do
             if [[ -z "${!name}" ]]; then missing+=("$name"); fi
           done
           if (( ${#missing[@]} )); then
             echo "ready=false" >> "$GITHUB_OUTPUT"
             {
-              echo "### Cloudflare staging not deployed"
-              echo "Add these repository secrets to run the Linux build and isolated staging checks:"
+              echo "### Temporary Worker not deployed"
+              echo "Add these deployment secrets to enable the separate staging deploy gate:"
               for name in "${missing[@]}"; do printf -- '- %s\n' "$name"; done
-              echo "Production secrets are not used by this workflow."
+              echo "The Linux build and unit-test job does not use these secrets."
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -71,26 +105,13 @@ jobs:
         if: steps.credentials.outputs.ready == 'true'
         run: pnpm install --frozen-lockfile
 
-      - name: Run order and chat unit tests
-        if: steps.credentials.outputs.ready == 'true'
-        run: |
-          pnpm test:chat
-          pnpm test:order-integrity
-          pnpm test:order-message
-
-      - name: Install browser for read-only staging checks
-        if: steps.credentials.outputs.ready == 'true'
-        run: pnpm dlx playwright@1.52.0 install chromium --with-deps
-
-      - name: Build OpenNext Worker with staging data only
+      - name: Build Worker with staging Supabase configuration
         if: steps.credentials.outputs.ready == 'true'
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-          ROBLOX_IDENTITY_SOURCE: db
+          ROBLOX_IDENTITY_SOURCE: json
         run: pnpm build:cloudflare
 
       - name: Ensure staging cache bucket exists
@@ -116,7 +137,7 @@ jobs:
           url=$(grep -Eo 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | tail -n 1)
           if [[ -z "$url" ]]; then echo "Could not read workers.dev URL from deploy output"; exit 1; fi
           echo "url=$url" >> "$GITHUB_OUTPUT"
-          echo "Staging URL: $url" >> "$GITHUB_STEP_SUMMARY"
+          echo "Temporary staging URL: $url" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set staging-only Worker secrets
         if: steps.credentials.outputs.ready == 'true'
@@ -132,10 +153,65 @@ jobs:
           printf '%s' "$STAGING_SUPABASE_ANON_KEY" | pnpm exec wrangler secret put NEXT_PUBLIC_SUPABASE_ANON_KEY --name budgetwise-store-staging
           printf '%s' "$STAGING_SUPABASE_SERVICE_ROLE_KEY" | pnpm exec wrangler secret put SUPABASE_SERVICE_ROLE_KEY --name budgetwise-store-staging
 
+  authenticated-smoke:
+    name: Authenticated staging smoke tests
+    needs: deploy-preview
+    if: needs.deploy-preview.outputs.ready == 'true' && needs.deploy-preview.outputs.url != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check E2E-only credentials
+        id: credentials
+        shell: bash
+        env:
+          STAGING_ADMIN_EMAIL: ${{ secrets.STAGING_ADMIN_EMAIL }}
+          STAGING_ADMIN_PASSWORD: ${{ secrets.STAGING_ADMIN_PASSWORD }}
+          STAGING_SMOKE_ORDER_NUMBER: ${{ secrets.STAGING_SMOKE_ORDER_NUMBER }}
+        run: |
+          missing=()
+          for name in STAGING_ADMIN_EMAIL STAGING_ADMIN_PASSWORD STAGING_SMOKE_ORDER_NUMBER; do
+            if [[ -z "${!name}" ]]; then missing+=("$name"); fi
+          done
+          if (( ${#missing[@]} )); then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Authenticated smoke tests not run"
+              echo "The temporary Worker is deployed. Add these E2E-only staging secrets to test admin inbox/chat:"
+              for name in "${missing[@]}"; do printf -- '- %s\n' "$name"; done
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out branch
+        if: steps.credentials.outputs.ready == 'true'
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        if: steps.credentials.outputs.ready == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+
+      - name: Set up Node.js
+        if: steps.credentials.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        if: steps.credentials.outputs.ready == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Install browser for read-only staging checks
+        if: steps.credentials.outputs.ready == 'true'
+        run: pnpm dlx playwright@1.52.0 install chromium --with-deps
+
       - name: Verify storefront, APIs, images, admin inbox/chat, and Realtime
         if: steps.credentials.outputs.ready == 'true'
         env:
-          CF_STAGING_URL: ${{ steps.deploy.outputs.url }}
+          CF_STAGING_URL: ${{ needs.deploy-preview.outputs.url }}
           STAGING_ADMIN_EMAIL: ${{ secrets.STAGING_ADMIN_EMAIL }}
           STAGING_ADMIN_PASSWORD: ${{ secrets.STAGING_ADMIN_PASSWORD }}
           STAGING_SMOKE_ORDER_NUMBER: ${{ secrets.STAGING_SMOKE_ORDER_NUMBER }}

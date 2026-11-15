@@ -14,15 +14,22 @@ The Cloudflare deployment is isolated from the existing Vercel setup. Vercel con
 
 OpenNext warns that its build toolchain is not fully compatible with Windows. The `cloudflare-staging.yml` workflow uses GitHub's Linux runner and runs only on the `codex/cloudflare-open-next-current` branch.
 
-Before the workflow can deploy, add these repository **secrets** under GitHub Settings → Secrets and variables → Actions. Use only staging project values:
+The workflow has three separate gates. The Linux build and unit tests run on every branch push without credentials, using reserved `.invalid` Supabase placeholders that cannot reach a real project. The deploy gate runs only when its deployment credentials are present. The authenticated smoke gate runs only when its E2E test credentials are present.
+
+To deploy the temporary Worker, add these repository **secrets** under GitHub Settings → Secrets and variables → Actions. Use only staging project values:
 
 - `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`
 - `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_ANON_KEY`, and `STAGING_SUPABASE_SERVICE_ROLE_KEY`
-- `STAGING_ADMIN_EMAIL`, `STAGING_ADMIN_PASSWORD`, and `STAGING_SMOKE_ORDER_NUMBER` for a staging-only admin and test conversation
 
-The workflow deliberately does not read the repository's existing `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` secrets. If a staging secret is missing, the workflow skips deployment and lists only the missing names.
+These five secrets are required for a deployed temporary Worker to serve the app with its Supabase-backed features. The service role key is a staging-only runtime credential for server-side privileged routes; it is not used by the credential-free build gate.
 
-After secrets are configured, rerun the branch's Cloudflare staging workflow. It installs dependencies on Ubuntu, runs the order/chat unit suites, builds with staging Supabase credentials, creates the dedicated R2 bucket if needed, deploys only `budgetwise-store-staging` to `workers.dev`, sets only staging secrets on that Worker, and runs `scripts/smoke-cloudflare-staging.mjs`.
+For authenticated admin inbox/chat and Realtime verification, add these three additional **E2E-only staging secrets**:
+
+- `STAGING_ADMIN_EMAIL`, `STAGING_ADMIN_PASSWORD`, and `STAGING_SMOKE_ORDER_NUMBER` for a staging-only admin and existing test conversation
+
+The workflow deliberately does not read the repository's existing `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` secrets. If deploy secrets are missing, only the deploy gate is skipped; Linux build and unit tests still run. If the three E2E-only secrets are missing, the Worker may still deploy and the authenticated smoke gate is skipped.
+
+After deployment secrets are configured, rerun the branch's Cloudflare staging workflow. The deploy gate installs dependencies on Ubuntu, builds with staging Supabase configuration, creates the dedicated R2 bucket if needed, deploys only `budgetwise-store-staging` to `workers.dev`, and sets only staging secrets on that Worker. If the E2E-only secrets are also present, the separate authenticated gate runs `scripts/smoke-cloudflare-staging.mjs`.
 
 The smoke check reads `/`, `/games`, a live `/games/<slug>` route, `/games/robux-via-link`, `/checkout`, `/api/reviews`, a malformed (non-writing) order request, image URLs, unauthenticated account/admin APIs, and an authenticated admin inbox/chat. It waits for the Realtime `Live` status and reads one staging conversation. It does not send a chat message or create an order.
 
