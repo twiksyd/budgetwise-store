@@ -8,9 +8,17 @@ import type { AdminDatabase } from "@/types/database-admin";
  * this from a Client Component or anything bundled to the browser.
  */
 export function createAdminClient() {
+  const buildMockUrl = process.env.SUPABASE_BUILD_MOCK_URL;
+  const useReadOnlyBuildMock =
+    process.env.CLOUDFLARE_BUILD === "1" && Boolean(buildMockUrl);
+
   return createSupabaseClient<AdminDatabase>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    useReadOnlyBuildMock
+      ? buildMockUrl!
+      : process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    useReadOnlyBuildMock
+      ? "build-only-placeholder"
+      : process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       auth: {
         autoRefreshToken: false,

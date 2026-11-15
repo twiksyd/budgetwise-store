@@ -14,24 +14,21 @@ The Cloudflare deployment is isolated from the existing Vercel setup. Vercel con
 
 OpenNext warns that its build toolchain is not fully compatible with Windows. The `cloudflare-staging.yml` workflow uses GitHub's Linux runner and runs only on the `codex/cloudflare-open-next-current` branch.
 
-The workflow has three separate gates. The Linux build and unit tests run on every branch push without credentials. During static generation, a read-only local Supabase mock returns empty catalog rows and an open store setting; it cannot contact or modify any Supabase project. The deploy gate runs only when its deployment credentials are present. The authenticated smoke gate runs only when its E2E test credentials are present.
+The workflow has two gates. The Linux build and unit tests run on every branch push without credentials, using the local read-only mock for both public and admin reads. The deploy gate uses the production anon key for catalog reads during static generation, while server-side admin lookups stay on the local mock to avoid store-status writes. The automated authenticated smoke test is disabled for this production-backed preview.
 
-To deploy the temporary Worker, add these repository **secrets** under GitHub Settings → Secrets and variables → Actions. Use only staging project values:
+The temporary preview Worker uses the existing production Supabase project. The required GitHub Actions secrets are:
 
 - `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`
-- `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_ANON_KEY`, and `STAGING_SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (already configured in this repository)
+- `PREVIEW_SUPABASE_ANON_KEY` (the production project's public anon key)
 
-These five secrets are required for a deployed temporary Worker to serve the app with its Supabase-backed features. The service role key is a staging-only runtime credential for server-side privileged routes; it is not used by the credential-free build gate.
+The service-role key is present on the Worker only for its existing server-side app behavior. Treat this preview URL as production-connected: signed-in admin operations, checkout writes, and chat sends can affect live data. Do not use it to create test orders or send test messages. Automated authenticated, checkout, and chat requests are intentionally not sent.
 
-For authenticated admin inbox/chat and Realtime verification, add these three additional **E2E-only staging secrets**:
+The workflow uses the existing production URL and service-role repository secrets only in the deploy gate. It never reads them in the credential-free Linux build/unit-test gate. If Cloudflare or the anon-key secret is missing, deploy is skipped while build/tests still run.
 
-- `STAGING_ADMIN_EMAIL`, `STAGING_ADMIN_PASSWORD`, and `STAGING_SMOKE_ORDER_NUMBER` for a staging-only admin and existing test conversation
+After `PREVIEW_SUPABASE_ANON_KEY` is configured, rerun the branch workflow. The deploy gate installs dependencies on Ubuntu, builds with production catalog reads and a read-only mock for status/admin lookups during prerender, creates the dedicated R2 bucket if needed, deploys only `budgetwise-store-staging` to `workers.dev`, and sets the production Supabase credentials on that temporary Worker.
 
-The workflow deliberately does not read the repository's existing `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` secrets. If deploy secrets are missing, only the deploy gate is skipped; Linux build and unit tests still run. If the three E2E-only secrets are missing, the Worker may still deploy and the authenticated smoke gate is skipped.
-
-After deployment secrets are configured, rerun the branch's Cloudflare staging workflow. The deploy gate installs dependencies on Ubuntu, builds with staging Supabase configuration, creates the dedicated R2 bucket if needed, deploys only `budgetwise-store-staging` to `workers.dev`, and sets only staging secrets on that Worker. If the E2E-only secrets are also present, the separate authenticated gate runs `scripts/smoke-cloudflare-staging.mjs`.
-
-The smoke check reads `/`, `/games`, a live `/games/<slug>` route, `/games/robux-via-link`, `/checkout`, `/api/reviews`, a malformed (non-writing) order request, image URLs, unauthenticated account/admin APIs, and an authenticated admin inbox/chat. It waits for the Realtime `Live` status and reads one staging conversation. It does not send a chat message or create an order.
+No automated requests are sent to the production-backed Worker. The existing read-only smoke script remains available for use against a staging project; it must not be run against this production-connected preview because some read flows can advance chat read cursors, and the app exposes live checkout and admin write actions.
 
 After representative requests, record Worker invocation counts and p50/p95/max CPU from Cloudflare Worker observability. Check for CPU-limit errors, failed Realtime subscriptions, API exceptions, image failures, and ISR revalidation behavior. Do not infer free-tier headroom from a short test alone; compare staging traffic and CPU against projected real daily invocations.
 
@@ -45,4 +42,4 @@ Do not attach the production hostname until staging checks pass, Cloudflare metr
 2. Deploy a separately named production Worker and a separate production cache bucket. Verify its `workers.dev` preview. Then attach the production hostnames using Cloudflare Workers custom domains; do not replace unrelated zone records.
 3. To roll back, detach the custom domain(s) from the Worker and restore the saved apex and `www` DNS records exactly, including proxy status and TTL. Remove only records/rules created for the Worker and restore any altered CAA/redirect entries from the saved export. Verify Vercel answers on both hostnames.
 
-This staging setup does not change DNS, the Vercel project, Supabase schema/data, or production Realtime/XOB behavior.
+This preview does not change DNS, the Vercel project, Supabase schema, or production Realtime/XOB behavior. Its public URL is connected to production runtime data and must be handled as a live app.
