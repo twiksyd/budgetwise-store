@@ -32,7 +32,7 @@ No automated requests are sent to the production-backed Worker. The existing rea
 
 After representative requests, record Worker invocation counts and p50/p95/max CPU from Cloudflare Worker observability. Check for CPU-limit errors, failed Realtime subscriptions, API exceptions, image failures, and ISR revalidation behavior. Do not infer free-tier headroom from a short test alone; compare staging traffic and CPU against projected real daily invocations.
 
-The R2 bucket and Durable Object queue in this config are staging-only and keep the app's 60-second ISR cache behavior. The Durable Object class migration is only for this new staging Worker. Do not run Supabase SQL or Supabase migrations as part of this deployment.
+The R2 bucket and Durable Object queue in this config are staging-only and keep the app's 60-second ISR cache behavior. A small outer Worker cache also stores anonymous HTML GET responses for `/` and `/games` for at most 30 seconds, while bypassing authenticated, RSC, prefetch, and non-HTML requests. It never caches checkout or API routes. Game and presentation data still regenerates through Next ISR every 60 seconds, and app-triggered `revalidatePath` remains enabled; the extra edge cache can therefore add at most 30 seconds of propagation delay after an admin update. The Durable Object class migration is only for this new staging Worker. Do not run Supabase SQL or Supabase migrations as part of this deployment.
 
 ## Production cutover and rollback
 
