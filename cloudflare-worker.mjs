@@ -9,7 +9,7 @@ export { DOQueueHandler, DOShardedTagCache, BucketCachePurge };
 const PUBLIC_HTML_PATHS = new Set(["/", "/games"]);
 const PUBLIC_HTML_TTL_SECONDS = 30;
 
-function isCacheableRequest(request: Request, pathname: string) {
+function isCacheableRequest(request, pathname) {
   if (request.method !== "GET" || !PUBLIC_HTML_PATHS.has(pathname)) return false;
   if (request.headers.has("cookie") || request.headers.has("authorization")) return false;
   if (request.headers.has("rsc") || request.headers.has("next-router-state-tree")) return false;
@@ -17,7 +17,7 @@ function isCacheableRequest(request: Request, pathname: string) {
   return request.headers.get("accept")?.includes("text/html") ?? false;
 }
 
-function createCacheKey(request: Request) {
+function createCacheKey(request) {
   const url = new URL(request.url);
   // The two public pages do not read search parameters. Keeping the original
   // URL in the browser preserves campaign attribution while sharing HTML.
@@ -26,7 +26,7 @@ function createCacheKey(request: Request) {
 }
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (!isCacheableRequest(request, url.pathname)) {
       return openNextWorker.fetch(request, env, ctx);
@@ -73,7 +73,6 @@ export default {
         });
         await cache.put(key, cachedResponse);
       }
-
     } catch {
       // Cache API failures must never take down the storefront.
     }
@@ -87,5 +86,3 @@ export default {
     });
   },
 };
-
-interface Env {}
