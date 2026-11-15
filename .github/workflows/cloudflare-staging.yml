@@ -197,10 +197,13 @@ jobs:
           for (const line of lines) {
             try {
               const event = JSON.parse(line);
-              if (event.outcome === 'exception') {
-                const detail = (event.exceptions ?? []).map((item) => `${item.name}: ${item.message}`).join('; ')
-                  .replace(/eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[redacted-token]');
-                console.log(`Worker exception: ${detail}`);
+              const path = event.event?.request?.url ? new URL(event.event.request.url).pathname : 'unknown';
+              const errors = (event.logs ?? []).filter((item) => item.level === 'error')
+                .map((item) => String(item.message ?? '').replace(/eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[redacted-token]'));
+              const exceptions = (event.exceptions ?? []).map((item) => `${item.name}: ${item.message}`
+                .replace(/eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[redacted-token]'));
+              if (event.cpuTime !== undefined || errors.length || exceptions.length) {
+                console.log(JSON.stringify({ path, cpuTime: event.cpuTime, outcome: event.outcome, errors, exceptions }));
               }
             } catch {}
           }
