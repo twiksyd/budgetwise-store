@@ -144,7 +144,7 @@ jobs:
             pnpm exec wrangler r2 bucket create budgetwise-store-cache-staging
           fi
 
-      - name: Deploy isolated staging Worker
+      - name: Deploy isolated Worker directly with Wrangler
         id: deploy
         if: steps.credentials.outputs.ready == 'true'
         env:
@@ -152,7 +152,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
-          pnpm deploy:cloudflare 2>&1 | tee deploy.log
+          pnpm deploy:cloudflare:direct 2>&1 | tee deploy.log
           url=$(grep -Eo 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | tail -n 1)
           if [[ -z "$url" ]]; then echo "Could not read workers.dev URL from deploy output"; exit 1; fi
           echo "url=$url" >> "$GITHUB_OUTPUT"

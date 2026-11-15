@@ -26,7 +26,7 @@ The service-role key is present on the Worker only for its existing server-side 
 
 The workflow uses the existing production URL and service-role repository secrets only in the deploy gate. It never reads them in the credential-free Linux build/unit-test gate. If Cloudflare or the anon-key secret is missing, deploy is skipped while build/tests still run.
 
-After `PREVIEW_SUPABASE_ANON_KEY` is configured, rerun the branch workflow. The deploy gate installs dependencies on Ubuntu, builds with production catalog reads and a read-only mock for status/admin lookups during prerender, creates the dedicated R2 bucket if needed, deploys only `budgetwise-store-staging` to `workers.dev`, and sets the production Supabase credentials on that temporary Worker.
+After `PREVIEW_SUPABASE_ANON_KEY` is configured and R2 is enabled, rerun the branch workflow. The deploy gate installs dependencies on Ubuntu, builds with production catalog reads and a read-only mock for status/admin lookups during prerender, creates the dedicated R2 bucket if needed, deploys only `budgetwise-store-staging` to `workers.dev` with Wrangler, and sets the production Supabase credentials on that temporary Worker. Direct Wrangler deployment skips OpenNext's remote cache prefill step, which stalled in this account; the Worker still uses the configured R2 incremental cache and it warms through normal requests.
 
 No automated requests are sent to the production-backed Worker. The existing read-only smoke script remains available for use against a staging project; it must not be run against this production-connected preview because some read flows can advance chat read cursors, and the app exposes live checkout and admin write actions.
 
