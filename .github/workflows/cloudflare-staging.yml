@@ -39,13 +39,22 @@ jobs:
           pnpm test:order-integrity
           pnpm test:order-message
 
-      - name: Build OpenNext with inert local-only Supabase placeholders
+      - name: Build OpenNext against a read-only local Supabase mock
         env:
-          NEXT_PUBLIC_SUPABASE_URL: https://build-only.invalid
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: build-only-placeholder
           SUPABASE_SERVICE_ROLE_KEY: build-only-placeholder
           ROBLOX_IDENTITY_SOURCE: json
-        run: pnpm build:cloudflare
+        shell: bash
+        run: |
+          node scripts/mock-supabase-build.mjs > "$RUNNER_TEMP/mock-supabase.log" 2>&1 &
+          mock_pid=$!
+          trap 'kill "$mock_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:54321/rest/v1/store_games >/dev/null; then break; fi
+            sleep 1
+          done
+          NEXT_TELEMETRY_DISABLED=1 pnpm build:cloudflare
 
   deploy-preview:
     name: Deploy temporary Worker (staging credentials)

@@ -14,7 +14,7 @@ The Cloudflare deployment is isolated from the existing Vercel setup. Vercel con
 
 OpenNext warns that its build toolchain is not fully compatible with Windows. The `cloudflare-staging.yml` workflow uses GitHub's Linux runner and runs only on the `codex/cloudflare-open-next-current` branch.
 
-The workflow has three separate gates. The Linux build and unit tests run on every branch push without credentials, using reserved `.invalid` Supabase placeholders that cannot reach a real project. The deploy gate runs only when its deployment credentials are present. The authenticated smoke gate runs only when its E2E test credentials are present.
+The workflow has three separate gates. The Linux build and unit tests run on every branch push without credentials. During static generation, a read-only local Supabase mock returns empty catalog rows and an open store setting; it cannot contact or modify any Supabase project. The deploy gate runs only when its deployment credentials are present. The authenticated smoke gate runs only when its E2E test credentials are present.
 
 To deploy the temporary Worker, add these repository **secrets** under GitHub Settings → Secrets and variables → Actions. Use only staging project values:
 
