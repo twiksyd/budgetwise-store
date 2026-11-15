@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "Browse every game BudgetWise supports.",
 };
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 export default async function GamesPage() {
   const [{ games }, productCounts, robuxViaLinkEnabled] = await Promise.all([

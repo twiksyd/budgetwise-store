@@ -11,7 +11,7 @@ import {
 } from "@/lib/queries/catalog";
 import { robuxGameIds } from "@/config/robux-products";
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 // One swipeable row: enough to browse, with "Lahat ng games" for the rest.
 const HOME_SHELF_SIZE = 10;
