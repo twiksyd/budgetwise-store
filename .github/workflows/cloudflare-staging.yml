@@ -43,7 +43,7 @@ jobs:
             {
               echo "### Cloudflare staging not deployed"
               echo "Add these repository secrets to run the Linux build and isolated staging checks:"
-              for name in "${missing[@]}"; do echo "- `$name`"; done
+              for name in "${missing[@]}"; do printf -- '- %s\n' "$name"; done
               echo "Production secrets are not used by this workflow."
             } >> "$GITHUB_STEP_SUMMARY"
           else
