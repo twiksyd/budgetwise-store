@@ -1,4 +1,4 @@
-name: Update Paupahan catalog
+name: Reconcile Markado catalog
 
 on:
   push:
@@ -9,11 +9,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: budgetwise-update-paupahan
+  group: budgetwise-reconcile-markado
   cancel-in-progress: false
 
 jobs:
-  update-catalog:
+  reconcile:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -26,14 +26,9 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Update and verify Paupahan
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/update-paupahan.mjs
-      - name: Check Markado through the public catalog key
+      - name: Reconcile and verify Markado
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/check-markado-public.mjs
+        run: node scripts/reconcile-markado.mjs
