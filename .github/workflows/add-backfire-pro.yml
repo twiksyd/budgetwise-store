@@ -1,0 +1,35 @@
+name: Add Drag Drive Simulator Backfire Pro
+
+on:
+  push:
+    branches:
+      - codex/catalog-backfire-pro
+
+permissions:
+  contents: read
+
+concurrency:
+  group: budgetwise-add-backfire-pro
+  cancel-in-progress: false
+
+jobs:
+  add-product:
+    name: Verify game and add one gamepass
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Add Backfire Pro only if it is missing
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/add-backfire-pro.mjs
