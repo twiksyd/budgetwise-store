@@ -38,8 +38,19 @@ The R2 bucket and Durable Object queue in this config are staging-only. Home and
 
 Do not attach the production hostname until staging checks pass, Cloudflare metrics are reviewed, and DNS rollback values are saved.
 
-1. In Cloudflare DNS, export the zone file. Separately save every record for `budgetwiseshop.com` and `www.budgetwiseshop.com`, including name, type, target/content, proxy status, TTL, and comments. Save relevant CAA records and any hostname-specific redirects or rules. Keep the Vercel project and its deployment/domain configuration intact.
-2. Deploy a separately named production Worker and a separate production cache bucket. Verify its `workers.dev` preview. Then attach the production hostnames using Cloudflare Workers custom domains; do not replace unrelated zone records.
-3. To roll back, detach the custom domain(s) from the Worker and restore the saved apex and `www` DNS records exactly, including proxy status and TTL. Remove only records/rules created for the Worker and restore any altered CAA/redirect entries from the saved export. Verify Vercel answers on both hostnames.
+The DNS screen supplied on 2026-11-16 shows two records in the zone:
+
+| Name | Type | Content | Proxy | TTL |
+| --- | --- | --- | --- | --- |
+| `budgetwiseshop.com` | CNAME | `budgetwise-store.vercel.app` | Proxied | Auto |
+| `budgetwiseshop.com` | TXT | Google site verification (value truncated in screenshot) | DNS only | 1 hour |
+
+There is no `www` record in that screen. The TXT record must be left untouched. Before cutover, use **Export** on the DNS page to save the full zone file, confirm the records still match this snapshot, and save any hostname redirects or rules. Keep the Vercel project, deployment, and domain configuration intact.
+
+1. Deploy a separately named production Worker and production cache bucket. Verify its `workers.dev` URL and confirm the Workers Paid plan is active on the deployment account.
+2. At cutover, delete only the apex CNAME pointing to `budgetwise-store.vercel.app`. Cloudflare does not allow a Worker custom domain on a hostname with an existing CNAME. Attach `budgetwiseshop.com` as a custom domain to the verified production Worker; Cloudflare creates the Worker DNS record and certificate. Verify the apex site and key public routes immediately. Do not alter the TXT record or add `www` as part of this cutover.
+3. To roll back, detach `budgetwiseshop.com` from the Worker and restore the apex CNAME: name `budgetwiseshop.com`, target `budgetwise-store.vercel.app`, **Proxied**, TTL **Auto**. Leave the TXT record intact. Verify the apex again reaches Vercel. If DNS or rules changed after the saved export, compare and restore those separately.
+
+Cloudflare custom-domain behavior: https://developers.cloudflare.com/workers/configuration/routing/custom-domains/
 
 This preview does not change DNS, the Vercel project, Supabase schema, or production Realtime/XOB behavior. Its public URL is connected to production runtime data and must be handled as a live app.
