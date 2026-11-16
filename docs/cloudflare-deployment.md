@@ -55,6 +55,8 @@ There is no `www` record in that screen. The TXT record must be left untouched. 
 2. Prefer a Cloudflare Worker **Route** on `budgetwiseshop.com/*` pointing to `budgetwise-store-production`. The apex CNAME is already proxied, which satisfies the route's DNS requirement. This leaves both DNS records unchanged and retains Vercel as the origin when the route is removed. The route list was empty before cutover. Save the created route ID and check the apex pages, API, and images immediately.
 3. To roll back, delete only the route ID created in step 2. The existing apex CNAME to `budgetwise-store.vercel.app` remains in place with **Proxied** and **Auto** TTL. Verify the route list is empty and the apex returns to Vercel. If Vercel still responds 402, the rollback has restored routing but the paused Vercel project must be resumed before it can serve customers.
 
+Cutover completed 2026-11-16 04:18 UTC. Route ID: `46f246b175b84dcab89030be278835d0`, pattern `budgetwiseshop.com/*`, script `budgetwise-store-production`. The route list had been empty. Immediately afterward, `/`, `/games`, `/admin/login`, `/api/catalog/items`, and `/icons/NOBGbanner.png` each returned HTTP 200 on the apex. No DNS record was changed. Do not exercise checkout or authenticated write actions against production merely for smoke testing.
+
 Cloudflare Worker route behavior: https://developers.cloudflare.com/workers/configuration/routing/routes/
 
 This preview does not change DNS, the Vercel project, Supabase schema, or production Realtime/XOB behavior. Its public URL is connected to production runtime data and must be handled as a live app.
