@@ -1,4 +1,4 @@
-name: Inspect Mangingisda catalog
+name: Add Mangingisda catalog
 
 on:
   push:
@@ -8,8 +8,12 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: budgetwise-add-mangingisda
+  cancel-in-progress: false
+
 jobs:
-  inspect:
+  add-catalog:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -22,8 +26,9 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Read existing games and passes
+      - name: Add and verify Mangingisda
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/inspect-mangingisda.mjs
+        run: node scripts/add-mangingisda.mjs
