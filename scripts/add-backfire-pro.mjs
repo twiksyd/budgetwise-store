@@ -21,11 +21,11 @@ const supabase = createClient(url, key, {
 
 const { data: game, error: gameError } = await supabase
   .from("games")
-  .select("id,name,slug")
+  .select("id,name")
   .eq("id", gameId)
   .single();
 if (gameError) throw gameError;
-if (game.name.trim().toLowerCase() !== "drag drive simulator" || game.slug !== "drag-drive-simulator") {
+if (game.name.trim().toLowerCase() !== "drag drive simulator") {
   throw new Error("The target game ID does not match Drag Drive Simulator");
 }
 
