@@ -1,0 +1,34 @@
+name: Set Mangingisda official icon
+
+on:
+  push:
+    branches:
+      - codex/catalog-mangingisda-icon
+
+permissions:
+  contents: read
+
+concurrency:
+  group: budgetwise-set-mangingisda-icon
+  cancel-in-progress: false
+
+jobs:
+  set-icon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Set and verify official game icon
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/set-mangingisda-icon.mjs
