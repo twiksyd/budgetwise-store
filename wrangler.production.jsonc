@@ -1,0 +1,54 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "budgetwise-store-production",
+  "main": "cloudflare-worker.mjs",
+  "compatibility_date": "2026-11-15",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "nodejs_compat_populate_process_env"
+  ],
+  "base_dir": ".open-next/server-functions/default",
+  "find_additional_modules": true,
+  "preserve_file_names": true,
+  "rules": [
+    {
+      "type": "Data",
+      "globs": ["public/icons/NOBGbanner.png"],
+      "fallthrough": true
+    }
+  ],
+  "workers_dev": true,
+  "vars": {
+    "ROBLOX_IDENTITY_SOURCE": "db"
+  },
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "budgetwise-store-production"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "budgetwise-store-cache-production"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "NEXT_CACHE_DO_QUEUE",
+        "class_name": "DOQueueHandler"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["DOQueueHandler"]
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+name: Cloudflare production Worker preparation
+
+on:
+  push:
+    branches:
+      - codex/cloudflare-production-prep
+
+permissions:
+  contents: read
+
+concurrency:
+  group: budgetwise-cloudflare-production-prep
+  cancel-in-progress: false
+
+jobs:
+  deploy-production-worker:
+    name: Build and deploy production Worker without domain
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Check deployment credentials
+        shell: bash
+        run: |
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID \
+            NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY \
+            SUPABASE_SERVICE_ROLE_KEY; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing GitHub Actions secret: $name" >&2
+              exit 1
+            fi
+          done
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run order and chat unit tests
+        run: |
+          pnpm test:chat
+          pnpm test:order-integrity
+          pnpm test:order-message
+
+      - name: Build Worker with catalog reads and read-only admin build mock
+        shell: bash
+        env:
+          SUPABASE_BUILD_MOCK_URL: http://127.0.0.1:54321
+          ROBLOX_IDENTITY_SOURCE: json
+        run: |
+          node scripts/mock-supabase-build.mjs > "$RUNNER_TEMP/mock-supabase.log" 2>&1 &
+          mock_pid=$!
+          trap 'kill "$mock_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:54321/rest/v1/store_games >/dev/null; then break; fi
+            sleep 1
+          done
+          NEXT_TELEMETRY_DISABLED=1 pnpm build:cloudflare
+
+      - name: Ensure production cache bucket exists
+        shell: bash
+        run: |
+          if ! pnpm exec wrangler r2 bucket list | grep -Fq 'budgetwise-store-cache-production'; then
+            pnpm exec wrangler r2 bucket create budgetwise-store-cache-production
+          fi
+
+      - name: Prepopulate production ISR cache
+        timeout-minutes: 8
+        run: pnpm exec opennextjs-cloudflare populateCache remote --config wrangler.production.jsonc
+
+      - name: Deploy production Worker to workers.dev only
+        id: deploy
+        shell: bash
+        run: |
+          OPEN_NEXT_DEPLOY=true pnpm exec wrangler deploy --config wrangler.production.jsonc 2>&1 | tee deploy.log
+          url=$(grep -Eo 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | tail -n 1)
+          if [[ -z "$url" ]]; then echo "Could not read workers.dev URL" >&2; exit 1; fi
+          echo "Production Worker temporary URL: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set production Supabase runtime secrets
+        shell: bash
+        run: |
+          printf '%s' "$NEXT_PUBLIC_SUPABASE_URL" | pnpm exec wrangler secret put NEXT_PUBLIC_SUPABASE_URL --name budgetwise-store-production
+          printf '%s' "$NEXT_PUBLIC_SUPABASE_ANON_KEY" | pnpm exec wrangler secret put NEXT_PUBLIC_SUPABASE_ANON_KEY --name budgetwise-store-production
+          printf '%s' "$SUPABASE_SERVICE_ROLE_KEY" | pnpm exec wrangler secret put SUPABASE_SERVICE_ROLE_KEY --name budgetwise-store-production
