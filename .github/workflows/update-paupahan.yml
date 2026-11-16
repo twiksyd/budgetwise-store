@@ -1,4 +1,4 @@
-name: Correct Markado name and inspect Paupahan
+name: Update Paupahan catalog
 
 on:
   push:
@@ -8,8 +8,12 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: budgetwise-update-paupahan
+  cancel-in-progress: false
+
 jobs:
-  correct-and-inspect:
+  update-catalog:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -22,8 +26,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Correct game name and read Paupahan products
+      - name: Update and verify Paupahan
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/fix-markado-inspect-paupahan.mjs
+        run: node scripts/update-paupahan.mjs
