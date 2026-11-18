@@ -172,3 +172,7 @@ console.log(JSON.stringify({ totals: report.totals, checkedPrices: report.checke
   priceMismatch: report.priceMismatch.length, costMismatch: report.costMismatch.length,
   extras: report.extras.length, checkoutApiMismatch: report.checkoutApiMismatch.length,
   excludedUnchangedGames: report.excludedUnchangedGames.length }));
+if (report.priceMismatch.length || report.costMismatch.length || report.duplicateGameSlugs.length ||
+  report.duplicatePublicPasses.length || report.checkoutApiMismatch.length) {
+  throw new Error("The public catalog contains a mismatched price, cost, duplicate, or checkout item");
+}
