@@ -1,0 +1,34 @@
+name: Hide 2x Kendi and verify remaining products
+
+on:
+  push:
+    branches:
+      - codex/catalog-hide-2x-kendi
+
+permissions:
+  contents: read
+
+concurrency:
+  group: budgetwise-hide-2x-kendi
+  cancel-in-progress: false
+
+jobs:
+  hide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Hide and verify 2x Kendi only
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/hide-2x-kendi.mjs
