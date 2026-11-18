@@ -4,15 +4,21 @@ import { readFileSync } from "node:fs";
 // One-time guarded write for the read-only audit captured on 2026-11-18.
 // Only existing, listed, available passes are repriced. No games or passes
 // are created, hidden, deleted, or given a different Robux amount.
-const plan = JSON.parse(readFileSync("scripts/data/catalog-reprice-plan-2026-11-18.json", "utf8"));
-const sheet = JSON.parse(readFileSync("scripts/data/catalog-reprice-2026-11-18.json", "utf8"));
+const followup = process.env.REPRICE_FOLLOWUP === "1";
+const plan = JSON.parse(readFileSync(followup
+  ? "scripts/data/catalog-reprice-followup-plan-2026-11-18.json"
+  : "scripts/data/catalog-reprice-plan-2026-11-18.json", "utf8"));
+const sheet = JSON.parse(readFileSync(followup
+  ? "scripts/data/catalog-reprice-followup-2026-11-18.json"
+  : "scripts/data/catalog-reprice-2026-11-18.json", "utf8"));
 const norm = (value) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-const blockedGames = new Set([
+const blockedGames = new Set(followup ? [] : [
   "robux sell", "blox burg", "midnight chasers", "run a restaurant",
   "strongest battlegrounds", "evade", "markado", "anime adventures",
   "ghost driver", "iron soul dungeon",
 ]);
-if (plan.updates.length !== 239 || new Set(plan.updates.map((item) => item.id)).size !== 239) {
+const expectedCount = followup ? 64 : 239;
+if (plan.updates.length !== expectedCount || new Set(plan.updates.map((item) => item.id)).size !== expectedCount) {
   throw new Error("Unexpected repricing plan size or duplicate pass IDs");
 }
 for (const item of plan.updates) {
@@ -59,6 +65,15 @@ const [games, publicGames] = await Promise.all([
 ]);
 if (games.length !== gameIds.length || publicGames.length !== gameIds.length) {
   throw new Error("A planned game is missing from the public or raw catalog; no writes made");
+}
+if (followup) {
+  const { data: markado, error } = await publicClient.from("store_games")
+    .select("id,name,slug").eq("slug", "markado");
+  if (error) throw error;
+  const plannedMarkado = plan.updates.find((item) => item.game === "Markado");
+  if (markado.length !== 1 || markado[0].id !== plannedMarkado?.gameId) {
+    throw new Error("Markado public page is ambiguous; no writes made");
+  }
 }
 const rawById = new Map(raw.map((item) => [item.id, item]));
 const publicById = new Map(publicPasses.map((item) => [item.id, item]));
