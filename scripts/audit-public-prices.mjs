@@ -9,6 +9,25 @@ const aliases = new Map([
   ["bloxfruit", "blox fruits"],
   ["blox burg", "bloxburg"],
 ]);
+const unchangedGames = new Set(["blox burg", "midnight chasers", "run a restaurant", "strongest battlegrounds", "evade"]);
+const passAliases = new Map([
+  ["anime expedition|premium bp", "premium battlepass"],
+  ["anime expedition|2500 villain coins", "2 500 villain coins"],
+  ["anime expedition|7500villain coins", "7 500 villain coins"],
+  ["anime expedition|25000villain coins", "25 000 villain coins"],
+  ["anime expedition|75000villain coins", "75 000 villain coins"],
+  ["ihaw ihaw|hachiware set", "haciware set"],
+  ["ihaw ihaw|orchid contour set", "orchid countour set"],
+  ["ihaw ihaw|sampaguite suite", "sampaguita suite"],
+  ["ihaw ihaw|500", "tier 1 pesos 500"],
+  ["ihaw ihaw|2 000", "tier 2 pesos 2000"],
+  ["ihaw ihaw|6 000", "tier 3 pesos 6000"],
+  ["ihaw ihaw|15 000", "tier 4 pesos 15000"],
+  ["ihaw ihaw|40 000", "tier 5 pesos 40000"],
+]);
+function catalogPassName(game, sheetPass) {
+  return passAliases.get(`${norm(game)}|${norm(sheetPass)}`) ?? norm(sheetPass);
+}
 const sections = new Map();
 const sheetConflicts = [];
 for (const section of original) {
@@ -54,7 +73,7 @@ const report = {
     publicPasses: passes.length, sheetGames: sections.size },
   sheetConflicts,
   duplicateGameSlugs: [], duplicatePublicPasses: [], duplicateRawPasses: [],
-  missingGames: [], missingPasses: [], unavailable: [], robuxMismatch: [],
+  excludedUnchangedGames: [], missingGames: [], missingPasses: [], unavailable: [], robuxMismatch: [],
   priceMismatch: [], costMismatch: [], extras: [], checkoutApiMismatch: [],
   checkedPrices: 0,
 };
@@ -67,11 +86,16 @@ function duplicates(rows, makeKey, destination) {
   for (const [key, group] of byKey) if (group.length > 1) destination.push({ key, ids: group.map((row) => row.id), names: group.map((row) => row.name) });
 }
 duplicates(games, (game) => game.slug, report.duplicateGameSlugs);
-duplicates(passes, (pass) => `${pass.game_id}|${norm(pass.display_name || pass.name)}`, report.duplicatePublicPasses);
+duplicates(passes.filter((pass) => publicGameById.get(pass.game_id)?.availability_status === "available"),
+  (pass) => `${pass.game_id}|${norm(pass.display_name || pass.name)}|${pass.robux_amount}`, report.duplicatePublicPasses);
 duplicates(rawPasses, (pass) => `${pass.game_id}|${norm(pass.name)}`, report.duplicateRawPasses);
 
 const coveredGameIds = new Set();
 for (const section of sections.values()) {
+  if (unchangedGames.has(norm(section.game))) {
+    report.excludedUnchangedGames.push(section.game);
+    continue;
+  }
   const target = aliases.get(norm(section.game)) ?? norm(section.game);
   const matchingGames = games.filter((game) => norm(game.name) === target);
   if (matchingGames.length !== 1) {
@@ -81,13 +105,14 @@ for (const section of sections.values()) {
   const game = matchingGames[0];
   coveredGameIds.add(game.id);
   const listed = passes.filter((pass) => pass.game_id === game.id);
-  const expectedKeys = new Set(section.rows.map((row) => `${norm(row.name)}|${row.robux}`));
+  const expectedKeys = new Set(section.rows.map((row) => `${catalogPassName(section.game, row.name)}|${row.robux}`));
   for (const row of section.rows) {
     const item = { game: game.name, pass: row.name, robux: row.robux, expectedPrice: row.price, expectedCost: row.cost };
-    const sameName = listed.filter((pass) => norm(pass.display_name || pass.name) === norm(row.name));
+    const expectedName = catalogPassName(section.game, row.name);
+    const sameName = listed.filter((pass) => norm(pass.display_name || pass.name) === expectedName);
     const exact = sameName.filter((pass) => pass.robux_amount === row.robux);
     if (exact.length !== 1) {
-      const rawName = rawPasses.filter((pass) => pass.game_id === game.id && norm(pass.name) === norm(row.name));
+      const rawName = rawPasses.filter((pass) => pass.game_id === game.id && norm(pass.name) === expectedName);
       if (sameName.length || rawName.length) {
         report.robuxMismatch.push({ ...item, publicRobux: sameName.map((pass) => pass.robux_amount), rawRobux: rawName.map((pass) => pass.robux_amount) });
       } else report.missingPasses.push(item);
@@ -145,4 +170,5 @@ console.log(JSON.stringify({ totals: report.totals, checkedPrices: report.checke
   missingGames: report.missingGames.length, missingPasses: report.missingPasses.length,
   unavailable: report.unavailable.length, robuxMismatch: report.robuxMismatch.length,
   priceMismatch: report.priceMismatch.length, costMismatch: report.costMismatch.length,
-  extras: report.extras.length, checkoutApiMismatch: report.checkoutApiMismatch.length }));
+  extras: report.extras.length, checkoutApiMismatch: report.checkoutApiMismatch.length,
+  excludedUnchangedGames: report.excludedUnchangedGames.length }));
