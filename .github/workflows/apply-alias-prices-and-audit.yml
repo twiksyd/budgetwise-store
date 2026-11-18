@@ -1,4 +1,4 @@
-name: Audit public catalog and checkout prices
+name: Fix existing alias prices and audit public catalog
 
 on:
   push:
@@ -8,10 +8,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: budgetwise-alias-price-audit
+  cancel-in-progress: false
+
 jobs:
-  audit:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -22,7 +26,13 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Read catalog and checkout prices
+      - name: Reprice twelve existing passes with alternate names
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/apply-catalog-alias-prices.mjs
+      - name: Audit all public and checkout prices again
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
@@ -30,5 +40,5 @@ jobs:
         run: node scripts/audit-public-prices.mjs
       - uses: actions/upload-artifact@v4
         with:
-          name: catalog-public-price-audit
+          name: catalog-public-price-audit-after-fixes
           path: catalog-public-price-audit.json
