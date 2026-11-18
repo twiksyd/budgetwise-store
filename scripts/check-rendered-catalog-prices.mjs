@@ -16,11 +16,21 @@ const slug = (name) => name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
 const games = [...new Set(rows.map((row) => row.game))];
 const results = [];
 
+async function fetchHtml(url) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await fetch(url, { headers: { Accept: "text/html" } });
+      if (response.status >= 500 && attempt < 3) throw new Error(`HTTP ${response.status}`);
+      return { response, html: await response.text() };
+    } catch (error) {
+      if (attempt === 3) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+}
+
 for (const game of games) {
-  const response = await fetch(`https://budgetwiseshop.com/games/${slug(game)}`, {
-    headers: { Accept: "text/html" },
-  });
-  const html = await response.text();
+  const { response, html } = await fetchHtml(`https://budgetwiseshop.com/games/${slug(game)}`);
   const missing = [];
   const wrong = [];
   for (const row of rows.filter((item) => item.game === game)) {
