@@ -1,0 +1,35 @@
+name: Audit followup game repricing
+
+on:
+  push:
+    branches:
+      - codex/catalog-reprice-followup
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Compare four games without writing
+        env:
+          REPRICE_FOLLOWUP: '1'
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/audit-catalog-reprice.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catalog-reprice-followup-audit
+          path: catalog-reprice-followup-audit.json

@@ -1,7 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync, writeFileSync } from "node:fs";
 
-const sections = JSON.parse(readFileSync("scripts/data/catalog-reprice-2026-11-18.json", "utf8"));
+const followup = process.env.REPRICE_FOLLOWUP === "1";
+const sections = JSON.parse(readFileSync(followup
+  ? "scripts/data/catalog-reprice-followup-2026-11-18.json"
+  : "scripts/data/catalog-reprice-2026-11-18.json", "utf8"));
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -13,7 +16,8 @@ const gameAliases = new Map([
   ["keyboard escape candy chocolate dc acc", "keyboard escape candy chocolate"],
   ["bloxfruit", "blox fruits"],
 ]);
-const skipEntirely = new Set(["robux sell", "blox burg", "midnight chasers", "run a restaurant", "strongest battlegrounds", "evade", "markado"]);
+const skipEntirely = new Set(followup ? [] :
+  ["robux sell", "blox burg", "midnight chasers", "run a restaurant", "strongest battlegrounds", "evade", "markado"]);
 
 async function allRows(client, table, columns) {
   const rows = [];
@@ -39,6 +43,12 @@ const [games, passes, listedGames, listedPasses] = await Promise.all([
 ]);
 const listedGameIds = new Set(listedGames.map((game) => game.id));
 const listedPassIds = new Set(listedPasses.map((pass) => pass.id));
+if (followup) {
+  const markado = listedGames.filter((game) => game.slug === "markado");
+  if (markado.length !== 1 || markado[0].name !== "Markado") {
+    throw new Error("Markado must have exactly one public game page");
+  }
+}
 const frequency = new Map();
 for (const section of sections) frequency.set(norm(section.game), (frequency.get(norm(section.game)) ?? 0) + 1);
 const plan = { generatedAt: new Date().toISOString(), updates: [], skipped: [] };
@@ -85,7 +95,7 @@ for (const section of sections) {
       price: row.price, cost: row.cost });
   }
 }
-writeFileSync("catalog-reprice-audit.json", JSON.stringify(plan, null, 2));
+writeFileSync(followup ? "catalog-reprice-followup-audit.json" : "catalog-reprice-audit.json", JSON.stringify(plan, null, 2));
 const skipCounts = Object.fromEntries([...new Set(plan.skipped.map((item) => item.reason))]
   .map((reason) => [reason, plan.skipped.filter((item) => item.reason === reason).length]));
 console.log(JSON.stringify({ games: games.length, passes: passes.length, sheetSections: sections.length,

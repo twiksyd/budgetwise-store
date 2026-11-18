@@ -1,0 +1,538 @@
+[
+  {
+    "game": "Anime adventures",
+    "note": "",
+    "rows": [
+      {
+        "robux": 299,
+        "name": "VIP",
+        "price": 119,
+        "cost": 98.67,
+        "sheetProfit": "20.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 99,
+        "name": "Unit Storage",
+        "price": 44,
+        "cost": 32.67,
+        "sheetProfit": "11.33",
+        "rating": "Okay"
+      },
+      {
+        "robux": 1299,
+        "name": "Shiny Hunter",
+        "price": 510,
+        "cost": 428.67,
+        "sheetProfit": "81.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 199,
+        "name": "Display 3 Units",
+        "price": 85,
+        "cost": 65.67,
+        "sheetProfit": "19.33",
+        "rating": "Okay"
+      },
+      {
+        "robux": 699,
+        "name": "Display All Units",
+        "price": 275,
+        "cost": 230.67,
+        "sheetProfit": "44.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 129,
+        "name": "Trait Reroll",
+        "price": 57,
+        "cost": 42.57,
+        "sheetProfit": "14.43",
+        "rating": "Okay"
+      },
+      {
+        "robux": 999,
+        "name": "10x Trait Reroll",
+        "price": 390,
+        "cost": 329.67,
+        "sheetProfit": "60.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 4500,
+        "name": "50x Trait Reroll",
+        "price": 1790,
+        "cost": 1485,
+        "sheetProfit": "305.00",
+        "rating": "Good"
+      },
+      {
+        "robux": 7999,
+        "name": "100x Trait Reroll",
+        "price": 3190,
+        "cost": 2639.67,
+        "sheetProfit": "550.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 400,
+        "name": "Gems ( Medium )",
+        "price": 155,
+        "cost": 132,
+        "sheetProfit": "23.00",
+        "rating": "Good"
+      },
+      {
+        "robux": 800,
+        "name": "Gems ( Large )",
+        "price": 310,
+        "cost": 264,
+        "sheetProfit": "46.00",
+        "rating": "Good"
+      },
+      {
+        "robux": 1600,
+        "name": "Gems ( Huge )",
+        "price": 630,
+        "cost": 528,
+        "sheetProfit": "102.00",
+        "rating": "Good"
+      },
+      {
+        "robux": 799,
+        "name": "Premium Pass",
+        "price": 310,
+        "cost": 263.67,
+        "sheetProfit": "46.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 999,
+        "name": "Skip 10 Levels",
+        "price": 390,
+        "cost": 329.67,
+        "sheetProfit": "60.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 80,
+        "name": "Summer Pearls Mini",
+        "price": 31,
+        "cost": 26.4,
+        "sheetProfit": "4.60",
+        "rating": "Bad"
+      },
+      {
+        "robux": 250,
+        "name": "Summer Pearls Small",
+        "price": 110,
+        "cost": 82.5,
+        "sheetProfit": "27.50",
+        "rating": "Good"
+      },
+      {
+        "robux": 400,
+        "name": "Summer Pearls Medium",
+        "price": 155,
+        "cost": 132,
+        "sheetProfit": "23.00",
+        "rating": "Good"
+      },
+      {
+        "robux": 800,
+        "name": "Summer Pearls Large",
+        "price": 310,
+        "cost": 264,
+        "sheetProfit": "46.00",
+        "rating": "Good"
+      },
+      {
+        "robux": 1600,
+        "name": "Summer Pearls Huge",
+        "price": 630,
+        "cost": 528,
+        "sheetProfit": "102.00",
+        "rating": "Good"
+      },
+      {
+        "robux": 19999,
+        "name": "Grand Return Bundle",
+        "price": 7990,
+        "cost": 6599.67,
+        "sheetProfit": "1390.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 9999,
+        "name": "Summer Bundle #3",
+        "price": 3990,
+        "cost": 3299.67,
+        "sheetProfit": "690.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 5999,
+        "name": "Summer Bundle #2",
+        "price": 2390,
+        "cost": 1979.67,
+        "sheetProfit": "410.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 3999,
+        "name": "Summer Bundle #1",
+        "price": 1590,
+        "cost": 1319.67,
+        "sheetProfit": "270.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 999,
+        "name": "Starter bundle",
+        "price": 390,
+        "cost": 329.67,
+        "sheetProfit": "60.33",
+        "rating": "Good"
+      }
+    ]
+  },
+  {
+    "game": "Ghost Driver",
+    "note": "",
+    "rows": [
+      {
+        "robux": 149,
+        "name": "Customer number plate",
+        "price": 65,
+        "cost": 49.17,
+        "sheetProfit": "15.83",
+        "rating": "Okay"
+      },
+      {
+        "robux": 79,
+        "name": "Mobile Customisation",
+        "price": 31,
+        "cost": 26.07,
+        "sheetProfit": "4.93",
+        "rating": "Bad"
+      },
+      {
+        "robux": 99,
+        "name": "Police siren pass",
+        "price": 44,
+        "cost": 32.67,
+        "sheetProfit": "11.33",
+        "rating": "Okay"
+      },
+      {
+        "robux": 99,
+        "name": "RGB Lighting",
+        "price": 44,
+        "cost": 32.67,
+        "sheetProfit": "11.33",
+        "rating": "Okay"
+      },
+      {
+        "robux": 149,
+        "name": "Global Radio Pass",
+        "price": 65,
+        "cost": 49.17,
+        "sheetProfit": "15.83",
+        "rating": "Okay"
+      },
+      {
+        "robux": 399,
+        "name": "Stage 4 tuning",
+        "price": 155,
+        "cost": 131.67,
+        "sheetProfit": "23.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 199,
+        "name": "Underglow pass",
+        "price": 85,
+        "cost": 65.67,
+        "sheetProfit": "19.33",
+        "rating": "Okay"
+      },
+      {
+        "robux": 49,
+        "name": "30K",
+        "price": 20,
+        "cost": 16.17,
+        "sheetProfit": "3.83",
+        "rating": "Bad"
+      },
+      {
+        "robux": 159,
+        "name": "130K",
+        "price": 69,
+        "cost": 52.47,
+        "sheetProfit": "16.53",
+        "rating": "Okay"
+      },
+      {
+        "robux": 319,
+        "name": "280K",
+        "price": 127,
+        "cost": 105.27,
+        "sheetProfit": "21.73",
+        "rating": "Good"
+      },
+      {
+        "robux": 639,
+        "name": "580K",
+        "price": 251,
+        "cost": 210.87,
+        "sheetProfit": "40.13",
+        "rating": "Good"
+      },
+      {
+        "robux": 1399,
+        "name": "1.3M",
+        "price": 550,
+        "cost": 461.67,
+        "sheetProfit": "88.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 3699,
+        "name": "3.5M",
+        "price": 1470,
+        "cost": 1220.67,
+        "sheetProfit": "249.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 49,
+        "name": "2x Cash Boost",
+        "price": 20,
+        "cost": 16.17,
+        "sheetProfit": "3.83",
+        "rating": "Bad"
+      },
+      {
+        "robux": 60,
+        "name": "2x XP + Cash Boost",
+        "price": 23,
+        "cost": 19.8,
+        "sheetProfit": "3.20",
+        "rating": "Bad"
+      },
+      {
+        "robux": 29,
+        "name": "2x XP Boost",
+        "price": 11,
+        "cost": 9.57,
+        "sheetProfit": "1.43",
+        "rating": "Bad"
+      },
+      {
+        "robux": 199,
+        "name": "Starter Pack",
+        "price": 85,
+        "cost": 65.67,
+        "sheetProfit": "19.33",
+        "rating": "Okay"
+      }
+    ]
+  },
+  {
+    "game": "Iron soul dungeon",
+    "note": "",
+    "rows": [
+      {
+        "robux": 2399,
+        "name": "super vip",
+        "price": 950,
+        "cost": 791.67,
+        "sheetProfit": "158.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 399,
+        "name": "vip",
+        "price": 155,
+        "cost": 131.67,
+        "sheetProfit": "23.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 499,
+        "name": "skip forge",
+        "price": 195,
+        "cost": 164.67,
+        "sheetProfit": "30.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 399,
+        "name": "extra ores drop",
+        "price": 155,
+        "cost": 131.67,
+        "sheetProfit": "23.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 299,
+        "name": "Double Ticket Use",
+        "price": 119,
+        "cost": 98.67,
+        "sheetProfit": "20.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 499,
+        "name": "Forge Luck",
+        "price": 195,
+        "cost": 164.67,
+        "sheetProfit": "30.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 599,
+        "name": "EXP Boost",
+        "price": 235,
+        "cost": 197.67,
+        "sheetProfit": "37.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 199,
+        "name": "Extra Ores Storage",
+        "price": 85,
+        "cost": 65.67,
+        "sheetProfit": "19.33",
+        "rating": "Okay"
+      },
+      {
+        "robux": 199,
+        "name": "Extra Material Storage",
+        "price": 85,
+        "cost": 65.67,
+        "sheetProfit": "19.33",
+        "rating": "Okay"
+      },
+      {
+        "robux": 349,
+        "name": "Super Extra Storage",
+        "price": 139,
+        "cost": 115.17,
+        "sheetProfit": "23.83",
+        "rating": "Good"
+      },
+      {
+        "robux": 499,
+        "name": "Gold Boost",
+        "price": 195,
+        "cost": 164.67,
+        "sheetProfit": "30.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 4999,
+        "name": "premium pass + skips",
+        "price": 1990,
+        "cost": 1649.67,
+        "sheetProfit": "340.33",
+        "rating": "Good"
+      }
+    ]
+  },
+  {
+    "game": "Markado",
+    "note": "",
+    "rows": [
+      {
+        "robux": 199,
+        "name": "Inferno Stall",
+        "price": 85,
+        "cost": 65.67,
+        "sheetProfit": "19.33",
+        "rating": "Okay"
+      },
+      {
+        "robux": 299,
+        "name": "Autumn Wings",
+        "price": 119,
+        "cost": 98.67,
+        "sheetProfit": "20.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 299,
+        "name": "Mystic Wings",
+        "price": 119,
+        "cost": 98.67,
+        "sheetProfit": "20.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 399,
+        "name": "Mystic Staff",
+        "price": 155,
+        "cost": 131.67,
+        "sheetProfit": "23.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 499,
+        "name": "Mystic Bundle",
+        "price": 195,
+        "cost": 164.67,
+        "sheetProfit": "30.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 599,
+        "name": "Hellfire Horse",
+        "price": 235,
+        "cost": 197.67,
+        "sheetProfit": "37.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 299,
+        "name": "Guardian Sword",
+        "price": 119,
+        "cost": 98.67,
+        "sheetProfit": "20.33",
+        "rating": "Good"
+      },
+      {
+        "robux": 99,
+        "name": "VIP",
+        "price": 44,
+        "cost": 32.67,
+        "sheetProfit": "11.33",
+        "rating": "Okay"
+      },
+      {
+        "robux": 149,
+        "name": "2x Cash",
+        "price": 65,
+        "cost": 49.17,
+        "sheetProfit": "15.83",
+        "rating": "Okay"
+      },
+      {
+        "robux": 79,
+        "name": "Bigger Stock",
+        "price": 31,
+        "cost": 26.07,
+        "sheetProfit": "4.93",
+        "rating": "Bad"
+      },
+      {
+        "robux": 299,
+        "name": "Quick Buy",
+        "price": 119,
+        "cost": 98.67,
+        "sheetProfit": "20.33",
+        "rating": "Good"
+      }
+    ]
+  }
+]
