@@ -1,0 +1,36 @@
+name: Add Pa Deliber Santa's Sleigh
+
+on:
+  push:
+    branches:
+      - codex/catalog-pa-deliber-santas-sleigh
+
+permissions:
+  contents: read
+
+concurrency:
+  group: budgetwise-add-pa-deliber-santas-sleigh
+  cancel-in-progress: false
+
+jobs:
+  add-product:
+    name: Verify Pa Deliber and add one gamepass
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Add and verify Santa's Sleigh
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/add-pa-deliber-santas-sleigh.mjs
