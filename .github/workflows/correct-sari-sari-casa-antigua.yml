@@ -1,0 +1,36 @@
+name: Correct Sari Sari Casa Antigua
+
+on:
+  push:
+    branches:
+      - codex/catalog-casa-antigua-correction
+
+permissions:
+  contents: read
+
+concurrency:
+  group: budgetwise-correct-sari-sari-casa-antigua
+  cancel-in-progress: false
+
+jobs:
+  correct-product:
+    name: Correct one existing gamepass and verify checkout
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Correct Casa Antigua and verify
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/correct-sari-sari-casa-antigua.mjs
